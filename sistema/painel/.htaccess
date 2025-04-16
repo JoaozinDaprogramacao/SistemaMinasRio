@@ -1,0 +1,52 @@
+RewriteEngine On
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+
+RewriteRule ^usuarios(.*)$ index.php?pagina=usuarios [L]
+RewriteRule ^grupo_acessos(.*)$ index.php?pagina=grupo_acessos [L]
+RewriteRule ^acessos(.*)$ index.php?pagina=acessos [L]
+
+RewriteRule ^index(.*)$ index.php [L]
+RewriteRule ^bancos(.*)$ index.php?pagina=bancos [L]
+RewriteRule ^detalhes_bancos(.*)$ index.php?pagina=detalhes_bancos [L]
+RewriteRule ^receber(.*)$ index.php?pagina=receber [L]
+RewriteRule ^pagar(.*)$ index.php?pagina=pagar [L]
+RewriteRule ^formas_pgto(.*)$ index.php?pagina=formas_pgto [L]
+RewriteRule ^planos_pgto(.*)$ index.php?pagina=planos_pgto [L]
+RewriteRule ^descricao_banco(.*)$ index.php?pagina=descricao_banco [L]
+RewriteRule ^descricao(.*)$ index.php?pagina=descricao [L]
+RewriteRule ^frequencias(.*)$ index.php?pagina=frequencias [L]
+RewriteRule ^funcionarios(.*)$ index.php?pagina=funcionarios [L]
+RewriteRule ^fornecedores(.*)$ index.php?pagina=fornecedores [L]
+RewriteRule ^cargos(.*)$ index.php?pagina=cargos [L]
+RewriteRule ^clientes(.*)$ index.php?pagina=clientes [L]
+RewriteRule ^home(.*)$ index.php?pagina=home [L]
+RewriteRule ^caixas(.*)$ index.php?pagina=caixas [L]
+RewriteRule ^tarefas(.*)$ index.php?pagina=tarefas [L]
+
+
+RewriteRule ^romaneio_venda(.*)$ index.php?pagina=romaneio_venda [L]
+RewriteRule ^romaneio_compra(.*)$ index.php?pagina=romaneio_compra [L]
+RewriteRule ^romaneio_baldeio(.*)$ index.php?pagina=romaneio_baldeio [L]
+
+
+RewriteRule ^produtos(.*)$ index.php?pagina=produtos [L]
+RewriteRule ^tipo_caixa(.*)$ index.php?pagina=tipo_caixa [L]
+RewriteRule ^categorias(.*)$ index.php?pagina=categorias [L]
+RewriteRule ^unidade_medida(.*)$ index.php?pagina=unidade_medida [L]
+
+RewriteRule ^materiais(.*)$ index.php?pagina=materiais [L]
+RewriteRule ^detalhes_materiais(.*)$ index.php?pagina=detalhes_materiais [L]
+RewriteRule ^vendas(.*)$ index.php?pagina=vendas [L]
+RewriteRule ^compras(.*)$ index.php?pagina=compras [L]
+
+RewriteRule ^entradas(.*)$ index.php?pagina=entradas [L]
+RewriteRule ^saidas(.*)$ index.php?pagina=saidas [L]
+RewriteRule ^lista_vendas(.*)$ index.php?pagina=lista_vendas [L]
+RewriteRule ^orcamento(.*)$ index.php?pagina=orcamento [L]
+RewriteRule ^estoque(.*)$ index.php?pagina=estoque [L]
+RewriteRule ^comissoes(.*)$ index.php?pagina=comissoes [L]
+RewriteRule ^minhas_comissoes(.*)$ index.php?pagina=minhas_comissoes [L]
+
+
+RewriteRule ^dre(.*)$ index.php?pagina=dre [L]
