@@ -137,28 +137,20 @@ if (@$produtos == 'ocultar') {
 							<label for="fazenda">Fazenda</label>
 							<input type="text" class="fazenda" name="fazenda" placeholder="Desc. Fazenda">
 						</div>
-					</div>
-				</div>
-				<div class="row mt-3">
-					<div class="col-md-6">
-						<div class="form-group">
-							<label for="desc-funrural">DESC. FUNRURAL (R$)</label>
-							<div class="input-group">
-								<span class="input-group-text">R$</span>
-								<input type="text" class="form-control" id="desc-funrural" name="desc_funrural" 
-									   value="0,00" onkeyup="mascara_decimal('desc-funrural')">
-							</div>
-						</div>
-					</div>
-					
-					<div class="col-md-6">
-						<div class="form-group">
-							<label for="desc-ima">DESC. IMA/ABAN. (R$)</label>
-							<div class="input-group">
-								<span class="input-group-text">R$</span>
-								<input type="text" class="form-control" id="desc-ima" name="desc_ima_aban" 
-									   value="0,00" onkeyup="mascara_decimal('desc-ima')">
-							</div>
+						<div class="coluna_romaneio">
+							<label for="cliente">Cliente Atacadista</label>
+							<select id="cliente" name="cliente" class="plano_pgto"">
+								<option value="0">Cliente</option>
+								<?php
+								$query = $pdo->query("SELECT * from clientes order by id asc");
+								$res = $query->fetchAll(PDO::FETCH_ASSOC);
+								$linhas = @count($res);
+								if ($linhas > 0) {
+									for ($i = 0; $i < $linhas; $i++) { ?>
+										<option value="<?php echo $res[$i]['id'] ?>"><?php echo $res[$i]['nome'] ?></option>
+								<?php }
+								} ?>
+							</select>
 						</div>
 					</div>
 				</div>
@@ -188,7 +180,14 @@ if (@$produtos == 'ocultar') {
 						</div>
 						<div class="coluna_romaneio">
 							<label for="preco_kg_1">Preço KG</label>
-							<input type="text" class="preco_kg_1" id="preco_kg_1" name="preco_kg_1[]" onkeyup="mascara_decimal('preco_kg_1'); handleInput(this); calcularValores(this.closest('.linha_1'));">
+							<input
+								type="text"
+								class="preco_kg_1"
+								id="preco_kg_1"
+								name="preco_kg_1[]"
+								onkeyup="mascara_moeda(this); handleInput(this); calcularValores(this.closest('.linha_1'));"
+							/>
+
 						</div>
 						<div class="coluna_romaneio">
 							<label for="tipo_cx_1">TIPO CX</label>
@@ -251,6 +250,206 @@ if (@$produtos == 'ocultar') {
 						</div>
 					</div>
 				</div>
+
+				<!-- Container das 4 linhas de comissão -->
+<div id="linha-container_2">
+
+  <!-- Linha 1: FUNRURAL -->
+  <div class="linha_2">
+    <div class="linha-inferior linha-abatimentos">
+      <div class="coluna_romaneio">
+        <label for="desc_funrural">Descrição</label>
+        <input id="desc_funrural" type="text" value="FUNRURAL" readonly>
+      </div>
+      <div class="coluna_romaneio">
+        <label for="info_funrural">INFO</label>
+        <select id="info_funrural" onchange="calcularTaxaFunrural()">
+          <option value="">Selecione</option>
+          <option value="liquido">V. LIQUIDO</option>
+          <option value="bruto">V. BRUTO</option>
+        </select>
+      </div>
+      <div class="coluna_romaneio">
+        <label for="preco_unit_funrural">PREÇO UNIT</label>
+        <select id="preco_unit_funrural" onchange="calcularTaxaFunrural()">
+          <option value="">Selecione</option>
+          <option value="1.50">1,50 %</option>
+          <option value="2.00">2,00 %</option>
+        </select>
+      </div>
+      <div class="coluna_romaneio">
+        <label for="valor_funrural">Valor</label>
+        <input id="valor_funrural" type="text" class="valor_2" value="0,00" readonly>
+      </div>
+    </div>
+  </div>
+
+  <!-- Linha 2: IMA -->
+  <div class="linha_2">
+    <div class="linha-inferior linha-abatimentos">
+      <div class="coluna_romaneio">
+        <label for="desc_ima">Descrição</label>
+        <input id="desc_ima" type="text" value="IMA" readonly>
+      </div>
+      <div class="coluna_romaneio">
+        <label for="info_ima">INFO</label>
+        <select id="info_ima" onchange="calcularTaxaIma()">
+          <option value="">Selecione</option>
+          <option value="cx">CX</option>
+          <option value="um">1</option>
+        </select>
+      </div>
+      <div class="coluna_romaneio">
+        <label for="preco_unit_ima">PREÇO UNIT</label>
+        <select id="preco_unit_ima" onchange="calcularTaxaIma()">
+          <option value="">Selecione</option>
+          <option value="55.31">55,31</option>
+          <option value="0.25">0,25</option>
+          <option value="150.00">150,00</option>
+        </select>
+      </div>
+      <div class="coluna_romaneio">
+        <label for="valor_ima">Valor</label>
+        <input id="valor_ima" type="text" class="valor_2" value="0,00" readonly>
+      </div>
+    </div>
+  </div>
+
+  <!-- Linha 3: ABANORTE -->
+  <div class="linha_2">
+    <div class="linha-inferior linha-abatimentos">
+      <div class="coluna_romaneio">
+        <label for="desc_abanorte">Descrição</label>
+        <input id="desc_abanorte" type="text" value="ABANORTE" readonly>
+      </div>
+      <div class="coluna_romaneio">
+        <label for="info_abanorte">INFO</label>
+        <select id="info_abanorte" onchange="calcularTaxaAbanorte()">
+          <option value="">Selecione</option>
+          <option value="kg">KG</option>
+          <option value="um">1</option>
+        </select>
+      </div>
+      <div class="coluna_romaneio">
+        <label for="preco_unit_abanorte">PREÇO UNIT</label>
+        <select id="preco_unit_abanorte" onchange="calcularTaxaAbanorte()">
+          <option value="">Selecione</option>
+          <option value="52.80">52,80 %</option>
+          <option value="0.0025">0,0025 %</option>
+        </select>
+      </div>
+      <div class="coluna_romaneio">
+        <label for="valor_abanorte">Valor</label>
+        <input id="valor_abanorte" type="text" class="valor_2" value="0,00" readonly>
+      </div>
+    </div>
+  </div>
+
+  <!-- Linha 4: TAXA ADM -->
+  <div class="linha_2">
+    <div class="linha-inferior linha-abatimentos">
+      <div class="coluna_romaneio">
+        <label for="desc_taxa_adm">Descrição</label>
+        <input id="desc_taxa_adm" type="text" value="TAXA ADM" readonly>
+      </div>
+      <div class="coluna_romaneio">
+        <label for="taxa_adm_percent">Taxa (%)</label>
+        <input
+          id="taxa_adm_percent"
+          type="text"
+          onkeyup="mascara_moeda(this);"
+          oninput="calcularTaxaAdm()"
+          placeholder="0,00"
+        >
+      </div>
+      <div class="coluna_romaneio">
+        <label for="preco_unit_taxa_adm">PREÇO UNIT</label>
+        <select id="preco_unit_taxa_adm" onchange="calcularTaxaAdm()">
+          <option value="">Selecione</option>
+          <option value="5">5,00</option>
+        </select>
+      </div>
+      <div class="coluna_romaneio">
+        <label for="valor_taxa_adm">Valor</label>
+        <input id="valor_taxa_adm" type="text" class="valor_2" value="0,00" readonly>
+      </div>
+    </div>
+  </div>
+
+	</div>
+				<div id="linha-container_2"></div>
+				<div class="resumo-tabela">
+					<div class="resumo-linha">
+						<div class="resumo-celula">TOTAL COMISSÃO</div>
+						<div class="resumo-celula">R$ <p id="total_comissao">0,00</p>
+						</div>
+					</div>
+				</div>
+
+				<!-- ===== Sessão de Descontos Diversos ===== -->
+<div class="section-descontos">
+  <h3>Descontos Diversos</h3>
+  <button type="button" onclick="addDiscountLine()">+ Adicionar desconto</button>
+
+  <!-- Template escondido -->
+  <div id="discount-template" class="linha_3" style="display: none;">
+    <div class="linha-inferior linha-abatimentos">
+      <div class="coluna_romaneio">
+        <label>Tipo</label>
+        <select class="desconto-type" onchange="calcularDescontosDiversos()">
+          <option value="+">Adicionar</option>
+          <option value="-">Subtrair</option>
+        </select>
+      </div>
+      <div class="coluna_romaneio">
+        <label>Valor</label>
+        <input 
+          type="text" 
+          class="desconto-valor" 
+          placeholder="0,00"
+          onkeyup="mascara_moeda(this);" 
+          oninput="calcularDescontosDiversos()"
+        >
+      </div>
+      <div class="coluna_romaneio">
+        <label>Obs</label>
+        <input 
+          type="text" 
+          class="desconto-obs" 
+          placeholder="Observação"
+          oninput="calcularDescontosDiversos()"
+        >
+      </div>
+      <div class="coluna_romaneio">
+        <label>&nbsp;</label>
+        <button 
+          type="button" 
+          class="remove-btn" 
+          onclick="removeDiscountLine(this)"
+        >×</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Onde as linhas vão aparecer -->
+  <div id="discount-container"></div>
+
+  <!-- Total dessa sessão -->
+  <div class="resumo-tabela">
+    <div class="resumo-linha">
+      <div class="resumo-celula">Total Descontos</div>
+      <div class="resumo-celula">R$ <span id="total_descontos_diversos">0,00</span></div>
+    </div>
+  </div>
+</div>
+
+<div class="resumo-tabela final">
+  <div class="resumo-linha">
+    <div class="resumo-celula">TOTAL LÍQUIDO A PAGAR</div>
+    <div class="resumo-celula">R$ <span id="total_liquido_pagar">0,00</span></div>
+  </div>
+</div>
+
 	
 				<input type="hidden" id="valor_liquido" name="valor_liquido">
 				<input type="hidden" id="id" name="id">
@@ -263,12 +462,22 @@ if (@$produtos == 'ocultar') {
 			</form>
 
 		</div>
+		
 	</div>
 </div>
 
 
 
+
+
 <style>
+	.linha-abatimentos {
+		display: grid;
+		grid-template-columns: repeat(4, 1fr) !important; /* 4 colunas iguais */
+		gap: 15px;
+	}
+
+	
 	.radio {
 		display: flex !important;
 		align-items: center;
@@ -526,20 +735,7 @@ if (@$produtos == 'ocultar') {
                     </div>
                 </div>
 
-                <div class="row mt-3">
-                    <div class="col-md-4">
-                        <span class="fw-bold">Desc. Funrural:</span>
-                        <span id="desc_funrural_modal"></span>
-                    </div>
-                    <div class="col-md-4">
-                        <span class="fw-bold">Desc. IMA/ABAN:</span>
-                        <span id="desc_ima_aban_modal"></span>
-                    </div>
-                    <div class="col-md-4">
-                        <span class="fw-bold">Total Líquido:</span>
-                        <span id="total_liquido_modal"></span>
-                    </div>
-                </div>
+                
             </div>
         </div>
     </div>
@@ -647,7 +843,73 @@ if (@$produtos == 'ocultar') {
 </div>
 
 
+<script type="text/javascript">
+	function limparFormulario() {
+  // 1) Limpa campos fixos do cabeçalho
 
+  $('#mensagem-sucesso').hide();
+
+  $('.data_atual').val(new Date().toISOString().split('T')[0]);
+  $('#fornecedor').val('');
+  $('#plano_pgto').val('');
+  $('#nota_fiscal').val('');
+  $('#quant_dias').val('');
+  $('#vencimento').val('');
+  $('#fazenda').val('');
+  $('#cliente').val('');
+
+  // 2) Limpa sessão de produtos
+  $('#linha-container_1').empty();
+  addNewLine1();  // Insere a primeira linha em branco
+
+  // 3) Limpa totais de produtos
+  $('#total_caixa').text('0 CXS');
+  $('#total_kg').text('0 KG');
+  $('#total_bruto').text('R$ 0,00');
+  $('#desc-avista').val('');
+  $('#total-desc').text('R$ 0,00');
+  $('#total-geral').text('0,00');
+  $('#valor_liquido').val('0,00');
+
+    // 4) **Não** remover o container todo. Apenas limpar valores:
+  $('#info_funrural, #preco_unit_funrural').prop('selectedIndex', 0);
+  $('#valor_funrural').val('0,00');
+  $('#info_ima, #preco_unit_ima').prop('selectedIndex', 0);
+  $('#valor_ima').val('0,00');
+  $('#info_abanorte, #preco_unit_abanorte').prop('selectedIndex', 0);
+  $('#valor_abanorte').val('0,00');
+  $('#taxa_adm_percent').val('');
+  $('#preco_unit_taxa_adm').prop('selectedIndex', 0);
+  $('#valor_taxa_adm').val('0,00');
+  $('#total_comissao').text('0,00');
+  // Se suas linhas de comissão são estáticas na página, resete cada select/input:
+  $('#info_funrural, #preco_unit_funrural').prop('selectedIndex', 0);
+  $('#valor_funrural').val('0,00');
+  $('#info_ima, #preco_unit_ima').prop('selectedIndex', 0);
+  $('#valor_ima').val('0,00');
+  $('#info_abanorte, #preco_unit_abanorte').prop('selectedIndex', 0);
+  $('#valor_abanorte').val('0,00');
+  $('#taxa_adm_percent').val('');
+  $('#preco_unit_taxa_adm').prop('selectedIndex', 0);
+  $('#valor_taxa_adm').val('0,00');
+  $('#total_comissao').text('0,00');
+
+  // 5) Limpa sessão de descontos diversos
+  $('#discount-container').empty();
+  addDiscountLine();  // Insere uma linha de desconto em branco
+  $('#total_descontos_diversos').text('0,00');
+
+  // 6) Limpa total líquido a pagar
+  $('#total_liquido_pagar').text('0,00');
+
+  // 7) Recalcula todas as fórmulas (caso existam listeners)
+  if (typeof calculaTotais === 'function') calculaTotais();
+  if (typeof calculaTotais2 === 'function') calculaTotais2();
+  if (typeof calcularDescontosDiversos === 'function') calcularDescontosDiversos();
+  if (typeof updateLiquidPayable === 'function') updateLiquidPayable();
+}
+
+</script>
 
 <script type="text/javascript">
 	var pag = "<?= $pag ?>"
@@ -764,6 +1026,28 @@ if (@$produtos == 'ocultar') {
 				console.error('Erro na requisição:', error);
 				$('#btn-salvar').prop('disabled', false);
 				$('#mensagem-erro').html('Erro ao comunicar com o servidor. Tente novamente.').show();
+				
+				// Registrar detalhes do erro no console para depuração
+				console.log('Status da requisição:', xhr.status);
+				console.log('Texto do status:', xhr.statusText);
+				console.log('Resposta:', xhr.responseText);
+				
+				// Tentar exibir mais detalhes, se disponíveis
+				if (xhr.responseText) {
+					try {
+						const resposta = JSON.parse(xhr.responseText);
+						if (resposta.mensagem) {
+							$('#mensagem-erro').html('Erro: ' + resposta.mensagem).show();
+						}
+					} catch (e) {
+						// Se não for um JSON válido, exibir uma parte do texto da resposta
+						if (xhr.responseText.length > 100) {
+							$('#mensagem-erro').html('Erro: ' + xhr.responseText.substring(0, 100) + '...').show();
+						} else {
+							$('#mensagem-erro').html('Erro: ' + xhr.responseText).show();
+						}
+					}
+				}
 			}
 		});
 		
@@ -882,46 +1166,7 @@ if (@$produtos == 'ocultar') {
 	});
 </script>
 
-<script type="text/javascript">
-	function limparFormulario() {
-		// Desabilitar temporariamente os eventos change
-		$('#fornecedor, #plano_pgto, .produto_1, .tipo_cx_1').off('change');
-		
-		// Limpar campos de data e informações gerais
-		$('.data_atual').val(new Date().toISOString().split('T')[0]);
-		$('#fornecedor').val('');
-		$('#plano_pgto').val('');
-		$('#nota_fiscal').val('');
-		$('#quant_dias').val('0');
-		$('#vencimento').val('');
-		$('#fazenda').val('');
-		
-		// Limpar valores e descrições
-		$('#desc-funrural').val('0,00');
-		$('#desc-ima').val('0,00');
-		$('#valor_total').val('0,00');
-		$('#valor_liquido').val('0,00');
-		
-		// Remover todas as linhas existentes
-		$('#linha-container_1').empty();
-		
-		// Adicionar uma nova linha usando a função existente
-		addNewLine1();
-		
-		// Reativar eventos após um pequeno delay
-		setTimeout(function() {
-			$('#fornecedor').on('change', function() {
-				buscarDadosFornecedor($(this).val());
-			});
-			
-			$('#plano_pgto').on('change', verificarPlanoAVista);
-			$('.produto_1, .tipo_cx_1').on('change', calculaTotais);
-			
-			// Dispara o trigger manualmente após reativar os eventos
-			calculaTotais();
-		}, 100);
-	}
-</script>
+
 
 <script type="text/javascript">
 	$('#fornecedor').on('change', function() {
@@ -975,36 +1220,51 @@ if (@$produtos == 'ocultar') {
 </script>
 
 <script type="text/javascript">
-	function mascara_moeda(campo) {
-		// Remove tudo que não é número
-		let valor = campo.value.replace(/\D/g, '');
-		
-		// Converte para número e formata com 2 casas decimais
-		valor = (parseFloat(valor) / 100).toFixed(2);
-		
-		// Substitui ponto por vírgula
-		valor = valor.replace('.', ',');
-		
-		// Atualiza o valor do campo
-		campo.value = valor;
-		
-		// Recalcula os totais
-		calculaTotais();
-	}
-</script>
-
-<script type="text/javascript">
 	function mascara_decimal(campo) {
 		var valor = $('#'+campo).val();
+		
+		// Remover caracteres inválidos, manter apenas números e vírgula
 		valor = valor.replace(/[^0-9,]/g, '');
-		if(valor.indexOf(',') !== -1) {
-			valor = valor.replace(/,/g, '');
+		
+		// Se não tiver valor, define como zero
+		if (valor === '' || valor === undefined) {
+			valor = '0';
 		}
-		valor = parseFloat(valor) / 100;
-		valor = valor.toFixed(2);
-		valor = valor.replace('.', ',');
+		
+		// Tratar a vírgula
+		if(valor.indexOf(',') !== -1) {
+			// Se já tiver vírgula, garantir que o formato está correto
+			var partes = valor.split(',');
+			if (partes.length > 2) {
+				// Se tiver mais de uma vírgula, considera apenas a primeira
+				valor = partes[0] + ',' + partes[1];
+			}
+			
+			// Formatar para cálculo
+			valor = valor.replace(',', '.');
+		}
+		
+		// Converter para número e formatar
+		try {
+			var numero = parseFloat(valor);
+			if (isNaN(numero)) {
+				numero = 0;
+			}
+			
+			// Formatar com 2 casas decimais
+			valor = numero.toFixed(2).replace('.', ',');
+		} catch (e) {
+			console.error('Erro ao formatar valor decimal:', e);
+			valor = '0,00';
+		}
+		
+		// Atualizar o campo
 		$('#'+campo).val(valor);
-		calculaTotais();
+		
+		// Recalcular totais se necessário
+		if (typeof calculaTotais === 'function') {
+			calculaTotais();
+		}
 	}
 </script>
 

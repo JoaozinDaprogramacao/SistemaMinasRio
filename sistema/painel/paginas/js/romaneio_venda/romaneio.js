@@ -90,14 +90,24 @@ function handleInput3(input) {
     }
 }
 
-function mascara_moeda(valor) {
-    var valorAlterado = $('#' + valor).val();
-    valorAlterado = valorAlterado.replace(/\D/g, ""); // Remove todos os não dígitos
-    valorAlterado = valorAlterado.replace(/(\d+)(\d{2})$/, "$1,$2"); // Adiciona a parte de centavos
-    valorAlterado = valorAlterado.replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1."); // Adiciona pontos a cada três dígitos
-    valorAlterado = valorAlterado;
-    $('#' + valor).val(valorAlterado);
+function mascara_moeda(el) {
+  // el é o <input> que chamou
+  var $campo = $(el);
+  var v      = $campo.val();
+
+  // limpa tudo que não for dígito
+  v = v.replace(/\D/g, "");
+
+  // insere vírgula antes dos dois últimos dígitos
+  v = v.replace(/(\d+)(\d{2})$/, "$1,$2");
+
+  // ponto a cada três dígitos
+  v = v.replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1.");
+
+  $campo.val(v);
+  console.log("Valor alterado:", v);
 }
+
 
 function calcularValores(linha) {
 

@@ -1223,57 +1223,91 @@ if (@$produtos == 'ocultar') {
 		// Carrega dados dos romaneios selecionados
 		carregarDadosRomaneios();
 	}
+function carregarDadosRomaneios() {
+  if (romaneiosSelecionados.length === 0) {
+    console.log('▶ [Romaneio] Nenhum romaneio selecionado – limpando lista.');
+    $('#linha-container_1').empty();
+    calculaTotais();
+    return;
+  }
 
-	function carregarDadosRomaneios() {
-		if (romaneiosSelecionados.length === 0) {
-			$('#linha-container_1').empty();
-			calculaTotais();
-			return;
-		}
-		
-		console.log('Enviando requisição para buscar produtos dos romaneios:', romaneiosSelecionados);
-		
-		$.ajax({
-			url: 'paginas/romaneio_venda/buscar_produtos_romaneio.php',
-			method: 'POST',
-			data: {ids: romaneiosSelecionados},
-			dataType: 'json',
-			success: function(dados) {
-				console.log('Dados recebidos:', dados);
-				$('#linha-container_1').empty();
-				
-				if (!dados || dados.length === 0) {
-					console.log('Nenhum dado retornado');
-					return;
-				}
-				
-				dados.forEach(function(produto) {
-					let novaLinha = $('#linha-template_1').clone();
-					novaLinha.removeAttr('id').show();
-					
-					console.log('Preenchendo linha com produto:', produto);
-					
-					novaLinha.find('.quant_caixa_1').val(produto.quant);
-					novaLinha.find('.produto_1').val(produto.variedade);
-					novaLinha.find('.preco_kg_1').val(produto.preco_kg);
-					novaLinha.find('.tipo_cx_1').val(produto.tipo_caixa);
-					novaLinha.find('.preco_unit_1').val(produto.preco_unit);
-					novaLinha.find('.valor_1').val(produto.valor);
-					
-					$('#linha-container_1').append(novaLinha);
-				});
-				
-				calculaTotais();
-			},
-			error: function(xhr, status, error) {
-				console.error('Erro ao buscar dados:', {
-					status: status,
-					error: error,
-					response: xhr.responseText
-				});
-			}
-		});
-	}
+  console.log('▶ [Romaneio] IDs selecionados:', romaneiosSelecionados);
+
+  $.ajax({
+    url: 'paginas/romaneio_venda/buscar_produtos_romaneio.php',
+    method: 'POST',
+    data: { ids: romaneiosSelecionados },
+    dataType: 'json',
+
+    beforeSend: function(jqXHR, settings) {
+      console.groupCollapsed('⏳ [Romaneio] Iniciando requisição AJAX');
+      console.log('URL:         ', settings.url);
+      console.log('Método:      ', settings.type);
+      console.log('Payload:     ', settings.data);
+      console.groupEnd();
+    },
+
+    success: function(response, textStatus, jqXHR) {
+      console.groupCollapsed('✅ [Romaneio] Resposta AJAX recebida');
+      console.log('HTTP Status:  ', jqXHR.status, jqXHR.statusText);
+      console.log('textStatus:   ', textStatus);
+      console.log('Resposta bruta:', response);
+
+      // Se o servidor enviou o wrapper { debug, data }
+      var dados = response.data || response;
+      if (response.debug) {
+        console.group('🛠 [Romaneio] Debug do servidor');
+        console.log('IDs recebidos (server):', response.debug.ids_recebidos);
+        console.log('Placeholders SQL:      ', response.debug.placeholders);
+        console.log('SQL completo:          ', response.debug.sql);
+        console.log('Bind values:           ', response.debug.bind_values);
+        console.log('Tempo exec (s):        ', response.debug.duration_sec);
+        console.log('Linhas retornadas:     ', response.debug.row_count);
+        console.groupEnd();
+      }
+
+      console.group('📦 [Romaneio] Produtos retornados');
+      console.log('Total de produtos:', dados.length);
+      console.table(dados);
+      console.groupEnd();
+      console.groupEnd();
+
+      $('#linha-container_1').empty();
+
+      if (!dados || dados.length === 0) {
+        console.warn('⚠️ [Romaneio] Nenhum dado retornado');
+        return;
+      }
+
+      dados.forEach(function(produto, idx) {
+        console.log(`[Romaneio] Preenchendo linha #${idx}`, produto);
+        let novaLinha = $('#linha-template_1').clone();
+        novaLinha.removeAttr('id').show();
+
+        novaLinha.find('.quant_caixa_1').val(produto.quant);
+        novaLinha.find('.produto_1').val(produto.variedade);
+        novaLinha.find('.preco_kg_1').val(produto.preco_kg);
+        novaLinha.find('.tipo_cx_1').val(produto.tipo_caixa);
+        novaLinha.find('.preco_unit_1').val(produto.preco_unit);
+        novaLinha.find('.valor_1').val(produto.valor);
+
+        $('#linha-container_1').append(novaLinha);
+      });
+
+      calculaTotais();
+    },
+
+    error: function(jqXHR, textStatus, errorThrown) {
+      console.group('❌ [Romaneio] Erro na requisição AJAX');
+      console.error('textStatus:  ', textStatus);
+      console.error('HTTP Status: ', jqXHR.status, jqXHR.statusText);
+      console.error('errorThrown: ', errorThrown);
+      console.error('responseText:', jqXHR.responseText);
+      console.groupEnd();
+    }
+  });
+}
+
 </script>
 
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />

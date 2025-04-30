@@ -11,9 +11,62 @@ header('Content-Type: application/json; charset=utf-8');
 // Validações básicas dos campos obrigatórios
 $erros = [];
 
+
+$id = $_POST['id'];
+$fornecedor = $_POST['fornecedor'];
+$cliente = $_POST['cliente'];
+$data = $_POST['data'];
+$plano_pgto = $_POST['plano_pgto'];
+$quant_dias = $_POST['quant_dias']; // Valor de quant_dias
+$nota_fiscal = $_POST['nota_fiscal'];
+$vencimento = $_POST['vencimento'];
+$fazenda = $_POST['fazenda'];
+$desc_funrural = str_replace(',', '.', $_POST['desc_funrural'] ?? '0');
+$desc_ima_aban = str_replace(',', '.', $_POST['desc_ima_aban'] ?? '0');
+
+// Se quant_dias estiver vazio, atribui o valor padrão 0
+if ($quant_dias === '' || !is_numeric($quant_dias)) {
+    $quant_dias = 0; // Pode ser também NULL, dependendo da sua necessidade no banco de dados
+}
+
+// Campos que podem ser arrays
+$quant_caixa_1 = $_POST['quant_caixa_1'] ?? [];
+$produto_1 = $_POST['produto_1'] ?? [];
+$preco_kg_1 = $_POST['preco_kg_1'] ?? [];
+$tipo_cx_1 = $_POST['tipo_cx_1'] ?? [];
+$preco_unit_1 = $_POST['preco_unit_1'] ?? [];
+$valor_1 = $_POST['valor_1'] ?? [];
+
+// Converter para float
+$desc_funrural = floatval(str_replace(',', '.', $_POST['desc_funrural'] ?? '0'));
+$desc_ima_aban = floatval(str_replace(',', '.', $_POST['desc_ima_aban'] ?? '0'));
+
+// Calcular total bruto
+$total_bruto = array_reduce($valor_1, function ($carry, $item) {
+    return $carry + (float) str_replace(',', '.', $item);
+}, 0);
+
+// Aplicar os descontos
+$total_liquido = $total_bruto;
+
+// Aplicar desconto FUNRURAL se houver
+if ($desc_funrural > 0) {
+    $total_liquido -= $desc_funrural;
+}
+
+// Aplicar desconto IMA/ABAN se houver
+if ($desc_ima_aban > 0) {
+    $total_liquido -= $desc_ima_aban;
+}
+
 // Validação do Fornecedor
 if (empty($_POST['fornecedor']) || $_POST['fornecedor'] == '0') {
     $erros[] = "Selecione um fornecedor";
+}
+
+
+if (empty($_POST['cliente']) || $_POST['cliente'] == '0') {
+    $erros[] = "Selecione um Cliente";
 }
 
 // Validação da Data
@@ -93,51 +146,6 @@ if (!empty($erros)) {
     exit;
 }
 
-$id = $_POST['id'];
-$fornecedor = $_POST['fornecedor'];
-$data = $_POST['data'];
-$plano_pgto = $_POST['plano_pgto'];
-$quant_dias = $_POST['quant_dias']; // Valor de quant_dias
-$nota_fiscal = $_POST['nota_fiscal'];
-$vencimento = $_POST['vencimento'];
-$fazenda = $_POST['fazenda'];
-$desc_funrural = str_replace(',', '.', $_POST['desc_funrural'] ?? '0');
-$desc_ima_aban = str_replace(',', '.', $_POST['desc_ima_aban'] ?? '0');
-
-// Se quant_dias estiver vazio, atribui o valor padrão 0
-if ($quant_dias === '' || !is_numeric($quant_dias)) {
-    $quant_dias = 0; // Pode ser também NULL, dependendo da sua necessidade no banco de dados
-}
-
-// Campos que podem ser arrays
-$quant_caixa_1 = $_POST['quant_caixa_1'] ?? [];
-$produto_1 = $_POST['produto_1'] ?? [];
-$preco_kg_1 = $_POST['preco_kg_1'] ?? [];
-$tipo_cx_1 = $_POST['tipo_cx_1'] ?? [];
-$preco_unit_1 = $_POST['preco_unit_1'] ?? [];
-$valor_1 = $_POST['valor_1'] ?? [];
-
-// Converter para float
-$desc_funrural = floatval(str_replace(',', '.', $_POST['desc_funrural'] ?? '0'));
-$desc_ima_aban = floatval(str_replace(',', '.', $_POST['desc_ima_aban'] ?? '0'));
-
-// Calcular total bruto
-$total_bruto = array_reduce($valor_1, function ($carry, $item) {
-    return $carry + (float) str_replace(',', '.', $item);
-}, 0);
-
-// Aplicar os descontos
-$total_liquido = $total_bruto;
-
-// Aplicar desconto FUNRURAL se houver
-if ($desc_funrural > 0) {
-    $total_liquido -= $desc_funrural;
-}
-
-// Aplicar desconto IMA/ABAN se houver
-if ($desc_ima_aban > 0) {
-    $total_liquido -= $desc_ima_aban;
-}
 
 // Inicializando os arrays validados
 $quant_caixa_1_val = [];
@@ -208,6 +216,7 @@ if (!empty($erros)) {
 if ($id == "") {
     $query = $pdo->prepare("INSERT INTO $tabela SET 
         fornecedor = :fornecedor, 
+        cliente = :cliente, 
         quant_dias = :quant_dias, 
         data = :data, 
         nota_fiscal = :nota_fiscal, 
@@ -220,6 +229,7 @@ if ($id == "") {
 } else {
     $query = $pdo->prepare("UPDATE $tabela SET 
         fornecedor = :fornecedor, 
+        cliente = :cliente,
         quant_dias = :quant_dias, 
         data = :data, 
         nota_fiscal = :nota_fiscal, 
@@ -233,6 +243,7 @@ if ($id == "") {
 }
 
 $query->bindValue(":fornecedor", $fornecedor);
+$query->bindValue(":cliente", $cliente);
 $query->bindValue(":data", $data);
 $query->bindValue(":nota_fiscal", $nota_fiscal);
 $query->bindValue(":plano_pgto", $plano_pgto);
@@ -248,52 +259,65 @@ if ($id != "") {
 }
 
 if ($query->execute()) {
-    // Após salvar o romaneio_compra, inserir os produtos
-    if ($id != "") {
-        $pdo->prepare("DELETE FROM linha_produto_compra WHERE id_romaneio = ?")->execute([$id]);
+        // Após salvar o romaneio_compra, inserir os produtos
+        
+    // 1) determina o ID real do romaneio salvo
+    if ($id === "" || $id === null) {
+        // acabou de inserir um novo romaneio
+        $romaneioId = $pdo->lastInsertId();
+    } else {
+        // estava editando um existente
+        $romaneioId = $id;
     }
 
-    foreach ($_POST['valor_1'] as $key => $valor) {
-        if (!empty($valor)) {
-            $query = $pdo->prepare("INSERT INTO linha_produto_compra (
-                id_romaneio, 
-                quant, 
-                variedade, 
-                preco_kg, 
-                tipo_caixa, 
-                preco_unit, 
-                valor
-            ) VALUES (?, ?, ?, ?, ?, ?, ?)");
-            
-            // Buscar o ID do tipo_caixa baseado no valor decimal
-            $tipo_caixa_valor = str_replace(',', '.', $_POST['tipo_cx_1'][$key]);
-            $stmt = $pdo->prepare("SELECT id FROM tipo_caixa WHERE tipo = ?");
-            $stmt->execute([$tipo_caixa_valor]);
-            $tipo_caixa = $stmt->fetchColumn();
-            
-            if (!$tipo_caixa) {
-                // Se não encontrar o tipo_caixa, insere um novo
-                $stmt = $pdo->prepare("INSERT INTO tipo_caixa (tipo, unidade_medida) VALUES (?, 1)");
-                $stmt->execute([$tipo_caixa_valor]);
-                $tipo_caixa = $pdo->lastInsertId();
-            }
-            
-            $query->execute([
-                $id ?: $pdo->lastInsertId(),
-                $_POST['quant_caixa_1'][$key],
-                $_POST['produto_1'][$key],
-                str_replace(',', '.', $_POST['preco_kg_1'][$key]),
-                $tipo_caixa, // Agora usando o ID do tipo_caixa
-                str_replace(',', '.', $_POST['preco_unit_1'][$key]),
-                str_replace(',', '.', $valor)
-            ]);
+    // 2) apaga as linhas antigas (se for edição)
+    $delete = $pdo->prepare("DELETE FROM linha_produto_compra WHERE id_romaneio = ?");
+    $delete->execute([$romaneioId]);
+
+    // 3) prepara UMA SÓ vez o statement de inserção de linha
+    $insertLinha = $pdo->prepare("
+        INSERT INTO linha_produto_compra
+        (id_romaneio, quant, variedade, preco_kg, tipo_caixa, preco_unit, valor)
+        VALUES
+        (?, ?, ?, ?, ?, ?, ?)
+    ");
+
+    foreach ($quant_caixa_1_val as $key => $q) {
+        $v       = $valor_1_val[$key];
+        $var     = $produto_1_val[$key];
+        $pkg     = str_replace(',', '.', $preco_kg_1_val[$key]);
+        $pun     = str_replace(',', '.', $preco_unit_1_val[$key]);
+        $tipoVal = str_replace(',', '.', $tipo_cx_1_val[$key]);
+
+        // pega ou cria o tipo_caixa
+        $stmtTipo = $pdo->prepare("SELECT id FROM tipo_caixa WHERE tipo = ?");
+        $stmtTipo->execute([$tipoVal]);
+        $tipoCx = $stmtTipo->fetchColumn();
+        if (!$tipoCx) {
+            $stmtNew = $pdo->prepare("INSERT INTO tipo_caixa (tipo, unidade_medida) VALUES (?, 1)");
+            $stmtNew->execute([$tipoVal]);
+            $tipoCx = $pdo->lastInsertId();
         }
+
+        // 4) insere usando sempre $romaneioId
+        $insertLinha->execute([
+            $romaneioId,
+            $q,
+            $var,
+            $pkg,
+            $tipoCx,
+            $pun,
+            str_replace(',', '.', $v)
+        ]);
     }
 
+    // 5) devolve sucesso
     echo json_encode([
-        'status' => 'sucesso',
-        'mensagem' => 'Salvo com Sucesso'
+    'status'  => 'sucesso',
+    'mensagem'=> 'Salvo com sucesso',
+    'id'      => $romaneioId
     ], JSON_UNESCAPED_UNICODE);
+    exit;
 } else {
     echo json_encode([
         'status' => 'erro',
