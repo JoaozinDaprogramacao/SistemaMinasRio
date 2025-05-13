@@ -19,7 +19,6 @@ function addNewLine1() {
     container.appendChild(newLine);
 }
 
-
 // Função chamada ao preencher um campo
 function handleInput(input) {
     const linha = input.closest(".linha_1");
@@ -495,9 +494,22 @@ function addDiscountLine() {
   const container = document.getElementById("discount-container");
   const newLine = tpl.cloneNode(true);
   newLine.style.display = "block";
-  newLine.id = "";
+  newLine.id = ""; 
+
+  // Anexa handlers sem usar atributos inline
+  const tipoEl  = newLine.querySelector('.desconto-type');
+  const valorEl = newLine.querySelector('.desconto-valor');
+  tipoEl.addEventListener('change', calcularDescontosDiversos);
+  valorEl.addEventListener('input', function(e){
+    mascara_moeda(e.target);
+    calcularDescontosDiversos();
+  });
   container.appendChild(newLine);
+
+  // e já roda uma vez para atualizar a soma
+  calcularDescontosDiversos();
 }
+
 
 // Remove uma linha de desconto
 function removeDiscountLine(btn) {
@@ -511,39 +523,51 @@ function fmtBrasil(num) {
   return num.toFixed(2).replace(".", ",");
 }
 
-// Converte "1.234,56" → number
-function parseBrasil(str) {
-  return parseFloat(
-    str.replace(/[^0-9,]/g, "")
-       .replace(/\./g, "")
-       .replace(",", ".")
-  ) || 0;
-}
-
 // Recalcula o total de descontos diversos
 function calcularDescontosDiversos() {
+  const linhas = document.querySelectorAll('#discount-container .linha_3');
   let total = 0;
 
-  document.querySelectorAll('#discount-container .linha-inferior').forEach(linha => {
-    const tipoEl = linha.querySelector('.desconto-type');
-    const valorEl = linha.querySelector('.desconto-valor');
+  linhas.forEach(linha => {
+    const tipo = linha.querySelector('.desconto-type').value;  // '+' ou '-'
+    let txt = linha.querySelector('.desconto-valor').value || '0';
 
-    // 1) extrai só os dígitos (ex: "0,05" → "005", "12,34" → "1234")
-    const digits = (valorEl.value || '').replace(/\D/g, '');
+    // 1) mantém só dígitos, vírgula e sinal de menos
+    txt = txt.replace(/[^0-9\-,]/g, '');
 
-    // 2) converte para número real (divide por 100)
-    const val = digits ? parseInt(digits, 10) / 100 : 0;
+    // 2) remove todos os pontos de milhar (ex.: "1.234,56" → "1234,56")
+    txt = txt.replace(/\./g, '');
 
-    // 3) adiciona ou subtrai
-    total += (tipoEl.value === '+' ? val : -val);
+    // 3) transforma vírgulas em ponto (ex.: "1234,56" → "1234.56")
+    txt = txt.replace(/,/g, '.');
+
+    const valor = parseFloat(txt) || 0;
+    total += (tipo === '+' ? valor : -valor);
   });
 
-  // 4) formata e imprime
-  document.getElementById('total_descontos_diversos').textContent =
-    total.toFixed(2).replace('.', ',');
+  // 4) atualiza o campo com formatação pt-BR
+  const out = document.getElementById('total_descontos_diversos');
+  out.textContent = total
+    .toFixed(2)       // duas casas
+    .replace('.', ','); // vírgula decimal
 
-  // 5) refaz o total geral
-  if (typeof calculaTotais === 'function') calculaTotais();
+  // Se você tiver uma rotina de recálculo geral, chama de novo:
+  if (typeof calculaTotais === 'function') {
+    calculaTotais();
+  }
+}
+
+
+
+function parseBrasilComSinal(str) {
+  if (!str) return 0;
+  // detecta sinal
+  const negativo = str.trim().startsWith("-");
+  // remove tudo que não é dígito ou vírgula
+  let s = str.replace(/[^0-9,]/g, "");
+  s = s.replace(",", ".");
+  let num = parseFloat(s) || 0;
+  return negativo ? -num : num;
 }
 
 
@@ -561,12 +585,12 @@ function updateLiquidPayable() {
   );
 
   // 3) Total de descontos diversos
-  const descontos = parseBrasil(
+  const descontos = parseBrasilComSinal(
     document.getElementById('total_descontos_diversos').textContent
-  );
+  );  
 
   // 4) Cálculo final
-  const finalLiquido = liquidBase - comissao - descontos;
+  const finalLiquido = liquidBase - comissao + descontos;
 
   // 5) Preenche no formulário
   document.getElementById('total_liquido_pagar').textContent =
@@ -596,3 +620,9 @@ window.calculaTotais = function(...args) {
   originalCalculaTotais?.apply(this, args);
   updateLiquidPayable();
 };
+
+
+/**
+ * Chame esta função passando o id do romaneio:
+ *   mostrar(123);
+ */

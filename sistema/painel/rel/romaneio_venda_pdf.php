@@ -130,8 +130,9 @@ $materiais = $query->fetchAll(PDO::FETCH_ASSOC);
         .col-unit { width: 15%; }
         .col-valor { width: 15%; }
 
+        /* Assinatura centralizada */
         .assinatura {
-            margin-top: 30px;
+            margin: 30px auto 0; /* topo 30px, auto nas laterais para centralizar */
             border-top: 1px solid #000;
             width: 200px;
             text-align: center;
@@ -249,4 +250,4 @@ $materiais = $query->fetchAll(PDO::FETCH_ASSOC);
         ASS. Emitente Resp.
     </div>
 </body>
-</html> 
+</html>

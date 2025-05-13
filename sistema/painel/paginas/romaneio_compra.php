@@ -279,7 +279,7 @@ if (@$produtos == 'ocultar') {
       </div>
       <div class="coluna_romaneio">
         <label for="valor_funrural">Valor</label>
-        <input id="valor_funrural" type="text" class="valor_2" value="0,00" readonly>
+        <input id="valor_funrural" name="desc_funrural" type="text" class="valor_2" value="0,00" readonly>
       </div>
     </div>
   </div>
@@ -310,7 +310,7 @@ if (@$produtos == 'ocultar') {
       </div>
       <div class="coluna_romaneio">
         <label for="valor_ima">Valor</label>
-        <input id="valor_ima" type="text" class="valor_2" value="0,00" readonly>
+        <input id="valor_ima" name="desc_ima" type="text" class="valor_2" value="0,00" readonly>
       </div>
     </div>
   </div>
@@ -340,7 +340,7 @@ if (@$produtos == 'ocultar') {
       </div>
       <div class="coluna_romaneio">
         <label for="valor_abanorte">Valor</label>
-        <input id="valor_abanorte" type="text" class="valor_2" value="0,00" readonly>
+        <input id="valor_abanorte" name="desc_abanorte" type="text" class="valor_2" value="0,00" readonly>
       </div>
     </div>
   </div>
@@ -371,7 +371,7 @@ if (@$produtos == 'ocultar') {
       </div>
       <div class="coluna_romaneio">
         <label for="valor_taxa_adm">Valor</label>
-        <input id="valor_taxa_adm" type="text" class="valor_2" value="0,00" readonly>
+        <input id="valor_taxa_adm" name="valor_taxa_adm" type="text" class="valor_2" value="0,00" readonly>
       </div>
     </div>
   </div>
@@ -396,7 +396,7 @@ if (@$produtos == 'ocultar') {
     <div class="linha-inferior linha-abatimentos">
       <div class="coluna_romaneio">
         <label>Tipo</label>
-        <select class="desconto-type" onchange="calcularDescontosDiversos()">
+        <select class="desconto-type" name="desconto_tipo[]" onchange="calcularDescontosDiversos()">
           <option value="+">Adicionar</option>
           <option value="-">Subtrair</option>
         </select>
@@ -406,6 +406,7 @@ if (@$produtos == 'ocultar') {
         <input 
           type="text" 
           class="desconto-valor" 
+		  name="desconto_valor[]"
           placeholder="0,00"
           onkeyup="mascara_moeda(this);" 
           oninput="calcularDescontosDiversos()"
@@ -416,6 +417,7 @@ if (@$produtos == 'ocultar') {
         <input 
           type="text" 
           class="desconto-obs" 
+		  name="desconto_obs[]"
           placeholder="Observação"
           oninput="calcularDescontosDiversos()"
         >
@@ -458,6 +460,8 @@ if (@$produtos == 'ocultar') {
 				</div>
 				<small>
 					<div id="mensagem" align="center"></div>
+					<div id="mensagemErro" class="alert alert-danger" style="display:none;"></div>
+
 				</small>
 			</form>
 
@@ -674,72 +678,128 @@ if (@$produtos == 'ocultar') {
 	}
 </style>
 
-
-
 <!-- Modal Dados -->
 <div class="modal fade" id="modalMostrarDados" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header bg-primary text-white">
-                <h4 class="modal-title">Detalhes do Romaneio de Compra</h4>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <div class="row">
-                    <div class="col-md-4">
-                        <span class="fw-bold">Fornecedor:</span>
-                        <span id="fornecedor_modal"></span>
-                    </div>
-                    <div class="col-md-4">
-                        <span class="fw-bold">Data:</span>
-                        <span id="data_modal"></span>
-                    </div>
-                    <div class="col-md-4">
-                        <span class="fw-bold">Nota Fiscal:</span>
-                        <span id="nota_modal"></span>
-                    </div>
-                </div>
-
-                <div class="row mt-2">
-                    <div class="col-md-4">
-                        <span class="fw-bold">Plano de Pagamento:</span>
-                        <span id="plano_modal"></span>
-                    </div>
-                    <div class="col-md-4">
-                        <span class="fw-bold">Vencimento:</span>
-                        <span id="vencimento_modal"></span>
-                    </div>
-                    <div class="col-md-4">
-                        <span class="fw-bold">Quantidade de Dias:</span>
-                        <span id="quant_dias_modal"></span>
-                    </div>
-                </div>
-
-                <div class="mt-4">
-                    <h6 class="fw-bold">Produtos</h6>
-                    <div class="table-responsive">
-                        <table class="table table-striped">
-                            <thead>
-                                <tr>
-                                    <th>Variedade</th>
-                                    <th>Tipo Caixa</th>
-                                    <th>Quant</th>
-                                    <th>Preço KG</th>
-                                    <th>Preço Unit</th>
-                                    <th>Valor</th>
-                                </tr>
-                            </thead>
-                            <tbody id="produtos_modal">
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-
-                
-            </div>
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header bg-primary text-white">
+        <h4 class="modal-title">Detalhes do Romaneio de Compra</h4>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <!-- Linha 1: Fornecedor, Data, Nota Fiscal -->
+        <div class="row">
+          <div class="col-md-4">
+            <span class="fw-bold">Fornecedor:</span>
+            <span id="fornecedor_modal"></span>
+          </div>
+          <div class="col-md-4">
+            <span class="fw-bold">Data:</span>
+            <span id="data_modal"></span>
+          </div>
+          <div class="col-md-4">
+            <span class="fw-bold">Nota Fiscal:</span>
+            <span id="nota_modal"></span>
+          </div>
         </div>
+
+        <!-- Linha 2: Plano, Vencimento, Quant Dias -->
+        <div class="row mt-2">
+          <div class="col-md-4">
+            <span class="fw-bold">Plano de Pagamento:</span>
+            <span id="plano_modal"></span>
+          </div>
+          <div class="col-md-4">
+            <span class="fw-bold">Vencimento:</span>
+            <span id="vencimento_modal"></span>
+          </div>
+          <div class="col-md-4">
+            <span class="fw-bold">Quantidade de Dias:</span>
+            <span id="quant_dias_modal"></span>
+          </div>
+        </div>
+
+        <!-- Linha 3: Fazenda, Cliente, Total Líquido -->
+        <div class="row mt-2">
+          <div class="col-md-4">
+            <span class="fw-bold">Fazenda:</span>
+            <span id="fazenda_modal"></span>
+          </div>
+          <div class="col-md-4">
+            <span class="fw-bold">Cliente Atacadista:</span>
+            <span id="cliente_modal"></span>
+          </div>
+          <div class="col-md-4">
+            <span class="fw-bold">Total Líquido a Pagar:</span>
+            <span id="total_liquido_modal"></span>
+          </div>
+        </div>
+
+        <!-- Produtos -->
+        <div class="mt-4">
+          <h6 class="fw-bold">Produtos</h6>
+          <div class="table-responsive">
+            <table class="table table-striped">
+              <thead>
+                <tr>
+                  <th>Variedade</th>
+                  <th>Tipo Caixa</th>
+                  <th>Quant</th>
+                  <th>Preço KG</th>
+                  <th>Preço Unit</th>
+                  <th>Valor</th>
+                </tr>
+              </thead>
+              <tbody id="produtos_modal">
+                <!-- preenchido dinamicamente -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Comissões -->
+        <div class="mt-4">
+          <h6 class="fw-bold">Comissões</h6>
+          <div class="row">
+            <div class="col-md-3">
+              <span class="fw-bold">Funrural:</span>
+              <span id="desc_funrural_modal"></span>
+            </div>
+            <div class="col-md-3">
+              <span class="fw-bold">IMA:</span>
+              <span id="desc_ima_modal"></span>
+            </div>
+            <div class="col-md-3">
+              <span class="fw-bold">Abanorte:</span>
+              <span id="desc_abanorte_modal"></span>
+            </div>
+            <div class="col-md-3">
+              <span class="fw-bold">Taxa ADM:</span>
+              <span id="desc_taxaadm_modal"></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Descontos Diversos -->
+        <div class="mt-4">
+          <h6 class="fw-bold">Descontos Diversos</h6>
+          <div class="table-responsive">
+            <table class="table table-sm">
+              <thead>
+                <tr><th>Tipo</th><th>Valor</th><th>Obs</th></tr>
+              </thead>
+              <tbody id="descontos_modal">
+                <tr><td colspan="3">Nenhum desconto</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
     </div>
+  </div>
 </div>
+
+
 
 
 
@@ -858,6 +918,7 @@ if (@$produtos == 'ocultar') {
   $('#fazenda').val('');
   $('#cliente').val('');
 
+
   // 2) Limpa sessão de produtos
   $('#linha-container_1').empty();
   addNewLine1();  // Insere a primeira linha em branco
@@ -866,7 +927,7 @@ if (@$produtos == 'ocultar') {
   $('#total_caixa').text('0 CXS');
   $('#total_kg').text('0 KG');
   $('#total_bruto').text('R$ 0,00');
-  $('#desc-avista').val('');
+  $('#desc-avista').text('');
   $('#total-desc').text('R$ 0,00');
   $('#total-geral').text('0,00');
   $('#valor_liquido').val('0,00');
@@ -955,104 +1016,117 @@ if (@$produtos == 'ocultar') {
 </script>
 
 
-
 <script type="text/javascript">
-	$("#form-romaneio").submit(function() {
-		event.preventDefault();
-		
-		if (!verificarPlanoAVista()) {
-			$('#mensagem-erro').html('<ul style="margin: 0; padding-left: 20px;"><li>Para pagamento à vista, o desconto é obrigatório</li></ul>').show();
-			$('html, body').animate({
-				scrollTop: $("#form-romaneio").offset().top - 100
-			}, 500);
-			return false;
-		}
-		
-		var formData = new FormData(this);
-		
-		$('#mensagem-erro').hide();
-		$('#mensagem-sucesso').hide();
-		$('#btn-salvar').prop('disabled', true);
-		
-		$('html, body').animate({
-			scrollTop: $("#form-romaneio").offset().top - 100
-		}, 500);
-		
-		$('#mensagem-erro').html('Salvando...').show();
-		
-		$.ajax({
-			url: 'paginas/romaneio_compra/salvar.php',
-			type: 'POST',
-			data: formData,
-			contentType: false,
-			processData: false,
-			success: function(response) {
-				try {
-					const data = typeof response === 'string' ? JSON.parse(response) : response;
-					
-					if (data.status === 'sucesso') {
-						$('#mensagem-erro').hide();
-						$('#mensagem-sucesso').html(data.mensagem).show();
-						
-						// Limpa todo o formulário
-						limparFormulario();
-						
-						// Fecha o modal
-						$('#modalForm').modal('hide');
-						
-						// Limpa as mensagens
-						$('#mensagem-erro').html('');
-						$('#mensagem-sucesso').html('');
-						
-						// Habilita o botão novamente
-						$('#btn-salvar').prop('disabled', false);
-						
-						// Atualiza a lista de romaneios
-						listar();
-					} else {
-						$('#btn-salvar').prop('disabled', false);
-						const mensagemFormatada = data.mensagem.split('<br>').map(msg => 
-							`<li>${msg}</li>`
-						).join('');
-						$('#mensagem-erro').html(`<ul style="margin: 0; padding-left: 20px;">${mensagemFormatada}</ul>`).show();
-					}
-				} catch (e) {
-					console.error('Erro ao processar resposta:', e, response);
-					$('#btn-salvar').prop('disabled', false);
-					$('#mensagem-erro').html('Erro ao processar resposta do servidor').show();
-				}
-			},
-			error: function(xhr, status, error) {
-				console.error('Erro na requisição:', error);
-				$('#btn-salvar').prop('disabled', false);
-				$('#mensagem-erro').html('Erro ao comunicar com o servidor. Tente novamente.').show();
-				
-				// Registrar detalhes do erro no console para depuração
-				console.log('Status da requisição:', xhr.status);
-				console.log('Texto do status:', xhr.statusText);
-				console.log('Resposta:', xhr.responseText);
-				
-				// Tentar exibir mais detalhes, se disponíveis
-				if (xhr.responseText) {
-					try {
-						const resposta = JSON.parse(xhr.responseText);
-						if (resposta.mensagem) {
-							$('#mensagem-erro').html('Erro: ' + resposta.mensagem).show();
-						}
-					} catch (e) {
-						// Se não for um JSON válido, exibir uma parte do texto da resposta
-						if (xhr.responseText.length > 100) {
-							$('#mensagem-erro').html('Erro: ' + xhr.responseText.substring(0, 100) + '...').show();
-						} else {
-							$('#mensagem-erro').html('Erro: ' + xhr.responseText).show();
-						}
-					}
-				}
-			}
-		});
-		
-		return false;
-	});
+$("#form-romaneio").submit(function(event) {
+    event.preventDefault();
+
+    // Validação de pagamento à vista
+    if (!verificarPlanoAVista()) {
+        $('#mensagem-erro')
+          .html('<ul style="margin: 0; padding-left: 20px;"><li>Para pagamento à vista, o desconto é obrigatório</li></ul>')
+          .show();
+        $('html, body').animate({
+            scrollTop: $("#form-romaneio").offset().top - 100
+        }, 500);
+        return false;
+    }
+
+    var formData = new FormData(this);
+
+    // Esconde mensagens antigas e desabilita botão
+    $('#mensagem-erro').hide();
+    $('#mensagem-sucesso').hide();    
+    $('#btn-salvar').prop('disabled', true);
+
+    // Scroll para o topo do formulário
+    $('html, body').animate({
+        scrollTop: $("#form-romaneio").offset().top - 100
+    }, 500);
+
+    // Mensagem de salvando
+    $('#mensagem-erro').html('Salvando...').show();
+
+    $.ajax({
+        url: 'paginas/romaneio_compra/salvar.php',
+        type: 'POST',
+        data: formData,
+        contentType: false,
+        processData: false,
+
+        success: function(response) {
+            try {
+                const data = typeof response === 'string'
+                  ? JSON.parse(response)
+                  : response;
+
+                if (data.status === 'sucesso') {
+                    // Sucesso: esconde erro, mostra sucesso
+                    $('#mensagem-erro').hide();
+                    $('#mensagem-sucesso')
+                      .html(data.mensagem)
+                      .show();
+
+                    // Limpa e fecha
+                    limparFormulario();
+                    $('#modalForm').modal('hide');
+                    $('#btn-salvar').prop('disabled', false);
+                    listar();
+
+                } else {
+                    // Erro de validação: mostra lista de mensagens
+                    $('#btn-salvar').prop('disabled', false);
+                    const itens = data.mensagem
+                      .split('<br>')
+                      .map(msg => `<li>${msg}</li>`)
+                      .join('');
+                    $('#mensagem-erro')
+                      .html(`<ul style="margin: 0; padding-left: 20px;">${itens}</ul>`)
+                      .show();
+                }
+            } catch (e) {
+                console.error('Erro ao processar resposta:', e, response);
+                $('#btn-salvar').prop('disabled', false);
+                $('#mensagem-erro')
+                  .html('Erro ao processar resposta do servidor')
+                  .show();
+            }
+        },
+
+        error: function(xhr, status, error) {
+            console.error('Erro na requisição:', error);
+            $('#btn-salvar').prop('disabled', false);
+            $('#mensagem-erro')
+              .html('Erro ao comunicar com o servidor. Tente novamente.')
+              .show();
+
+            // Logs detalhados no console
+            console.log('Status da requisição:', xhr.status);
+            console.log('Texto do status:', xhr.statusText);
+            console.log('Resposta:', xhr.responseText);
+
+            // Tenta exibir mensagem retornada pelo servidor
+            if (xhr.responseText) {
+                try {
+                    const resp = JSON.parse(xhr.responseText);
+                    if (resp.mensagem) {
+                        $('#mensagem-erro')
+                          .html('Erro: ' + resp.mensagem)
+                          .show();
+                    }
+                } catch (e2) {
+                    const text = xhr.responseText.length > 100
+                      ? xhr.responseText.substring(0, 100) + '...'
+                      : xhr.responseText;
+                    $('#mensagem-erro')
+                      .html('Erro: ' + text)
+                      .show();
+                }
+            }
+        }
+    });
+
+    return false;
+});
 </script>
 
 
@@ -1328,7 +1402,7 @@ function formatarNumero(valor) {
 <script type="text/javascript">
 document.addEventListener('DOMContentLoaded', function() {
     const descFunruralInput = document.querySelector('[name="desc_funrural"]');
-    const descImaAbanInput = document.querySelector('[name="desc_ima_aban"]');
+    const descImaAbanInput = document.querySelector('[name="desc_ima"]');
     const totalBrutoSpan = document.querySelector('#total-bruto');
     const totalLiquidoSpan = document.querySelector('#total-liquido');
 

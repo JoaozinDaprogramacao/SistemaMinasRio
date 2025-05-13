@@ -104,6 +104,8 @@ HTML;
 <button type="button" class="btn btn-info btn-sm" onclick="mostrar('{$id}')" title="Ver Dados">
     <i class="bi bi-info-circle"></i>
 </button>
+
+<big><a class="btn btn-primary btn-sm" href="#" onclick="imprimir('{$id}')" title="Imprimir"><i class="fa fa-file-pdf-o"></i></a>
 </td>
 </tr>
 HTML;
@@ -142,16 +144,140 @@ HTML;
 </script>
 
 <script type="text/javascript">
-	function editar(id, fornecedor, data) {
-		$('#mensagem').text('');
-		$('#titulo_inserir').text('Editar Registro');
-
-		$('#id').val(id);
-		$('#fornecedor').val(fornecedor);
-		$('#data').val(data)
-
-		$('#modalForm').modal('show');
+		function imprimir(id) {
+		window.open('rel/gerar_pdf_romaneio_compra.php?id=' + id, '_blank');
 	}
+
+	let isEditing = false;
+
+	function editar(id) {
+  console.debug('=== editar() iniciado para ID:', id);
+
+  // 1) Limpa tudo e prepara o modal
+  limparFormulario();
+  $('#titulo_inserir').text('Editar Registro');
+  $('#id').val(id);
+
+  // 2) Busca dados
+  $.ajax({
+    url: 'paginas/romaneio_compra/buscar_dados.php',
+    type: 'POST',
+    dataType: 'json',
+    data: { id },
+    success: function(res) {
+      console.debug('Resposta AJAX buscar_dados:', res);
+      const r = res.romaneio;
+
+      // ----- Cabeçalho -----
+      $('.data_atual').val(r.data.split(' ')[0]);
+      $('#vencimento').val(r.vencimento.split(' ')[0]);
+      $('#nota_fiscal').val(r.nota_fiscal || '');
+      $('#plano_pgto').val(r.plano_pgto);
+      $('#quant_dias').val(r.quant_dias);
+      $('#fornecedor').val(r.fornecedor);
+      $('#fazenda').val(r.fazenda);
+      $('#cliente').val(r.cliente);
+
+      // Desconto à vista
+      console.debug('desc_avista RAW:', r.desc_avista);
+      $('#desc-avista').val(
+        (parseFloat(r.desc_avista) || 0).toFixed(2).replace('.', ',')
+      );
+
+      // ----- Produtos -----
+      $('#linha-container_1').empty();
+      res.produtos.forEach((item, idx) => {
+        addNewLine1();
+        const $linha = $('#linha-container_1 .linha_1').eq(idx);
+
+        console.debug(`--- Produto ${idx}`, item);
+
+        $linha.find('.quant_caixa_1').val(item.quant);
+        $linha.find('.produto_1').val(item.variedade);
+        $linha.find('.preco_kg_1').val(
+          parseFloat(item.preco_kg).toFixed(2).replace('.', ',')
+        );
+
+        // pega só o número antes do espaço
+        const rawTipo = item.tipo_caixa;       // ex: "14.50 G"
+        const numTipo = rawTipo.split(' ')[0]; // ex: "14.50"
+        console.debug(`tipo_caixa raw [${idx}]:`, rawTipo, '→ num:', numTipo);
+        $linha.find('.tipo_cx_1').val(numTipo);
+
+        $linha.find('.preco_unit_1').val(
+          parseFloat(item.preco_unit).toFixed(2).replace('.', ',')
+        );
+        $linha.find('.valor_1').val(
+          parseFloat(item.valor).toFixed(2).replace('.', ',')
+        );
+
+        // dispara recálculo desta linha
+        calcularValores($linha.get(0));
+      });
+
+      // ----- Comissões fixas -----
+      console.debug('Preenchendo abatimentos fixos');
+      $('#valor_funrural').val(
+        parseFloat(r.desc_funrural).toFixed(2).replace('.', ',')
+      );
+      $('#valor_ima').val(
+        parseFloat(r.desc_ima).toFixed(2).replace('.', ',')
+      );
+      $('#valor_abanorte').val(
+        parseFloat(r.desc_abanorte).toFixed(2).replace('.', ',')
+      );
+      $('#valor_taxa_adm').val(
+        parseFloat(r.desc_taxaadm).toFixed(2).replace('.', ',')
+      );
+      calculaTotais2();  // atualiza total de comissões e carga
+
+      // ----- Descontos Diversos -----
+      console.debug('Preenchendo descontos diversos:', r.descontos_diversos);
+      $('#discount-container').empty();
+      let descontos = [];
+      try {
+        descontos = JSON.parse(r.descontos_diversos || '[]');
+      } catch (e) {
+        console.warn('JSON inválido em descontos_diversos', e);
+      }
+      descontos.forEach((d, i) => {
+        console.debug(`– desconto ${i}`, d);
+        addDiscountLine();
+        const $dlinha = $('#discount-container .linha_3').eq(i);
+        $dlinha.find('.desconto-type').val(d.tipo);
+        $dlinha.find('.desconto-valor').val(
+          d.valor.toFixed(2).replace('.', ',')
+        );
+        $dlinha.find('.desconto-obs').val(d.obs);
+      });
+      // após inserir linhas, recalcula totais gerais
+      calcularDescontosDiversos();
+      updateLiquidPayable();
+
+      // 4) Exibe o modal
+      $('#modalForm').modal('show');
+      console.debug('Modal de edição aberto');
+    },
+    error: function(err) {
+      console.error('Erro ao buscar dados do romaneio:', err);
+      alert('Não foi possível carregar os detalhes. Veja o console para mais informações.');
+    }
+  });
+}
+
+
+
+// --- fazemos um guard dentro do handleInput para não adicionar linhas durante o editar() ---
+function handleInput(input) {
+  if (isEditing) return;  // IGNORA auto-add no fluxo de edição
+  const linha = input.closest(".linha_1");
+  const container = document.getElementById("linha-container_1");
+  const allFilled = [...linha.querySelectorAll("input, select")].every(f=>f.value.trim()!=="");
+  if (allFilled && linha === container.lastElementChild) {
+    addNewLine1();
+  }
+}
+
 
 	function formatarData(data) {
 		if (!data) return '-';
@@ -164,44 +290,93 @@ HTML;
 	}
 
 	function mostrar(id) {
-		$.ajax({
-			url: 'paginas/romaneio_compra/buscar_dados.php',
-			method: 'POST',
-			data: {id: id},
-			dataType: 'json',
-			success: function(dados) {
-				// Preencher dados do cabeçalho
-				$('#fornecedor_modal').text(dados.romaneio.nome_fornecedor);
-				$('#data_modal').text(formatarData(dados.romaneio.data));
-				$('#nota_modal').text(dados.romaneio.nota_fiscal);
-				$('#plano_modal').text(dados.romaneio.nome_plano);
-				$('#vencimento_modal').text(formatarData(dados.romaneio.vencimento));
-				$('#quant_dias_modal').text(dados.romaneio.quant_dias);
-				
-				// Preencher tabela de produtos
-				let htmlProdutos = '';
-				dados.produtos.forEach(function(item) {
-					htmlProdutos += `<tr>
-						<td>${item.nome_produto || '-'}</td>
-						<td>${item.tipo_caixa || '-'}</td>
-						<td>${item.quant || '0'}</td>
-						<td>R$ ${formatarNumero(item.preco_kg)}</td>
-						<td>R$ ${formatarNumero(item.preco_unit)}</td>
-						<td>R$ ${formatarNumero(item.valor)}</td>
-					</tr>`;
-				});
-				$('#produtos_modal').html(htmlProdutos);
+  $.ajax({
+    url: 'paginas/romaneio_compra/buscar_dados.php',
+    type: 'POST',
+    dataType: 'json',
+    data: { id },
+    success: function(res) {
+      console.log('Retorno buscar_dados:', res);
 
-				// Preencher valores totais
-				$('#desc_funrural_modal').text('R$ ' + formatarNumero(dados.romaneio.desc_funrural));
-				$('#desc_ima_aban_modal').text('R$ ' + formatarNumero(dados.romaneio.desc_ima_aban));
-				$('#total_liquido_modal').text('R$ ' + formatarNumero(dados.romaneio.total_liquido));
+      const r = res.romaneio;
 
-				// Exibir o modal
-				$('#modalMostrarDados').modal('show');
-			}
-		});
-	}
+      // Cabeçalho
+      $('#fornecedor_modal').text(r.nome_fornecedor || '-');
+      $('#data_modal').text(formatarData(r.data) || '-');
+      $('#nota_modal').text(r.nota_fiscal || '-');
+      $('#plano_modal').text(r.nome_plano || '-');
+      $('#vencimento_modal').text(formatarData(r.vencimento) || '-');
+      $('#quant_dias_modal').text(r.quant_dias || '-');
+      $('#fazenda_modal').text(r.fazenda || '-');
+      $('#cliente_modal').text(r.nome_cliente || '-');
+      $('#total_liquido_modal').text('R$ ' + formatarNumero(r.total_liquido));
+
+      // Produtos
+      let html = '';
+      res.produtos.forEach(item => {
+        html += `
+          <tr>
+            <td>${item.nome_produto}</td>
+            <td>${item.tipo_caixa}</td>
+			<td>${item.quant}</td>	
+            <td>${formatarNumero(item.preco_kg)}</td>
+            <td>${formatarNumero(item.preco_unit)}</td>
+            <td>${formatarNumero(item.valor)}</td>
+          </tr>`;
+      });
+      $('#produtos_modal').html(html);
+
+      // Comissões
+      $('#desc_funrural_modal').text('R$ ' + formatarNumero(r.desc_funrural));
+      $('#desc_ima_modal').text('R$ ' + formatarNumero(r.desc_ima));
+      $('#desc_abanorte_modal').text('R$ ' + formatarNumero(r.desc_abanorte));
+      $('#desc_taxaadm_modal').text('R$ ' + formatarNumero(r.desc_taxaadm));
+
+      // Descontos Diversos (JSON string -> array)
+      let descontos = [];
+      try { descontos = JSON.parse(r.descontos_diversos || '[]'); }
+      catch(e){ console.warn('JSON inválido em descontos_diversos', e); }
+      let htmlDesc = '';
+      if (descontos.length) {
+        descontos.forEach(d => {
+          htmlDesc += `<tr>
+            <td>${d.tipo === '+' ? 'Adicionar' : 'Subtrair'}</td>
+            <td>R$ ${formatarNumero(d.valor)}</td>
+            <td>${d.obs || ''}</td>
+          </tr>`;
+        });
+      } else {
+        htmlDesc = '<tr><td colspan="3">Nenhum desconto</td></tr>';
+      }
+      $('#descontos_modal').html(htmlDesc);
+
+      // Abre o modal
+      $('#modalMostrarDados').modal('show');
+    },
+    error: function(err) {
+      console.error('Erro ao buscar dados do romaneio:', err);
+      alert('Não foi possível carregar os detalhes. Veja o console para mais detalhes.');
+    }
+  });
+}
+
+// Helpers (se ainda não tiver)
+function formatarData(d) {
+  if (!d) return '';
+  const dt = new Date(d);
+  return dt.toLocaleDateString('pt-BR');
+}
+function formatarNumero(v) {
+  return (parseFloat(v) || 0).toFixed(2).replace('.', ',');
+}
+
+
+// Helper para formatar datas em pt-BR
+function formatarData(d) {
+  if (!d) return '';
+  const dt = new Date(d);
+  return dt.toLocaleDateString('pt-BR');
+}
 
 	function limparCampos() {
 		$('#id').val('');
