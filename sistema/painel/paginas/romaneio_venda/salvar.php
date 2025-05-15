@@ -14,7 +14,7 @@ header('Content-Type: application/json; charset=utf-8');
 
 // Campos obrigatórios
 $campos_obrigatorios = [
-	'fornecedor' => 'Fornecedor',
+	'cliente' => 'cliente',
 	'data' => 'Data',
 	'plano_pgto' => 'Plano de Pagamento',
 	'quant_dias' => 'Quantidade de Dias',
@@ -25,8 +25,8 @@ $campos_obrigatorios = [
 $erros = [];
 
 // Validação do Atacadista/Fornecedor
-if (empty($_POST['fornecedor']) || $_POST['fornecedor'] == '0') {
-	$erros[] = "Selecione um fornecedor";
+if (empty($_POST['cliente']) || $_POST['cliente'] == '0') {
+	$erros[] = "Selecione um cliente";
 }
 
 // Validação da Data
@@ -117,7 +117,7 @@ if (!empty($erros)) {
 // Se passou pelas validações, continua com o código existente...
 $id = $_POST['id'];
 $romaneios_selecionados = $_POST['romaneios_selecionados'] ?? '';
-$atacadista = $_POST['fornecedor'];
+$atacadista = $_POST['cliente'];
 $data = $_POST['data'];
 $plano_pgto = $_POST['plano_pgto'];
 $nota_fiscal = $_POST['nota_fiscal'];
@@ -277,27 +277,58 @@ try {
 	}
 
 	// Inserir linhas de observação
-	foreach ($obs_3 as $key => $observacao) {
-		if (!empty($observacao) || !empty($material[$key])) {
-			$query = $pdo->prepare("INSERT INTO linha_observacao (
-				id_romaneio,
-				observacoes,
-				descricao,
-				quant,
-				preco_unit,
-				valor
-			) VALUES (?, ?, ?, ?, ?, ?)");
-			
-			$query->execute([
-				$romaneio_venda_id,
-				$observacao,
-				$material[$key] ?? null,
-				$quant_3[$key] ?? 0,
-				str_replace(',', '.', $preco_unit_3[$key] ?? 0),
-				str_replace(',', '.', $valor_3[$key] ?? 0)
-			]);
-		}
-	}
+// Inserir linhas de observação
+foreach ($obs_3 as $key => $observacao) {
+    if (!empty($observacao) || !empty($material[$key])) {
+        // 1) Inserção da observação
+        $query = $pdo->prepare("
+            INSERT INTO linha_observacao (
+                id_romaneio,
+                observacoes,
+                descricao,
+                quant,
+                preco_unit,
+                valor
+            ) VALUES (?, ?, ?, ?, ?, ?)
+        ");
+        $query->execute([
+            $romaneio_venda_id,
+            $observacao,
+            $material[$key] ?? null,
+            $quant_3[$key] ?? 0,
+            str_replace(',', '.', $preco_unit_3[$key] ?? 0),
+            str_replace(',', '.', $valor_3[$key] ?? 0)
+        ]);
+
+        // 2) Atualizar estoque do material
+        $matId = (int)$material[$key];
+        $qtdUsada = (int)$quant_3[$key];
+
+        // (a) Opcional: checar se o material tem controle de estoque e se há saldo suficiente
+        $check = $pdo->prepare("SELECT tem_estoque, estoque FROM materiais WHERE id = ?");
+        $check->execute([$matId]);
+        $row = $check->fetch(PDO::FETCH_ASSOC);
+
+        if ($row && strtoupper($row['tem_estoque']) === 'SIM') {
+            if ($row['estoque'] < $qtdUsada) {
+                throw new Exception("Estoque insuficiente para o material ID {$matId}");
+            }
+        }
+
+        // (b) Debitar do estoque
+        $upd = $pdo->prepare("UPDATE materiais
+                              SET estoque = estoque - ?
+                              WHERE id = ?");
+        $upd->execute([$qtdUsada, $matId]);
+
+        // (c) (Opcional) incrementar contador de vendas
+        $upd2 = $pdo->prepare("UPDATE materiais
+                               SET vendas = vendas + ?
+                               WHERE id = ?");
+        $upd2->execute([$qtdUsada, $matId]);
+    }
+}
+
 
 	$pdo->commit();
 	echo json_encode([

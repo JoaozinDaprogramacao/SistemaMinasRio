@@ -7,15 +7,16 @@ $id = $_POST['id'];
 // 1) Remove registros dos filhos em ordem
 $filhos = [
     // linhas de produto
-    "DELETE FROM linha_produto_compra         WHERE id_romaneio      = ?", 
+    "DELETE FROM linha_produto_compra         WHERE id_romaneio         = ?", 
     // comissões
-    "DELETE FROM linha_comissao               WHERE id_romaneio      = ?", 
+    "DELETE FROM linha_comissao               WHERE id_romaneio         = ?", 
     // observações
-    "DELETE FROM linha_observacao             WHERE id_romaneio      = ?", 
+    "DELETE FROM linha_observacao             WHERE id_romaneio         = ?", 
     // pagamentos
-    "DELETE FROM pagar                        WHERE id_romaneio      = ?", 
+    "DELETE FROM pagar                        WHERE id_romaneio         = ?",
     // vendas que referenciam este romaneio de compra
-    "DELETE FROM romaneio_venda_compra        WHERE id_romaneio_compra = ?"
+    "DELETE FROM romaneio_venda_compra        WHERE id_romaneio_compra  = ?",
+    // contas a receber vinculadas a este romaneio
 ];
 
 foreach ($filhos as $sql) {

@@ -1,94 +1,128 @@
-<?php 
+<?php
 $tabela = 'clientes';
 require_once("../../../conexao.php");
 
-@session_start();
-$id_usuario = @$_SESSION['id'];
+session_start();
+$id_usuario = $_SESSION['id'] ?? null;
 
+// Recebe dados do formulário
+$nome            = $_POST['nome_cliente']    ?? '';
+$email           = $_POST['email']           ?? '';
+$contato         = $_POST['contato']         ?? '';
+$data_nasc       = $_POST['data_nasc']       ?? null;
+$cpf             = $_POST['cpf']             ?? '';
+$rg              = $_POST['rg']              ?? '';
+$tipo_pessoa     = $_POST['tipo_pessoa']     ?? '';
+$razao_social    = $_POST['razao_social']    ?? '';
+$cnpj            = $_POST['cnpj']            ?? '';
+$ie              = $_POST['ie']              ?? '';
+$site            = $_POST['site']            ?? '';
+$plano_pagamento = $_POST['plano_pagamento'] ?? null;
+$forma_pagamento = $_POST['forma_pagamento'] ?? null;
+$prazo_pagamento = $_POST['prazo_pagamento'] ?? null;
+$cep             = $_POST['cep']             ?? '';
+$endereco        = $_POST['rua']             ?? '';
+$numero          = $_POST['numero']          ?? '';
+$bairro          = $_POST['bairro']          ?? '';
+$cidade          = $_POST['cidade']          ?? '';
+$uf              = $_POST['uf']              ?? '';
+$complemento     = $_POST['complemento']     ?? '';
+$id              = $_POST['id']              ?? null;
 
-$nome = @$_POST['nome'];
-$email = @$_POST['email'];
-$telefone = @$_POST['telefone'];
-$endereco = @$_POST['endereco'];
-$data_nasc = @$_POST['data_nasc'];
-$cpf = @$_POST['cpf'];
-$tipo_pessoa = @$_POST['tipo_pessoa'];
-$numero = @$_POST['numero'];
-$bairro = @$_POST['bairro'];
-$cidade = @$_POST['cidade'];
-$estado = @$_POST['estado'];
-$cep = @$_POST['cep'];
-$id = @$_POST['id'];
-
-$rg = @$_POST['rg'];
-$complemento = @$_POST['complemento'];
-$genitor = @$_POST['genitor'];
-$genitora = @$_POST['genitora'];
-
-if($tipo_pessoa == 'Física' and $cpf != ""){
-	require_once("../../validar_cpf.php");
+// Validação de email único
+if (!empty($email)) {
+    $stmt = $pdo->prepare("SELECT id FROM $tabela WHERE email = ? LIMIT 1");
+    $stmt->execute([$email]);
+    $res = $stmt->fetch();
+    if ($res && $res['id'] != $id) {
+        echo 'Email já cadastrado!';
+        exit;
+    }
 }
 
-
-
-//validacao email
-if($email != ""){
-	$query = $pdo->query("SELECT * from $tabela where email = '$email'");
-	$res = $query->fetchAll(PDO::FETCH_ASSOC);
-	$id_reg = @$res[0]['id'];
-	if(@count($res) > 0 and $id != $id_reg){
-		echo 'Email já Cadastrado!';
-		exit();
-	}
+// Validação de contato único
+if (!empty($contato)) {
+    $stmt = $pdo->prepare("SELECT id FROM $tabela WHERE contato = ? LIMIT 1");
+    $stmt->execute([$contato]);
+    $res = $stmt->fetch();
+    if ($res && $res['id'] != $id) {
+        echo 'Telefone/Celular já cadastrado!';
+        exit;
+    }
 }
 
-
-
-//validacao telefone
-if($telefone != ""){
-	$query = $pdo->query("SELECT * from $tabela where telefone = '$telefone'");
-	$res = $query->fetchAll(PDO::FETCH_ASSOC);
-	$id_reg = @$res[0]['id'];
-	if(@count($res) > 0 and $id != $id_reg){
-		echo 'Telefone já Cadastrado!';
-		exit();
-	}
+// Escolhe INSERT ou UPDATE
+if (empty($id)) {
+    $sql = "INSERT INTO $tabela (
+                nome, email, contato, data_cad,
+                endereco, numero, bairro, cidade, uf, cep, complemento,
+                tipo_pessoa, cpf, rg, data_nasc,
+                razao_social, cnpj, ie, site,
+                plano_pagamento, forma_pagamento, prazo_pagamento,
+                usuario
+            ) VALUES (
+                :nome, :email, :contato, CURDATE(),
+                :endereco, :numero, :bairro, :cidade, :uf, :cep, :complemento,
+                :tipo_pessoa, :cpf, :rg, :data_nasc,
+                :razao_social, :cnpj, :ie, :site,
+                :plano_pagamento, :forma_pagamento, :prazo_pagamento,
+                :usuario
+            )";
+} else {
+    $sql = "UPDATE $tabela SET
+                nome = :nome,
+                email = :email,
+                contato = :contato,
+                endereco = :endereco,
+                numero = :numero,
+                bairro = :bairro,
+                cidade = :cidade,
+                uf = :uf,
+                cep = :cep,
+                complemento = :complemento,
+                tipo_pessoa = :tipo_pessoa,
+                cpf = :cpf,
+                rg = :rg,
+                data_nasc = :data_nasc,
+                razao_social = :razao_social,
+                cnpj = :cnpj,
+                ie = :ie,
+                site = :site,
+                plano_pagamento = :plano_pagamento,
+                forma_pagamento = :forma_pagamento,
+                prazo_pagamento = :prazo_pagamento
+            WHERE id = :id";
 }
 
-
-if($data_nasc == ""){
-	$nasc = '';	
-}else{
-	$nasc = " ,data_nasc = '$data_nasc'";
-	
+$stmt = $pdo->prepare($sql);
+// Bind parâmetros comuns
+$stmt->bindValue(':nome', $nome);
+$stmt->bindValue(':email', $email);
+$stmt->bindValue(':contato', $contato);
+$stmt->bindValue(':endereco', $endereco);
+$stmt->bindValue(':numero', $numero);
+$stmt->bindValue(':bairro', $bairro);
+$stmt->bindValue(':cidade', $cidade);
+$stmt->bindValue(':uf', $uf);
+$stmt->bindValue(':cep', $cep);
+$stmt->bindValue(':complemento', $complemento);
+$stmt->bindValue(':tipo_pessoa', $tipo_pessoa);
+$stmt->bindValue(':cpf', $cpf);
+$stmt->bindValue(':rg', $rg);
+$stmt->bindValue(':data_nasc', $data_nasc);
+$stmt->bindValue(':razao_social', $razao_social);
+$stmt->bindValue(':cnpj', $cnpj);
+$stmt->bindValue(':ie', $ie);
+$stmt->bindValue(':site', $site);
+$stmt->bindValue(':plano_pagamento', $plano_pagamento);
+$stmt->bindValue(':forma_pagamento', $forma_pagamento);
+$stmt->bindValue(':prazo_pagamento', $prazo_pagamento);
+$stmt->bindValue(':usuario', $id_usuario);
+if (!empty($id)) {
+    $stmt->bindValue(':id', $id, PDO::PARAM_INT);
 }
 
-
-if($id == ""){
-$query = $pdo->prepare("INSERT INTO $tabela SET nome = :nome, email = :email, telefone = :telefone, data_cad = curDate(), endereco = :endereco, cpf = :cpf, tipo_pessoa = :tipo_pessoa $nasc, usuario = '$id_usuario', numero = :numero, bairro = :bairro, cidade = :cidade, estado = :estado, cep = :cep, rg = :rg, complemento = :complemento, genitor = :genitor, genitora = :genitora");
-	
-}else{
-$query = $pdo->prepare("UPDATE $tabela SET nome = :nome, email = :email, telefone = :telefone, endereco = :endereco, cpf = :cpf, tipo_pessoa = :tipo_pessoa $nasc , numero = :numero, bairro = :bairro, cidade = :cidade, estado = :estado, cep = :cep, rg = :rg, complemento = :complemento, genitor = :genitor, genitora = :genitora where id = '$id'");
-}
-$query->bindValue(":nome", "$nome");
-$query->bindValue(":email", "$email");
-$query->bindValue(":telefone", "$telefone");
-$query->bindValue(":endereco", "$endereco");
-$query->bindValue(":cpf", "$cpf");
-$query->bindValue(":tipo_pessoa", "$tipo_pessoa");
-$query->bindValue(":numero", "$numero");
-$query->bindValue(":bairro", "$bairro");
-$query->bindValue(":cidade", "$cidade");
-$query->bindValue(":estado", "$estado");
-$query->bindValue(":cep", "$cep");
-$query->bindValue(":rg", "$rg");
-$query->bindValue(":complemento", "$complemento");
-$query->bindValue(":genitor", "$genitor");
-$query->bindValue(":genitora", "$genitora");
-
-$query->execute();
+$stmt->execute();
 
 echo 'Salvo com Sucesso';
-
-
- ?>
+?>

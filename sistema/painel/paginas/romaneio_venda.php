@@ -168,16 +168,16 @@ if (@$produtos == 'ocultar') {
 								</div>
 
 								<div class="col-md-6">
-									<label class="form-label">Fornecedor</label>
-									<select id="fornecedor" name="fornecedor" class="form-select form-select-sm sel2" onchange="buscarDadosFornecedor(this.value); calculaTotais();">
-										<option value="0">Escolher Fornecedor</option>
+									<label class="form-label">Cliente</label>
+									<select id="cliente" name="cliente" class="form-select form-select-sm sel2" onchange="buscarDadosCliente(this.value); calculaTotais();">
+										<option value="0">Escolher Cliente</option>
 										<?php
-										$query = $pdo->query("SELECT * from fornecedores order by id asc");
+										$query = $pdo->query("SELECT * from clientes order by id asc");
 										$res = $query->fetchAll(PDO::FETCH_ASSOC);
 										$linhas = @count($res);
 										if ($linhas > 0) {
 											for ($i = 0; $i < $linhas; $i++) { ?>
-												<option value="<?php echo $res[$i]['id'] ?>"><?php echo $res[$i]['nome_atacadista'] ?></option>
+												<option value="<?php echo $res[$i]['id'] ?>"><?php echo $res[$i]['nome'] ?></option>
 										<?php }
 										} ?>
 									</select>
@@ -1133,9 +1133,9 @@ if (@$produtos == 'ocultar') {
 </script>
 
 <script type="text/javascript">
-	function buscarDadosFornecedor(id) {
+	function buscarDadosCliente(id) {
 		$.ajax({
-			url: 'paginas/romaneio_venda/buscar_fornecedor.php',
+			url: 'paginas/romaneio_venda/buscar_cliente.php',
 			type: 'POST',
 			data: {id: id},
 			dataType: 'json',
@@ -1353,7 +1353,7 @@ function carregarDadosRomaneios() {
 		// Reativar os eventos change depois de um pequeno delay
 		setTimeout(function() {
 			$('#fornecedor').on('change', function() {
-				buscarDadosFornecedor($(this).val());
+				buscarDadosCliente($(this).val());
 			});
 			
 			$('#plano_pgto').on('change', calculaTotais);

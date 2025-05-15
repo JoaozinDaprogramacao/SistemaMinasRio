@@ -404,111 +404,45 @@ if (@$fornecedores == 'ocultar') {
 	</div>
 </div>
 
-
-<!-- Modal Dados -->
-<div class="modal fade" id="modalDados" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
-	<div class="modal-dialog modal-lg">
-		<div class="modal-content">
-			<div class="modal-header bg-primary text-white">
-				<h4 class="modal-title" id="exampleModalLabel"><span id="titulo_dados"></span></h4>
-				<button id="btn-fechar-dados" aria-label="Close" class="btn-close" data-bs-dismiss="modal" type="button"><span class="text-white" aria-hidden="true">&times;</span></button>
-			</div>
-
-			<div class="modal-body">
-				<div class="row">
-					<div class="col-md-12">
-						<div class="tile">
-							<div class="table-responsive">
-								<table id="" class="text-left table table-bordered">
-									<tr>
-										<td class="bg-warning alert-warning">Nome</td>
-										<td><span id="nome_dados"></span></td>
-									</tr>
-									<tr>
-										<td class="bg-warning alert-warning">Razão Social</td>
-										<td><span id="razao_social_dados"></span></td>
-									</tr>
-									<tr>
-										<td class="bg-warning alert-warning">CNPJ</td>
-										<td><span id="cnpj_dados"></span></td>
-									</tr>
-									<tr>
-										<td class="bg-warning alert-warning">Inscrição Estadual</td>
-										<td><span id="ie_dados"></span></td>
-									</tr>
-									<tr>
-										<td class="bg-warning alert-warning">CPF</td>
-										<td><span id="cpf_dados"></span></td>
-									</tr>
-									<tr>
-										<td class="bg-warning alert-warning">RG</td>
-										<td><span id="rg_dados"></span></td>
-									</tr>
-									<tr>
-										<td class="bg-warning alert-warning">Rua</td>
-										<td><span id="rua_dados"></span></td>
-									</tr>
-									<tr>
-										<td class="bg-warning alert-warning">Número</td>
-										<td><span id="numero_dados"></span></td>
-									</tr>
-									<tr>
-										<td class="bg-warning alert-warning">Bairro</td>
-										<td><span id="bairro_dados"></span></td>
-									</tr>
-									<tr>
-										<td class="bg-warning alert-warning">Cidade</td>
-										<td><span id="cidade_dados"></span></td>
-									</tr>
-									<tr>
-										<td class="bg-warning alert-warning">CEP</td>
-										<td><span id="cep_dados"></span></td>
-									</tr>
-									<tr>
-										<td class="bg-warning alert-warning">UF</td>
-										<td><span id="uf_dados"></span></td>
-									</tr>
-									<tr>
-										<td class="bg-warning alert-warning">Complemento</td>
-										<td><span id="complemento_dados"></span></td>
-									</tr>
-									<tr>
-										<td class="bg-warning alert-warning">Contato</td>
-										<td><span id="contato_dados"></span></td>
-									</tr>
-									<tr>
-										<td class="bg-warning alert-warning">Site</td>
-										<td><span id="site_dados"></span></td>
-									</tr>
-									<tr>
-										<td class="bg-warning alert-warning">Plano de Pagamento</td>
-										<td><span id="plano_pgto_dados"></span></td>
-									</tr>
-									<tr>
-										<td class="bg-warning alert-warning">Prazo de Pagamento</td>
-										<td><span id="prazo_pgto_dados"></span></td>
-									</tr>
-									<tr>
-										<td class="bg-warning alert-warning">Forma de Recebimento</td>
-										<td><span id="forma_recebimento_dados"></span></td>
-									</tr>
-									<tr>
-										<td class="bg-warning alert-warning">Email</td>
-										<td><span id="email_dados"></span></td>
-									</tr>
-									<tr>
-										<td class="bg-warning alert-warning">Data de Cadastro</td>
-										<td><span id="data_dados"></span></td>
-									</tr>
-								</table>
-							</div>
-						</div>
-					</div>
-				</div>
-			</div>
-		</div>
-	</div>
+<!-- Modal Dados - Fornecedores Atualizado -->
+<div class="modal fade" id="modalDados" tabindex="-1" aria-labelledby="modalDadosLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header bg-primary text-white">
+        <h4 class="modal-title" id="modalDadosLabel"><span id="titulo_dados"></span></h4>
+        <button type="button" class="btn-close text-white" data-bs-dismiss="modal" aria-label="Fechar"></button>
+      </div>
+      <div class="modal-body">
+        <div class="table-responsive">
+          <table class="table table-bordered text-left">
+            <tr><td class="bg-warning">Tipo de Pessoa</td><td><span id="tipo_pessoa_dados"></span></td></tr>
+            <tr><td class="bg-warning">Nome do Atacadista</td><td><span id="nome_atacadista_dados"></span></td></tr>
+            <tr><td class="bg-warning">Razão Social</td><td><span id="razao_social_dados"></span></td></tr>
+            <tr><td class="bg-warning">CNPJ</td><td><span id="cnpj_dados"></span></td></tr>
+            <tr><td class="bg-warning">Inscrição Estadual</td><td><span id="ie_dados"></span></td></tr>
+            <tr><td class="bg-warning">CPF</td><td><span id="cpf_dados"></span></td></tr>
+            <tr><td class="bg-warning">RG</td><td><span id="rg_dados"></span></td></tr>
+            <tr><td class="bg-warning">Rua</td><td><span id="rua_dados"></span></td></tr>
+            <tr><td class="bg-warning">Número</td><td><span id="numero_dados"></span></td></tr>
+            <tr><td class="bg-warning">Complemento</td><td><span id="complemento_dados"></span></td></tr>
+            <tr><td class="bg-warning">Bairro</td><td><span id="bairro_dados"></span></td></tr>
+            <tr><td class="bg-warning">Cidade</td><td><span id="cidade_dados"></span></td></tr>
+            <tr><td class="bg-warning">UF</td><td><span id="uf_dados"></span></td></tr>
+            <tr><td class="bg-warning">CEP</td><td><span id="cep_dados"></span></td></tr>
+            <tr><td class="bg-warning">Contato</td><td><span id="contato_dados"></span></td></tr>
+            <tr><td class="bg-warning">E-mail</td><td><span id="email_dados"></span></td></tr>
+            <tr><td class="bg-warning">Site</td><td><span id="site_dados"></span></td></tr>
+            <tr><td class="bg-warning">Plano de Pagamento</td><td><span id="plano_pagamento_dados"></span></td></tr>
+            <tr><td class="bg-warning">Forma de Pagamento</td><td><span id="forma_pagamento_dados"></span></td></tr>
+            <tr><td class="bg-warning">Prazo de Pagamento (dias)</td><td><span id="prazo_pagamento_dados"></span></td></tr>
+            <tr><td class="bg-warning">Data de Cadastro</td><td><span id="data_cadastro_dados"></span></td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
+
 
 
 

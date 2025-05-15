@@ -63,6 +63,12 @@ HTML;
 
 		$email = addslashes($res[$i]['email']);
 
+		$tipo_pessoa = addslashes($res[$i]['tipo_pessoa']);
+		$data_cad    = $res[$i]['data_cadastro'];    // do banco
+
+		// Formata as datas para “DD/MM/AAAA”
+		$data_cadF  = $data_cad  ? implode('/', array_reverse(explode('-', $data_cad)))  : '';
+
 		// Fazendo a consulta para obter o nome do plano de pagamento com base no ID
 		$query_plano_recebimento = $pdo->query("SELECT nome FROM planos_pgto WHERE id = '$plano_pgto'");
 
@@ -119,10 +125,33 @@ HTML;
                         </div>
                         </div>
                         </div>
-
-<a class="btn btn-primary btn-sm" href="#"  title="Mostrar Dados"><i class="fa fa-info-circle "></i></a>
-
-
+						<a class="btn btn-primary btn-sm" href="#"
+       onclick="mostrar(
+         '{$tipo_pessoa}',
+         '{$nome}',
+         '{$razao_social}',
+         '{$cnpj}',
+         '{$ie}',
+         '{$cpf}',
+         '{$rg}',
+         '{$rua}',
+         '{$numero}',
+         '{$complemento}',
+         '{$bairro}',
+         '{$cidade}',
+         '{$uf}',
+         '{$cep}',
+         '{$contato}',
+         '{$email}',
+         '{$site}',
+         '{$plano_pgto}',
+         '{$forma_pagamento}',
+         '{$prazo_pgto}',
+         '{$data_cadF}'
+       )"
+       title="Mostrar Dados">
+      <i class="fa fa-info-circle"></i>
+    </a>
 
 
 </td>
@@ -196,17 +225,54 @@ HTML;
 
 
 
-	function mostrar(nome, email, telefone, endereco, pix, data) {
+	function mostrar(
+    tipoPessoa,
+    nomeAtacadista,
+    razaoSocial,
+    cnpj,
+    ie,
+    cpf,
+    rg,
+    rua,
+    numero,
+    complemento,
+    bairro,
+    cidade,
+    uf,
+    cep,
+    contato,
+    email,
+    site,
+    planoPagamento,
+    formaPagamento,
+    prazoPagamento,
+    dataCadastro
+  ) {
+    $('#titulo_dados').text(nomeAtacadista);
+    $('#tipo_pessoa_dados').text(tipoPessoa);
+    $('#nome_atacadista_dados').text(nomeAtacadista);
+    $('#razao_social_dados').text(razaoSocial);
+    $('#cnpj_dados').text(cnpj);
+    $('#ie_dados').text(ie);
+    $('#cpf_dados').text(cpf);
+    $('#rg_dados').text(rg);
+    $('#rua_dados').text(rua);
+    $('#numero_dados').text(numero);
+    $('#complemento_dados').text(complemento);
+    $('#bairro_dados').text(bairro);
+    $('#cidade_dados').text(cidade);
+    $('#uf_dados').text(uf);
+    $('#cep_dados').text(cep);
+    $('#contato_dados').text(contato);
+    $('#email_dados').text(email);
+    $('#site_dados').text(site);
+    $('#plano_pagamento_dados').text(planoPagamento);
+    $('#forma_pagamento_dados').text(formaPagamento);
+    $('#prazo_pagamento_dados').text(prazoPagamento + ' dias');
+    $('#data_cadastro_dados').text(dataCadastro);
 
-		$('#titulo_dados').text(nome);
-		$('#email_dados').text(email);
-		$('#telefone_dados').text(telefone);
-		$('#endereco_dados').text(endereco);
-		$('#pix_dados').text(pix);
-		$('#data_dados').text(data);
-
-		$('#modalDados').modal('show');
-	}
+    $('#modalDados').modal('show');
+  }
 
 	function limparCampos() {
 		$('#id').val('');

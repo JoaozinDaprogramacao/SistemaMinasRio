@@ -217,6 +217,71 @@ foreach ($quant_caixa_1_val as $key => $q) {
     ]);
 }
 
+$deleteRec = $pdo->prepare("
+    DELETE FROM pagar 
+    WHERE id_ref = :id_ref 
+      AND referencia = 'romaneio_compra'
+");
+$deleteRec->execute([':id_ref' => $romaneioId]);
+
+// --- preparando dados para contas a pagar ---
+$descricao      = "Romaneio Compra #{$romaneioId}";
+$dataLanc       = date('Y-m-d');          // data do lançamento
+$clienteRec     = $cliente;               // vem do POST
+$valorRec       = $total_liquido;         // calculado acima
+$vencimentoRec  = $vencimento;            // vem do POST
+$formaPgtoRec   = is_numeric($plano_pgto) 
+                  ? (int)$plano_pgto 
+                  : null;                // adapte se for string ou precisar mapear
+$usuarioLancRec = $id_usuario;            // vem da sessão
+
+// --- inserindo na tabela pagar ---
+$insRec = $pdo->prepare("
+  INSERT INTO pagar
+    (
+      descricao,
+      fornecedor,
+      valor,
+      vencimento,
+      data_lanc,
+      forma_pgto,
+      frequencia,
+      referencia,
+      id_romaneio,           -- coluna que guarda o id do romaneio
+      usuario_lanc,
+      usuario_pgto,
+      funcionario
+    )
+  VALUES
+    (
+      :descricao,
+      :fornecedor,
+      :valor,
+      :vencimento,
+      :data_lanc,
+      :forma_pgto,
+      0,
+      :id_romaneio,
+      :id_ref,          -- placeholder para o id do romaneio
+      :usuario_lanc,
+      :usuario_pgto,
+      0              -- funcionario como null
+    )
+");
+
+$insRec->execute([
+    'descricao'    => "Romaneio Compra #{$romaneioId}",
+    'fornecedor'   => $fornecedor,
+    'valor'        => $total_liquido,
+    'vencimento'   => $vencimento,
+    'data_lanc'    => date('Y-m-d'),
+    'forma_pgto'   => $formaPgtoRec,
+    'id_romaneio'  => $romaneioId,
+    'id_ref'       => $romaneioId,      // aqui você passa de fato o ID do romaneio
+    'usuario_lanc' => $usuarioLancRec,
+    'usuario_pgto' => $usuarioLancRec,
+]);
+
 echo json_encode([
     'status'   => 'sucesso',
     'mensagem' => 'Salvo com sucesso',
