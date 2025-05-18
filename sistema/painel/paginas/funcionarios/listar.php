@@ -1,14 +1,14 @@
 <?php 
-$tabela = 'usuarios';
+$tabela = 'funcionarios';
 require_once("../../../conexao.php");
 require_once("../../verificar.php");
 
-$query = $pdo->query("SELECT * from $tabela where nivel != 'Cliente' and nivel != 'Administrador' order by id desc");
+$query = $pdo->query("SELECT * from $tabela ORDER BY id DESC");
 $res = $query->fetchAll(PDO::FETCH_ASSOC);
 $linhas = @count($res);
+
 if($linhas > 0){
 echo <<<HTML
-
 	<table class="table table-bordered text-nowrap border-bottom dt-responsive" id="tabela">
 	<thead> 
 	<tr> 
@@ -16,7 +16,6 @@ echo <<<HTML
 	<th>Nome</th>	
 	<th class="esc">Telefone</th>	
 	<th class="esc">Email</th>	
-	<th class="esc">Nível</th>	
 	<th class="esc">Foto</th>	
 	<th>Ações</th>
 	</tr> 
@@ -29,42 +28,25 @@ for($i=0; $i<$linhas; $i++){
 	$nome = $res[$i]['nome'];
 	$telefone = $res[$i]['telefone'];
 	$email = $res[$i]['email'];
-	
 	$foto = $res[$i]['foto'];
-	$nivel = $res[$i]['nivel'];
 	$endereco = $res[$i]['endereco'];
 	$ativo = $res[$i]['ativo'];
-	$data = $res[$i]['data'];	
-	$chave_pix = $res[$i]['pix'];
+	$data = $res[$i]['data_cad'];	
+	$chave_pix = $res[$i]['chave_pix'];
 	$comissao = $res[$i]['comissao'];
 
 	$dataF = implode('/', array_reverse(@explode('-', $data)));
 
-	if($ativo == 'Sim'){
-	$icone = 'fa-check-square';
-	$titulo_link = 'Desativar Usuário';
-	$acao = 'Não';
-	$classe_ativo = '';
-	}else{
-		$icone = 'fa-square-o';
-		$titulo_link = 'Ativar Usuário';
-		$acao = 'Sim';
-		$classe_ativo = '#c4c4c4';
-	}
+	$classe_ativo = $ativo == 'Sim' ? '' : '#c4c4c4';
+	$icone = $ativo == 'Sim' ? 'fa-check-square' : 'fa-square-o';
+	$titulo_link = $ativo == 'Sim' ? 'Desativar Funcionário' : 'Ativar Funcionário';
+	$acao = $ativo == 'Sim' ? 'Não' : 'Sim';
 
-	if($nivel == 'Administrador'){
-		
-	}
-
-	$ultimos_email = substr($email, -13);
-	$emailF = str_replace($ultimos_email, '*************', $email);
-
-	$ultimos_tel = substr($telefone, -5);
-	$telefoneF = str_replace($ultimos_tel, '*****', $telefone);
-
+	$emailF = str_replace(substr($email, -13), '*************', $email);
+	$telefoneF = str_replace(substr($telefone, -5), '*****', $telefone);
 
 echo <<<HTML
-<tr >
+<tr>
 <td align="center">
 <div class="custom-checkbox custom-control">
 <input type="checkbox" class="custom-control-input" id="seletor-{$id}" onchange="selecionar('{$id}')">
@@ -74,38 +56,31 @@ echo <<<HTML
 <td style="color:{$classe_ativo}">{$nome}</td>
 <td style="color:{$classe_ativo}" class="esc">{$telefoneF}</td>
 <td style="color:{$classe_ativo}" class="esc">{$emailF}</td>
-<td style="color:{$classe_ativo}" class="esc">{$nivel}</td>
 <td style="color:{$classe_ativo}" class="esc"><img src="images/perfil/{$foto}" width="25px"></td>
 <td>
-	<big><a class="btn btn-info btn-sm" href="#" onclick="editar('{$id}','{$nome}','{$email}','{$telefone}','{$endereco}','{$nivel}','{$chave_pix}','{$comissao}')" title="Editar Dados"><i class="fa fa-edit "></i></a></big>
+	<big><a class="btn btn-info btn-sm" href="#" onclick="editar('{$id}','{$nome}','{$email}','{$telefone}','{$endereco}','{$chave_pix}','{$comissao}')" title="Editar Dados"><i class="fa fa-edit"></i></a></big>
 
 	<div class="dropdown" style="display: inline-block;">                      
-                        <a class="btn btn-danger btn-sm" href="#" aria-expanded="false" aria-haspopup="true" data-bs-toggle="dropdown" class="dropdown"><i class="fa fa-trash "></i> </a>
-                        <div  class="dropdown-menu tx-13">
-                        <div class="dropdown-item-text botao_excluir">
-                        <p>Confirmar Exclusão? <a href="#" onclick="excluir('{$id}')"><span class="text-danger">Sim</span></a></p>
-                        </div>
-                        </div>
-                        </div>
+		<a class="btn btn-danger btn-sm" href="#" data-bs-toggle="dropdown"><i class="fa fa-trash"></i></a>
+		<div class="dropdown-menu tx-13">
+			<div class="dropdown-item-text botao_excluir">
+				<p>Confirmar Exclusão? <a href="#" onclick="excluir('{$id}')"><span class="text-danger">Sim</span></a></p>
+			</div>
+		</div>
+	</div>
 
-<big><a class="btn btn-primary btn-sm" href="#" onclick="mostrar('{$nome}','{$email}','{$telefone}','{$endereco}','{$ativo}','{$dataF}',  '{$nivel}', '{$foto}','{$chave_pix}','{$comissao}')" title="Mostrar Dados"><i class="fa fa-info-circle "></i></a></big>
+	<big><a class="btn btn-primary btn-sm" href="#" onclick="mostrar('{$nome}','{$email}','{$telefone}','{$endereco}','{$ativo}','{$dataF}','{$foto}','{$chave_pix}','{$comissao}')" title="Mostrar Dados"><i class="fa fa-info-circle"></i></a></big>
 
+	<big><a class="btn btn-success btn-sm" href="#" onclick="ativar('{$id}', '{$acao}')" title="{$titulo_link}"><i class="fa {$icone}"></i></a></big>
 
-<big><a class="btn btn-success btn-sm" href="#" onclick="ativar('{$id}', '{$acao}')" title="{$titulo_link}"><i class="fa {$icone} "></i></a></big>
-
-
-	<big><a class="btn btn-primary btn-sm" href="#" onclick="arquivo('{$id}', '{$nome}')" title="Inserir / Ver Arquivos"><i class="fa fa-file-o " ></i></a></big>
-
+	<big><a class="btn btn-primary btn-sm" href="#" onclick="arquivo('{$id}', '{$nome}')" title="Inserir / Ver Arquivos"><i class="fa fa-file-o"></i></a></big>
 </td>
 </tr>
 HTML;
-
 }
-
 }else{
 	echo 'Não possui nenhum cadastro!';
 }
-
 
 echo <<<HTML
 </tbody>
@@ -113,6 +88,9 @@ echo <<<HTML
 </table>
 HTML;
 ?>
+
+<!-- Scripts DataTable e JS de interação permanecem iguais -->
+
 
 
 

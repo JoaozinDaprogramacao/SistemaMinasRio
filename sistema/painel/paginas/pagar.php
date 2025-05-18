@@ -250,7 +250,7 @@ if(@$pagar == 'ocultar'){
 							<select name="funcionario" id="funcionario" class="sel2" style="width:100%; height:35px">
 								<option value="0">Selecione um Funcionário</option>
 								<?php 
-								$query = $pdo->query("SELECT * from usuarios where nivel != 'Administrador' order by id asc");
+								$query = $pdo->query("SELECT * from funcionarios order by id asc");
 								$res = $query->fetchAll(PDO::FETCH_ASSOC);
 								$linhas = @count($res);
 								if($linhas > 0){

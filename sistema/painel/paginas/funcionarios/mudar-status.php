@@ -1,5 +1,5 @@
 <?php 
-$tabela = 'usuarios';
+$tabela = 'funcionarios';
 require_once("../../../conexao.php");
 
 $id = $_POST['id'];

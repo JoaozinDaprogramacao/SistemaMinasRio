@@ -85,7 +85,7 @@ if(@$funcionarios == 'ocultar'){
 									$linhas = @count($res);
 									if($linhas > 0){
 										for($i=0; $i<$linhas; $i++){ ?>
-											<option value="<?php echo $res[$i]['nome'] ?>"><?php echo $res[$i]['nome'] ?></option>
+											<option value="<?php echo $res[$i]['id'] ?>"><?php echo $res[$i]['nome'] ?></option>
 									<?php } } ?>
 								</select>							
 						</div>

@@ -371,7 +371,7 @@ if (@count($res1) > 0) {
 									<li class="<?php echo @$clientes ?>"><a class="slide-item" href="clientes"> Clientes</a></li>
 									<li class="<?php echo @$usuarios ?>"><a class="slide-item" href="usuarios"> Usuários</a></li>
 									<li class="<?php echo @$fornecedores ?>"><a class="slide-item" href="fornecedores"> Fornecedores</a></li>
-
+									<li class="<?php echo @$funcionarios ?>"><a class="slide-item" href="funcionarios"> Funcionários</a></li>
 								</ul>
 							</li>
 
