@@ -83,6 +83,33 @@ if(@$pagar == 'ocultar'){
 		<div class="col-auto">
 			<input type="date" name="dataFinal" id="dataFinal" class="form-control form-control-sm" value="<?php echo $data_final_mes ?>" onchange="buscar()">
 		</div>
+
+		<!-- Filtro de Funcionario -->
+		<div class="col-auto">
+			<select name="funcionario" id="funcionario" class="form-select form-select-sm" onchange="buscar()">
+				<option value="">Funcionário</option>
+				<?php
+				$query = $pdo->query("SELECT * FROM funcionarios ORDER BY id DESC");
+				$res = $query->fetchAll(PDO::FETCH_ASSOC);
+				for ($i = 0; $i < @count($res); $i++) {
+					echo '<option value="' . $res[$i]['id'] . '">' . $res[$i]['nome'] . '</option>';
+				}
+				?>
+			</select>
+		</div>
+
+		<div class="col-auto">
+			<select name="cargo" id="cargo" class="form-select form-select-sm" onchange="buscar()">
+				<option value="">Cargo</option>
+				<?php
+				$query = $pdo->query("SELECT * FROM cargos ORDER BY id DESC");
+				$res = $query->fetchAll(PDO::FETCH_ASSOC);
+				for ($i = 0; $i < @count($res); $i++) {
+					echo '<option value="' . $res[$i]['id'] . '">' . $res[$i]['nome'] . '</option>';
+				}
+				?>
+			</select>
+		</div>
 	</div>
 		
 
@@ -911,9 +938,11 @@ if(@$pagar == 'ocultar'){
 			var tipo_data = $('#tipo_data').val();
 			var atacadista = $('#atacadista').val();
 			var formaPGTO =  $('#formaPGTO').val();
+			var funcionario =  $('#funcionario').val();
+			var cargo =  $('#cargo').val();
 
 
-			listar(filtro, dataInicial, dataFinal, tipo_data, atacadista, formaPGTO);
+			listar(filtro, dataInicial, dataFinal, tipo_data, atacadista, formaPGTO, funcionario, cargo);
 		}
 
 

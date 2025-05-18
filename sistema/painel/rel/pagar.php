@@ -18,6 +18,8 @@ $pago = $_GET['pago'];
 $tipo_data = $_GET['tipo_data'];
 $atacadista = $_GET['atacadista']; // Novo filtro
 $formaPGTO = $_GET['formaPGTO']; // Novo filtro
+$funcionario = $_GET['funcionario']; // Novo filtro
+$cargo = $_GET['cargo']; // Novo filtro
 $mostrar_registros = $_GET['mostrar_registros'];
 $id_usuario = $_GET['id_usuario'];
 
@@ -199,6 +201,14 @@ if (!empty($atacadista)) {
 // Filtro por forma de pagamento
 if (!empty($formaPGTO)) {
     $sql .= " AND forma_pgto = '$formaPGTO'";
+}
+
+if (!empty($funcionario)) {
+    $sql .= " AND funcionario = '$funcionario'";
+}
+
+if ($cargo != '') {
+    $sql .= " AND cargo = '$cargo'";
 }
 
 // Ordenação

@@ -13,9 +13,11 @@ $tipo_data = $_POST['tipo_data'];
 $atacadista = $_POST['atacadista'];
 $formaPGTO = $_POST['formaPGTO'];
 $filtro = $_POST['pago'];
+$funcionario = $_POST['funcionario'];
+$cargo = $_POST['cargo'];
 
 
-$url_pdf = $url_sistema . "painel/rel/pagar.php?dataInicial=$dataInicial&dataFinal=$dataFinal&tipo_data=$tipo_data&atacadista=$atacadista&formaPGTO=$formaPGTO&pago=$filtro&mostrar_registros=$mostrar_registros&id_usuario=$id_usuario&token=A5030";
+$url_pdf = $url_sistema . "painel/rel/pagar.php?dataInicial=$dataInicial&dataFinal=$dataFinal&tipo_data=$tipo_data&atacadista=$atacadista&formaPGTO=$formaPGTO&funcionario=$funcionario&cargo=$cargo&pago=$filtro&mostrar_registros=$mostrar_registros&id_usuario=$id_usuario&token=A5030";
 $html = file_get_contents($url_pdf);
 
 //CARREGAR DOMPDF

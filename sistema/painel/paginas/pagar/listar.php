@@ -48,6 +48,8 @@ $filtro = @$_POST['p1'];
 $tipo_data = @$_POST['p4'];
 $atacadista = @$_POST['p5'];
 $forma_pgto = @$_POST['p6'];
+$funcionario = @$_POST['p7'];
+$cargo = @$_POST['p8'];
 
 
 if ($tipo_data == "") {
@@ -70,6 +72,11 @@ if (!empty($atacadista)) {
 $sql_pgto = "";
 if (!empty($forma_pgto)) {
     $sql_pgto = " AND forma_pgto = '$forma_pgto'";
+}
+
+$sql_funcionario = "";
+if (!empty($funcionario)) {
+    $sql_funcionario = " AND funcionario = '$funcionario'";
 }
 
 
@@ -181,21 +188,21 @@ if ($total_am > 0) {
 
 
 if($filtro == 'Vencidas'){
-    $query = $pdo->query("SELECT * from $tabela where $tipo_data < curDate() and pago = 'Não' $sql_usuario_lanc $sql_atacadista $sql_pgto order by id desc ");
+    $query = $pdo->query("SELECT * from $tabela where $tipo_data < curDate() and pago = 'Não' $sql_usuario_lanc $sql_atacadista $sql_pgto $sql_funcionario order by id desc ");
 } else if($filtro == 'Recebidas'){
-    $query = $pdo->query("SELECT * from $tabela where pago = 'Sim' $sql_usuario_lanc $sql_atacadista $sql_pgto order by id desc ");
+    $query = $pdo->query("SELECT * from $tabela where pago = 'Sim' $sql_usuario_lanc $sql_atacadista $sql_pgto $sql_funcionario order by id desc ");
 } else if($filtro == 'Hoje'){
-    $query = $pdo->query("SELECT * from $tabela where $tipo_data = curDate() and pago = 'Não' $sql_usuario_lanc $sql_atacadista $sql_pgto order by id desc ");
+    $query = $pdo->query("SELECT * from $tabela where $tipo_data = curDate() and pago = 'Não' $sql_usuario_lanc $sql_atacadista $sql_pgto $sql_funcionario order by id desc ");
 } else if($filtro == 'Amanha'){
-    $query = $pdo->query("SELECT * from $tabela where $tipo_data = '$data_amanha' and pago = 'Não' $sql_usuario_lanc $sql_atacadista $sql_pgto order by id desc ");
+    $query = $pdo->query("SELECT * from $tabela where $tipo_data = '$data_amanha' and pago = 'Não' $sql_usuario_lanc $sql_atacadista $sql_pgto $sql_funcionario order by id desc ");
 } else if($filtro == 'Todas'){
     if($mostrar_registros == 'Não'){
-        $query = $pdo->query("SELECT * from $tabela where usuario_lanc = '$id_usuario' $sql_atacadista $sql_pgto order by id desc ");
+        $query = $pdo->query("SELECT * from $tabela where usuario_lanc = '$id_usuario' $sql_atacadista $sql_pgto $sql_funcionario order by id desc ");
     } else {
-        $query = $pdo->query("SELECT * from $tabela $sql_atacadista $sql_pgto order by id desc ");
+        $query = $pdo->query("SELECT * from $tabela $sql_atacadista $sql_pgto $sql_funcionario order by id desc ");
     }
 } else {
-    $query = $pdo->query("SELECT * from $tabela WHERE $tipo_data >= '$dataInicial' and vencimento <= '$dataFinal' $sql_usuario_lanc $sql_atacadista $sql_pgto order by id desc ");
+    $query = $pdo->query("SELECT * from $tabela WHERE $tipo_data >= '$dataInicial' and vencimento <= '$dataFinal' $sql_usuario_lanc $sql_atacadista $sql_pgto $sql_funcionario order by id desc ");
 }
 
 $res = $query->fetchAll(PDO::FETCH_ASSOC);
