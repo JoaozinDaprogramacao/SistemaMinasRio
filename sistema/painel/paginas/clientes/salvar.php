@@ -2,6 +2,10 @@
 $tabela = 'clientes';
 require_once("../../../conexao.php");
 
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+
 session_start();
 $id_usuario = $_SESSION['id'] ?? null;
 
@@ -29,7 +33,54 @@ $uf              = $_POST['uf']              ?? '';
 $complemento     = $_POST['complemento']     ?? '';
 $id              = $_POST['id']              ?? null;
 
-// Validação de email único
+// 1) Definição de campos obrigatórios por tipo
+$campos_comuns = [
+    'nome'                => $nome,
+    'email'               => $email,
+    'contato'             => $contato,
+    'CEP'                 => $cep,
+    'endereço'            => $endereco,
+    'número'              => $numero,
+    'bairro'              => $bairro,
+    'cidade'              => $cidade,
+    'UF'                  => $uf,
+    'plano de pagamento'  => $plano_pagamento,
+    'forma de pagamento'  => $forma_pagamento,
+    'prazo de pagamento'  => $prazo_pagamento,
+];
+
+$campos_fisica = [
+    'data de nascimento'  => $data_nasc,
+    'CPF'                 => $cpf,
+    'RG'                  => $rg,
+];
+
+$campos_juridica = [
+    'razão social'        => $razao_social,
+    'CNPJ'                => $cnpj,
+    'IE'                  => $ie,
+];
+
+// 2) Monta o array de obrigatórios conforme tipo
+$campos_obrigatorios = $campos_comuns;
+if ($tipo_pessoa === 'fisica') {
+    $campos_obrigatorios = array_merge($campos_obrigatorios, $campos_fisica);
+} elseif ($tipo_pessoa === 'cnpj') {
+    $campos_obrigatorios = array_merge($campos_obrigatorios, $campos_juridica);
+} else {
+    echo 'Selecione um tipo de pessoa válido!';
+    exit;
+}
+
+// 3) Loop de validação genérica
+foreach ($campos_obrigatorios as $label => $valor) {
+    if (is_null($valor) || $valor === '' || $valor === '0' || $valor === 0) {
+        echo "O campo “{$label}” é obrigatório e não foi preenchido!";
+        exit;
+    }
+}
+
+// 4) Validação de e-mail único
 if (!empty($email)) {
     $stmt = $pdo->prepare("SELECT id FROM $tabela WHERE email = ? LIMIT 1");
     $stmt->execute([$email]);
@@ -40,7 +91,7 @@ if (!empty($email)) {
     }
 }
 
-// Validação de contato único
+// 5) Validação de contato único
 if (!empty($contato)) {
     $stmt = $pdo->prepare("SELECT id FROM $tabela WHERE contato = ? LIMIT 1");
     $stmt->execute([$contato]);
@@ -51,7 +102,7 @@ if (!empty($contato)) {
     }
 }
 
-// Escolhe INSERT ou UPDATE
+// 6) Montagem do SQL (INSERT ou UPDATE)
 if (empty($id)) {
     $sql = "INSERT INTO $tabela (
                 nome, email, contato, data_cad,
@@ -95,7 +146,8 @@ if (empty($id)) {
 }
 
 $stmt = $pdo->prepare($sql);
-// Bind parâmetros comuns
+
+// 7) Bind dos parâmetros
 $stmt->bindValue(':nome', $nome);
 $stmt->bindValue(':email', $email);
 $stmt->bindValue(':contato', $contato);
@@ -118,11 +170,12 @@ $stmt->bindValue(':plano_pagamento', $plano_pagamento);
 $stmt->bindValue(':forma_pagamento', $forma_pagamento);
 $stmt->bindValue(':prazo_pagamento', $prazo_pagamento);
 $stmt->bindValue(':usuario', $id_usuario);
+
 if (!empty($id)) {
     $stmt->bindValue(':id', $id, PDO::PARAM_INT);
 }
 
+// 8) Execução
 $stmt->execute();
 
 echo 'Salvo com Sucesso';
-?>
