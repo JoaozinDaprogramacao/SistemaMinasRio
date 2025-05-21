@@ -63,7 +63,7 @@ $campos_juridica = [
 $campos_obrigatorios = $campos_comuns;
 if ($tipo_pessoa === 'fisica') {
     $campos_obrigatorios = array_merge($campos_obrigatorios, $campos_fisica);
-} elseif ($tipo_pessoa === 'juridica') {
+} elseif ($tipo_pessoa === 'cnpj') {
     $campos_obrigatorios = array_merge($campos_obrigatorios, $campos_juridica);
 } else {
     echo 'Selecione um tipo de pessoa válido!';
