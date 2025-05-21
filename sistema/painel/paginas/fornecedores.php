@@ -74,13 +74,16 @@ if (@$fornecedores == 'ocultar') {
 	}
 
 	// Função para aplicar a máscara da IE
-	function mascara_ie(valor) {
-		var valorAlterado = $('#' + valor).val();
-		valorAlterado = valorAlterado.replace(/\D/g, ""); // Remove todos os não dígitos
-		valorAlterado = valorAlterado.replace(/(\d{3})(\d)/, "$1.$2"); // Adiciona o primeiro ponto
-		valorAlterado = valorAlterado.replace(/(\d{3})(\d)/, "$1.$2"); // Adiciona o segundo ponto
-		valorAlterado = valorAlterado.replace(/(\d{3})(\d{1,2})$/, "$1.$2"); // Adiciona o terceiro ponto
-		$('#' + valor).val(valorAlterado);
+	function mascara_ie(id) {
+		// pega só dígitos e limita a 9
+		let v = $('#' + id).val().replace(/\D/g, '').substring(0, 9);
+
+		// 1) insere ponto depois dos 2 primeiros
+		v = v.replace(/^(\d{2})(\d+)/, '$1.$2');
+		// 2) insere traço antes do dígito verificador (último)
+		v = v.replace(/^(\d{2}\.\d{6})(\d)$/, '$1-$2');
+
+		$('#' + id).val(v);
 	}
 
 	// Função para aplicar a máscara do RG
@@ -274,7 +277,7 @@ if (@$fornecedores == 'ocultar') {
 						</div>
 						<div class="col-md-6 mb-2">
 							<label>IE</label>
-							<input type="text" class="form-control" id="ie" name="ie" placeholder="IE do Fornecedor" onkeyup="mascara_ie('ie')" maxlength="14">
+							<input type="text" class="form-control" id="ie" name="ie" placeholder="IE do Fornecedor" onkeyup="mascara_ie('ie')" maxlength="11">
 						</div>
 					</div>
 
