@@ -274,17 +274,50 @@ HTML;
     $('#modalDados').modal('show');
   }
 
-	function limparCampos() {
-		$('#id').val('');
-		$('#nome').val('');
-		$('#email').val('');
-		$('#telefone').val('');
-		$('#endereco').val('');
-		$('#pix').val('');
+  function limparCampos() {
 
-		$('#ids').val('');
-		$('#btn-deletar').hide();
-	}
+console.log('entrou limparCampos');
+// Campos ocultos e básicos
+$('#id').val('');
+$('#ids').val('');
+$('#mensagem').text('');
+$('#btn-deletar').hide();
+
+// Radios de tipo de pessoa — volta para Pessoa Física
+$('#radio_pessoa_fisica').prop('checked', true);
+$('#radio_cnpj').prop('checked', false);
+
+// Dados Gerais / Jurídicos / Pessoais
+$('#nome_atacadista').val('');
+$('#razao_social').val('');
+$('#cnpj').val('');
+$('#ie').val('');
+$('#cpf').val('');
+$('#rg').val('');
+
+// Endereço
+$('#cep').val('');
+$('#rua').val('');
+$('#numero').val('');
+$('#bairro').val('');
+$('#cidade').val('');
+$('#uf').val('');
+$('#complemento').val('');
+
+// Contato e site
+$('#contato').val('');
+$('#email').val('');
+$('#site').val('');
+
+// Planos e prazos
+$('#plano_pagamento').val('0').trigger('change');
+$('#forma_pagamento').val('0').trigger('change');
+$('#prazo_pagamento').val('');
+
+// Reajusta visibilidade de campos conforme tipo de pessoa
+atualizarVisibilidade();
+}
+
 
 	function selecionar(id) {
 

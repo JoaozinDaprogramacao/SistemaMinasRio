@@ -446,7 +446,6 @@ if (@$fornecedores == 'ocultar') {
 
 
 
-
 <script type="text/javascript">
 	var pag = "<?= $pag ?>"
 </script>
