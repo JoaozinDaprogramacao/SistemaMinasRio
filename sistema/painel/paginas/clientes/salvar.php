@@ -141,7 +141,8 @@ if (empty($id)) {
                 site = :site,
                 plano_pagamento = :plano_pagamento,
                 forma_pagamento = :forma_pagamento,
-                prazo_pagamento = :prazo_pagamento
+                prazo_pagamento = :prazo_pagamento,
+                usuario = :usuario
             WHERE id = :id";
 }
 
