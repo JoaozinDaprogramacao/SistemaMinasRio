@@ -218,10 +218,48 @@ HTML;
 			$('#radio_pessoa_fisica').prop('checked', false); // Desmarca o outro rádio
 			$('#radio_cnpj').prop('checked', true).trigger('change');
 		}
+		atualizarVisibilidade();
+
 
 		$('#modalForm').modal('show');
 	}
 
+
+	function atualizarVisibilidade() {
+
+		const pessoaFisicaRadio = document.getElementById("radio_pessoa_fisica");
+		const cnpjRadio = document.getElementById("radio_cnpj");
+		const fisicaFields = document.getElementById("fisica_fields");
+		const cnpjFields = document.getElementById("cnpj_fields");
+		const cnpjTitle = document.getElementById("cnpj_title");
+
+	
+		if (cnpjRadio.checked) {
+			fisicaFields.classList.add("d-none");
+			cnpjFields.classList.remove("d-none");
+			cnpjTitle.classList.remove("d-none");
+			limparCamposFisica();
+		} else {
+			console.log("Pessoa Física selecionada");
+			fisicaFields.classList.remove("d-none");
+			cnpjFields.classList.add("d-none");
+			cnpjTitle.classList.add("d-none");
+			limparCamposJuridica();
+		}
+	}
+
+
+
+	function limparCamposFisica() {
+		document.getElementById("cpf").value = "";
+		document.getElementById("rg").value = "";
+	}
+
+	function limparCamposJuridica() {
+		document.getElementById("cnpj").value = "";
+		document.getElementById("ie").value = "";
+		document.getElementById("razao_social").value = "";
+	}
 
 
 
