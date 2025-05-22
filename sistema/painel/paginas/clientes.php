@@ -739,7 +739,7 @@ if(@$clientes == 'ocultar'){
 
 
 <script type="text/javascript">
-	function mudarPessoa(){
+		console.log('mudarPessoa');
 		var pessoa = $('#tipo_pessoa').val();
 		if(pessoa == 'Física'){
 			$('#cpf').mask('000.000.000-00');

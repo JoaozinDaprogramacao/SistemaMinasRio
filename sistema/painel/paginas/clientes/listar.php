@@ -115,7 +115,7 @@ HTML;
 <td class="esc">{$email}</td>
 <td>
 	<a class="btn btn-info btn-sm" href="#"  title="Editar Dados" onclick="editar(
-    '{$id}', '{$nome}', '{$razao_social}', '{$cnpj}', '{$ie}', '{$cpf}', 
+    '{$id}', '{$nome}', '{$data_nasc}', '{$razao_social}', '{$cnpj}', '{$ie}', '{$cpf}', 
     '{$rg}', '{$rua}', '{$numero}', '{$bairro}', '{$cidade}', '{$cep}', '{$uf}', '{$complemento}', 
     '{$contato}', '{$site}', '{$plano_pgto_value}', '{$prazo_pgto_value}', '{$forma_pagamento_value}', '{$email}'
 )"><i class="fa fa-edit "></i></a>
@@ -187,14 +187,18 @@ HTML;
 	});
 </script>
 <script type="text/javascript">
-	function editar(id, nome, razao_social, cnpj, ie, cpf, rg, rua, numero, bairro, cidade, cep, uf, complemento, contato, site, plano_pgto, prazo_pgto, forma_pgto, email) {
+	function editar(id, nome, data_nascF, razao_social, cnpj, ie, cpf, rg, rua, numero, bairro, cidade, cep, uf, complemento, contato, site, plano_pgto, prazo_pgto, forma_pgto, email) {
 
 		$('#mensagem').text('');
 		$('#titulo_inserir').text('Editar Registro');
 
+		console.log("Nome: " + nome);
+		console.log("data: " + data_nascF);
+
 		$('#id').val(id);
-		$('#nome').val(nome);
-		$('#razao_social').val(razao_social);
+		$('#nome_cliente').val(nome);
+		$('#data_nasc').val(data_nascF);
+		$('#razao_social').val(data_nascF);
 		$('#cnpj').val(cnpj);
 		$('#ie').val(ie);
 		$('#cpf').val(cpf);
@@ -222,7 +226,28 @@ HTML;
 			$('#radio_cnpj').prop('checked', true).trigger('change');
 		}
 
+		atualizarVisibilidade();
 		$('#modalForm').modal('show');
+	}
+
+
+	function atualizarVisibilidade() {
+		const pessoaFisicaRadio = document.getElementById("radio_pessoa_fisica");
+					const cnpjRadio = document.getElementById("radio_cnpj");
+					const fisicaFields = document.getElementById("fisica_fields");
+					const cnpjFields = document.getElementById("cnpj_fields");
+					const cnpjTitle = document.getElementById("cnpj_title");
+
+		if (cnpjRadio.checked) {
+			fisicaFields.classList.add("d-none");
+			cnpjFields.classList.remove("d-none");
+			cnpjTitle.classList.remove("d-none");
+		} else {
+			console.log("Pessoa Física selecionada");
+			fisicaFields.classList.remove("d-none");
+			cnpjFields.classList.add("d-none");
+			cnpjTitle.classList.add("d-none");
+		}
 	}
 
 
