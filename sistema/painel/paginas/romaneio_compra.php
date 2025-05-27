@@ -168,13 +168,20 @@ if (@$produtos == 'ocultar') {
 							<select name="produto_1[]" class="produto_1" onchange="handleInput(this); calcularValores(this.closest('.linha_1'));">
 								<option value="">Selecione Variedade</option>
 								<?php
-								$query = $pdo->query("SELECT * from produtos order by id asc");
-								$res = $query->fetchAll(PDO::FETCH_ASSOC);
-								$linhas = @count($res);
-								if ($linhas > 0) {
-									for ($i = 0; $i < $linhas; $i++) { ?>
-										<option value="<?php echo $res[$i]['id'] ?>"><?php echo $res[$i]['nome'] ?></option>
-								<?php }
+								$query_sql = "SELECT p.id AS id_produto, p.nome AS nome_produto, c.nome AS nome_categoria 
+											FROM produtos p 
+											INNER JOIN categorias c ON p.categoria = c.id 
+											ORDER BY p.nome ASC"; // Alterei para ordenar por nome do produto, pode ser p.id também
+
+								$stmt = $pdo->query($query_sql);
+								$produtos_com_categorias = $stmt->fetchAll(PDO::FETCH_ASSOC);
+								
+								if (count($produtos_com_categorias) > 0) {
+									foreach ($produtos_com_categorias as $item) { ?>
+										<option value="<?php echo $item['id_produto']; ?>">
+											<?php echo htmlspecialchars($item['nome_produto']) . ' - ' . htmlspecialchars($item['nome_categoria']); ?>
+										</option>
+									<?php }
 								} ?>
 							</select>
 						</div>
