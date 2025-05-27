@@ -1,7 +1,7 @@
 <?php 
 require_once("../../../conexao.php");
 require_once("../../verificar.php");
-$tabela = 'descricao';
+$tabela = 'descricao_romaneio';
 
 $query = $pdo->query("SELECT * FROM $tabela ORDER BY id desc");
 $res = $query->fetchAll(PDO::FETCH_ASSOC);
@@ -90,6 +90,8 @@ HTML;
 
 	function limparCampos(){
 		$('#descricao').val('');
+		$('#id').val('');
+
 	}
 
 

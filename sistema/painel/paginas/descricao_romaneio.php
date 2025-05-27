@@ -1,6 +1,6 @@
 <?php 
 require_once("verificar.php");
-$pag = 'descricao';
+$pag = 'descricao_romaneio';
 
 //verificar se ele tem a permissão de estar nessa página
 if(@$formas_pgto == 'ocultar'){

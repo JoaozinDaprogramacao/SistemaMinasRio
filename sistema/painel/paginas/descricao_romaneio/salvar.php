@@ -1,6 +1,6 @@
 <?php 
 require_once("../../../conexao.php");
-$tabela = 'descricao';
+$tabela = 'descricao_romaneio';
 
 $id = $_POST['id'];
 $descricao = $_POST['descricao'];
