@@ -3,8 +3,8 @@ require_once("../../../conexao.php");
 
 $id = $_POST['id'];
 
-// Buscar dados do romaneio (agora incluindo desc_avista)
-$query = $pdo->prepare("
+// Buscar dados do romaneio (agora incluindo desc_avista) - Esta parte permanece igual
+$query_romaneio = $pdo->prepare("
   SELECT 
     rc.*,
     f.razao_social    AS nome_fornecedor,
@@ -17,15 +17,15 @@ $query = $pdo->prepare("
   LEFT JOIN clientes       c ON rc.cliente     = c.id
   WHERE rc.id = :id
 ");
-$query->bindValue(":id", $id);
-$query->execute();
-$romaneio = $query->fetch(PDO::FETCH_ASSOC);
+$query_romaneio->bindValue(":id", $id);
+$query_romaneio->execute();
+$romaneio = $query_romaneio->fetch(PDO::FETCH_ASSOC);
 
-// Buscar produtos
-$query = $pdo->prepare("
+// Buscar produtos - Modificações aqui
+$query_produtos = $pdo->prepare("
   SELECT 
     lpc.*,
-    p.nome as nome_produto,
+    CONCAT(p.nome, COALESCE(CONCAT(' - ', cat.nome), '')) as nome_produto, -- Modificado aqui
     COALESCE(
       CONCAT(
         FORMAT(tc.tipo, 2),
@@ -40,15 +40,17 @@ $query = $pdo->prepare("
       '-'
     ) as tipo_caixa
   FROM linha_produto_compra lpc
-  LEFT JOIN produtos   p  ON lpc.variedade   = p.id
-  LEFT JOIN tipo_caixa tc ON lpc.tipo_caixa = tc.id
+  LEFT JOIN produtos   p   ON lpc.variedade   = p.id
+  LEFT JOIN tipo_caixa tc  ON lpc.tipo_caixa  = tc.id
+  LEFT JOIN categorias cat ON p.categoria     = cat.id -- Adicionado JOIN com categorias
   WHERE lpc.id_romaneio = :id
 ");
-$query->bindValue(":id", $id);
-$query->execute();
-$produtos = $query->fetchAll(PDO::FETCH_ASSOC);
+$query_produtos->bindValue(":id", $id);
+$query_produtos->execute();
+$produtos = $query_produtos->fetchAll(PDO::FETCH_ASSOC);
 
 echo json_encode([
   'romaneio' => $romaneio,
   'produtos' => $produtos
 ], JSON_UNESCAPED_UNICODE);
+?>
