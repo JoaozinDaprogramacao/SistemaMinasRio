@@ -270,7 +270,7 @@ if (@$produtos == 'ocultar') {
       </div>
       <div class="coluna_romaneio">
         <label for="info_funrural">INFO</label>
-        <select id="info_funrural" onchange="calcularTaxaFunrural()">
+        <select id="info_funrural" name="info_funrural" onchange="calcularTaxaFunrural()">
           <option value="">Selecione</option>
           <option value="liquido">V. LIQUIDO</option>
           <option value="bruto">V. BRUTO</option>
@@ -278,7 +278,7 @@ if (@$produtos == 'ocultar') {
       </div>
       <div class="coluna_romaneio">
         <label for="preco_unit_funrural">PREÇO UNIT</label>
-        <select id="preco_unit_funrural" onchange="calcularTaxaFunrural()">
+        <select id="preco_unit_funrural" name="preco_unit_funrural" onchange="calcularTaxaFunrural()">
           <option value="">Selecione</option>
           <option value="1.50">1,50 %</option>
           <option value="2.00">2,00 %</option>
@@ -300,7 +300,7 @@ if (@$produtos == 'ocultar') {
       </div>
       <div class="coluna_romaneio">
         <label for="info_ima">INFO</label>
-        <select id="info_ima" onchange="calcularTaxaIma()">
+        <select id="info_ima" name="info_ima" onchange="calcularTaxaIma()">
           <option value="">Selecione</option>
           <option value="cx">CX</option>
           <option value="um">1</option>
@@ -308,7 +308,7 @@ if (@$produtos == 'ocultar') {
       </div>
       <div class="coluna_romaneio">
         <label for="preco_unit_ima">PREÇO UNIT</label>
-        <select id="preco_unit_ima" onchange="calcularTaxaIma()">
+        <select id="preco_unit_ima" name="preco_unit_ima" onchange="calcularTaxaIma()">
           <option value="">Selecione</option>
           <option value="55.31">55,31</option>
           <option value="0.25">0,25</option>
@@ -331,7 +331,7 @@ if (@$produtos == 'ocultar') {
       </div>
       <div class="coluna_romaneio">
         <label for="info_abanorte">INFO</label>
-        <select id="info_abanorte" onchange="calcularTaxaAbanorte()">
+        <select id="info_abanorte" name="info_abanorte" onchange="calcularTaxaAbanorte()">
           <option value="">Selecione</option>
           <option value="kg">KG</option>
           <option value="um">1</option>
@@ -339,7 +339,7 @@ if (@$produtos == 'ocultar') {
       </div>
       <div class="coluna_romaneio">
         <label for="preco_unit_abanorte">PREÇO UNIT</label>
-        <select id="preco_unit_abanorte" onchange="calcularTaxaAbanorte()">
+        <select id="preco_unit_abanorte" name="preco_unit_abanorte" onchange="calcularTaxaAbanorte()">
           <option value="">Selecione</option>
           <option value="52.80">52,80 %</option>
           <option value="0.0025">0,0025 %</option>
@@ -360,18 +360,18 @@ if (@$produtos == 'ocultar') {
         <input id="desc_taxa_adm" type="text" value="TAXA ADM" readonly>
       </div>
       <div class="coluna_romaneio">
-        <label for="taxa_adm_percent">Taxa (%)</label>
+        <label for="taxa_adm_percent">Taxa</label>
         <input
           id="taxa_adm_percent"
-          type="text"
-          onkeyup="mascara_moeda(this);"
+		  name="taxa_adm_percent"
+          type="number"
           oninput="calcularTaxaAdm()"
-          placeholder="0,00"
+          placeholder="0"
         >
       </div>
       <div class="coluna_romaneio">
         <label for="preco_unit_taxa_adm">PREÇO UNIT</label>
-        <select id="preco_unit_taxa_adm" onchange="calcularTaxaAdm()">
+        <select id="preco_unit_taxa_adm" name="preco_unit_taxa_adm" onchange="calcularTaxaAdm()">
           <option value="">Selecione</option>
           <option value="5">5,00</option>
         </select>
@@ -387,7 +387,7 @@ if (@$produtos == 'ocultar') {
 				<div id="linha-container_2"></div>
 				<div class="resumo-tabela">
 					<div class="resumo-linha">
-						<div class="resumo-celula">TOTAL COMISSÃO</div>
+						<div class="resumo-celula">TOTAL IMPOSTOS E TAXAS</div>
 						<div class="resumo-celula">R$ <p id="total_comissao">0,00</p>
 						</div>
 					</div>
@@ -684,8 +684,6 @@ if (@$produtos == 'ocultar') {
 		outline: none;
 	}
 </style>
-
-<!-- Modal Dados -->
 <div class="modal fade" id="modalMostrarDados" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-lg">
     <div class="modal-content">
@@ -694,7 +692,6 @@ if (@$produtos == 'ocultar') {
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body">
-        <!-- Linha 1: Fornecedor, Data, Nota Fiscal -->
         <div class="row">
           <div class="col-md-4">
             <span class="fw-bold">Fornecedor:</span>
@@ -710,7 +707,6 @@ if (@$produtos == 'ocultar') {
           </div>
         </div>
 
-        <!-- Linha 2: Plano, Vencimento, Quant Dias -->
         <div class="row mt-2">
           <div class="col-md-4">
             <span class="fw-bold">Plano de Pagamento:</span>
@@ -726,7 +722,6 @@ if (@$produtos == 'ocultar') {
           </div>
         </div>
 
-        <!-- Linha 3: Fazenda, Cliente, Total Líquido -->
         <div class="row mt-2">
           <div class="col-md-4">
             <span class="fw-bold">Fazenda:</span>
@@ -742,7 +737,6 @@ if (@$produtos == 'ocultar') {
           </div>
         </div>
 
-        <!-- Produtos -->
         <div class="mt-4">
           <h6 class="fw-bold">Produtos</h6>
           <div class="table-responsive">
@@ -758,49 +752,54 @@ if (@$produtos == 'ocultar') {
                 </tr>
               </thead>
               <tbody id="produtos_modal">
-                <!-- preenchido dinamicamente -->
-              </tbody>
+                </tbody>
             </table>
           </div>
         </div>
 
-        <!-- Comissões -->
         <div class="mt-4">
-          <h6 class="fw-bold">Comissões</h6>
+          <h6 class="fw-bold">Impostos, Taxas e Descontos Fixos</h6>
           <div class="row">
-            <div class="col-md-3">
+            <div class="col-md-4"> <span class="fw-bold">Desconto à Vista (%):</span>
+              <span id="desc_avista_perc_modal"></span> </div>
+            <div class="col-md-4">
               <span class="fw-bold">Funrural:</span>
               <span id="desc_funrural_modal"></span>
             </div>
-            <div class="col-md-3">
+            <div class="col-md-4">
               <span class="fw-bold">IMA:</span>
               <span id="desc_ima_modal"></span>
             </div>
-            <div class="col-md-3">
+          </div>
+          <div class="row mt-1"> <div class="col-md-4">
               <span class="fw-bold">Abanorte:</span>
               <span id="desc_abanorte_modal"></span>
             </div>
-            <div class="col-md-3">
+            <div class="col-md-4">
               <span class="fw-bold">Taxa ADM:</span>
               <span id="desc_taxaadm_modal"></span>
             </div>
+            <div class="col-md-4">
+              </div>
           </div>
         </div>
 
-        <!-- Descontos Diversos -->
         <div class="mt-4">
           <h6 class="fw-bold">Descontos Diversos</h6>
           <div class="table-responsive">
             <table class="table table-sm">
               <thead>
-                <tr><th>Tipo</th><th>Valor</th><th>Obs</th></tr>
+                <tr>
+                  <th>Tipo</th>
+                  <th>Obs</th>  <th>Valor</th> </tr>
               </thead>
               <tbody id="descontos_modal">
-                <tr><td colspan="3">Nenhum desconto</td></tr>
+                <tr><td colspan="3" class="text-center">Nenhum desconto diverso informado</td></tr>
               </tbody>
             </table>
           </div>
         </div>
+
       </div>
     </div>
   </div>
@@ -911,8 +910,10 @@ if (@$produtos == 'ocultar') {
 
 
 <script type="text/javascript">
-	function limparFormulario() {
+	
+function limparCampos() {
   // 1) Limpa campos fixos do cabeçalho
+  console.log("aqui123123");
 
   $('#mensagem-sucesso').hide();
 
@@ -924,7 +925,8 @@ if (@$produtos == 'ocultar') {
   $('#vencimento').val('');
   $('#fazenda').val('');
   $('#cliente').val('');
-
+  $('#desc-avista').val('');
+  $('#nota_fiscal').val('');
 
   // 2) Limpa sessão de produtos
   $('#linha-container_1').empty();
@@ -982,7 +984,6 @@ if (@$produtos == 'ocultar') {
 <script type="text/javascript">
 	var pag = "<?= $pag ?>"
 </script>
-<script src="js/ajax.js"></script>
 
 <script type="text/javascript">
 	$(document).ready(function() {
@@ -1074,7 +1075,7 @@ $("#form-romaneio").submit(function(event) {
                       .show();
 
                     // Limpa e fecha
-                    limparFormulario();
+                    limparCampos();
                     $('#modalForm').modal('hide');
                     $('#btn-salvar').prop('disabled', false);
                     listar();
@@ -1431,3 +1432,4 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 
+<script src="js/ajax.js"></script>

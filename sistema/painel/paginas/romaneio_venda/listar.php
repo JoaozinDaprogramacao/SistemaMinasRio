@@ -278,6 +278,7 @@ HTML;
 	}
 
 	function limparCampos(){
+		console.log("aqui limpar 13123")
 		$('#id').val('');
     	$('#atacadista').val(''); 
     	$('#data').val('00-00-00');

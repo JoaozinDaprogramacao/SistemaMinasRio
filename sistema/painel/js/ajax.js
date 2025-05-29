@@ -18,10 +18,11 @@ function listar(p1, p2, p3, p4, p5, p6, p7, p8) {
 }
 
 function inserir() {
+
+    console.log("opa!");
     $('#mensagem').text('');
     $('#titulo_inserir').text('Inserir Registro');
     $('#modalForm').modal('show');
-
     limparCampos();
 }
 

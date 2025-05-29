@@ -149,12 +149,11 @@ HTML;
 	}
 
 	let isEditing = false;
-
-	function editar(id) {
+  function editar(id) {
   console.debug('=== editar() iniciado para ID:', id);
 
   // 1) Limpa tudo e prepara o modal
-  limparFormulario();
+  limparCampos(); // Certifique-se que limparCampos reseta os selects de comissão também
   $('#titulo_inserir').text('Editar Registro');
   $('#id').val(id);
 
@@ -166,93 +165,145 @@ HTML;
     data: { id },
     success: function(res) {
       console.debug('Resposta AJAX buscar_dados:', res);
+      if (!res || !res.romaneio) {
+        console.error('Resposta inválida de buscar_dados.php:', res);
+        alert('Não foi possível carregar os dados do romaneio. Resposta do servidor inválida.');
+        return;
+      }
       const r = res.romaneio;
 
       // ----- Cabeçalho -----
-      $('.data_atual').val(r.data.split(' ')[0]);
-      $('#vencimento').val(r.vencimento.split(' ')[0]);
+      $('.data_atual').val(r.data ? r.data.split(' ')[0] : '');
+      $('#vencimento').val(r.vencimento ? r.vencimento.split(' ')[0] : '');
       $('#nota_fiscal').val(r.nota_fiscal || '');
-      $('#plano_pgto').val(r.plano_pgto);
-      $('#quant_dias').val(r.quant_dias);
-      $('#fornecedor').val(r.fornecedor);
-      $('#fazenda').val(r.fazenda);
-      $('#cliente').val(r.cliente);
+      $('#plano_pgto').val(r.plano_pgto || '');
+      $('#quant_dias').val(r.quant_dias || '');
+      $('#fornecedor').val(r.fornecedor || '');
+      $('#fazenda').val(r.fazenda || '');
+      $('#cliente').val(r.cliente || '');
 
       // Desconto à vista
       console.debug('desc_avista RAW:', r.desc_avista);
       $('#desc-avista').val(
-        (parseFloat(r.desc_avista) || 0).toFixed(2).replace('.', ',')
+        r.desc_avista ? (parseFloat(r.desc_avista) || 0).toFixed(2).replace('.', ',') : '0,00'
       );
 
       // ----- Produtos -----
       $('#linha-container_1').empty();
-      res.produtos.forEach((item, idx) => {
-        addNewLine1();
-        const $linha = $('#linha-container_1 .linha_1').eq(idx);
+      if (res.produtos && res.produtos.length) {
+        res.produtos.forEach((item, idx) => {
+          addNewLine1(); // Supondo que addNewLine1() cria a linha e a retorna ou podemos selecioná-la
+          const $linha = $('#linha-container_1 .linha_1').eq(idx); // Garanta que esta seleção é robusta
 
-        console.debug(`--- Produto ${idx}`, item);
+          console.debug(`--- Produto ${idx}`, item);
 
-        $linha.find('.quant_caixa_1').val(item.quant);
-        $linha.find('.produto_1').val(item.variedade);
-        $linha.find('.preco_kg_1').val(
-          parseFloat(item.preco_kg).toFixed(2).replace('.', ',')
-        );
+          $linha.find('.quant_caixa_1').val(item.quant || '');
+          $linha.find('.produto_1').val(item.variedade || '');
+          $linha.find('.preco_kg_1').val(
+            item.preco_kg ? parseFloat(item.preco_kg).toFixed(2).replace('.', ',') : '0,00'
+          );
 
-        // pega só o número antes do espaço
-        const rawTipo = item.tipo_caixa;       // ex: "14.50 G"
-        const numTipo = rawTipo.split(' ')[0]; // ex: "14.50"
-        console.debug(`tipo_caixa raw [${idx}]:`, rawTipo, '→ num:', numTipo);
-        $linha.find('.tipo_cx_1').val(numTipo);
+          const rawTipo = item.tipo_caixa || '';       // ex: "14.50 G"
+          const numTipo = rawTipo.split(' ')[0]; // ex: "14.50"
+          console.debug(`tipo_caixa raw [${idx}]:`, rawTipo, '→ num:', numTipo);
+          $linha.find('.tipo_cx_1').val(numTipo); // O valor do option deve ser "14.50"
 
-        $linha.find('.preco_unit_1').val(
-          parseFloat(item.preco_unit).toFixed(2).replace('.', ',')
-        );
-        $linha.find('.valor_1').val(
-          parseFloat(item.valor).toFixed(2).replace('.', ',')
-        );
+          $linha.find('.preco_unit_1').val(
+            item.preco_unit ? parseFloat(item.preco_unit).toFixed(2).replace('.', ',') : '0,00'
+          );
+          $linha.find('.valor_1').val(
+            item.valor ? parseFloat(item.valor).toFixed(2).replace('.', ',') : '0,00'
+          );
 
-        // dispara recálculo desta linha
-        calcularValores($linha.get(0));
-      });
+          // dispara recálculo desta linha
+          if (typeof calcularValores === 'function' && $linha.length) {
+            calcularValores($linha.get(0));
+          }
+        });
+      } else {
+         addNewLine1(); // Adiciona uma linha de produto em branco se não houver produtos
+      }
 
-      // ----- Comissões fixas -----
-      console.debug('Preenchendo abatimentos fixos');
+
+      // ----- Comissões/Deduções fixas -----
+      console.debug('Preenchendo configurações e valores das deduções fixas');
+
+      // FUNRURAL
+      $('#info_funrural').val(r.funrural_config_info || '');
+      // Para selects, o valor de r.funrural_config_preco_unit deve corresponder exatamente ao 'value' de uma tag <option>
+      // Se o valor no DB é 1.50 e o option value="1.50", está ok.
+      $('#preco_unit_funrural').val(r.funrural_config_preco_unit ? parseFloat(r.funrural_config_preco_unit).toFixed(2) : '');
       $('#valor_funrural').val(
-        parseFloat(r.desc_funrural).toFixed(2).replace('.', ',')
+        r.desc_funrural ? parseFloat(r.desc_funrural).toFixed(2).replace('.', ',') : '0,00'
       );
+
+      // IMA
+      $('#info_ima').val(r.ima_config_info || '');
+      $('#preco_unit_ima').val(r.ima_config_preco_unit ? parseFloat(r.ima_config_preco_unit).toFixed(2) : '');
       $('#valor_ima').val(
-        parseFloat(r.desc_ima).toFixed(2).replace('.', ',')
+        r.desc_ima ? parseFloat(r.desc_ima).toFixed(2).replace('.', ',') : '0,00'
       );
+
+      // ABANORTE
+      $('#info_abanorte').val(r.abanorte_config_info || '');
+      // Se abanorte_config_preco_unit for 0.0025 (DECIMAL(10,4)), o toFixed(4) é necessário para casar com option value="0.0025"
+      // Se for um valor como 52.80 (DECIMAL(10,2)), toFixed(2) seria para option value="52.80"
+      // Usar diretamente o valor string do banco pode ser mais seguro se a formatação já estiver correta lá.
+      // Assumindo que r.abanorte_config_preco_unit vem como string formatada corretamente (ex: "0.0025" ou "52.80")
+      $('#preco_unit_abanorte').val(r.abanorte_config_preco_unit || '');
       $('#valor_abanorte').val(
-        parseFloat(r.desc_abanorte).toFixed(2).replace('.', ',')
+        r.desc_abanorte ? parseFloat(r.desc_abanorte).toFixed(2).replace('.', ',') : '0,00'
       );
+
+      // TAXA ADM
+      // taxa_adm_config_taxa_perc é o input de %
+      $('#taxa_adm_percent').val(r.taxa_adm_config_taxa_perc ? parseFloat(r.taxa_adm_config_taxa_perc).toFixed(2) : '');
+      // taxa_adm_config_preco_unit é o select, ex: option value="5"
+      $('#preco_unit_taxa_adm').val(r.taxa_adm_config_preco_unit ? parseFloat(r.taxa_adm_config_preco_unit).toFixed(0) : ''); // toFixed(0) para casar com value="5" se o DB tiver 5.00
       $('#valor_taxa_adm').val(
-        parseFloat(r.desc_taxaadm).toFixed(2).replace('.', ',')
+        r.desc_taxaadm ? parseFloat(r.desc_taxaadm).toFixed(2).replace('.', ',') : '0,00'
       );
-      calculaTotais2();  // atualiza total de comissões e carga
+      
+      // Se as funções individuais de cálculo devem ser chamadas após setar os selects:
+      if(typeof calcularTaxaFunrural === 'function') calcularTaxaFunrural();
+      if(typeof calcularTaxaIma === 'function') calcularTaxaIma();
+      if(typeof calcularTaxaAbanorte === 'function') calcularTaxaAbanorte();
+      if(typeof calcularTaxaAdm === 'function') calcularTaxaAdm();
+      // E depois o totalizador geral de comissões
+      if(typeof calculaTotais2 === 'function') calculaTotais2();
+
 
       // ----- Descontos Diversos -----
       console.debug('Preenchendo descontos diversos:', r.descontos_diversos);
-      $('#discount-container').empty();
+      $('#discount-container').empty(); // Limpa antes de adicionar
       let descontos = [];
       try {
-        descontos = JSON.parse(r.descontos_diversos || '[]');
+        if (r.descontos_diversos && r.descontos_diversos.trim() !== "") {
+            descontos = JSON.parse(r.descontos_diversos);
+        }
       } catch (e) {
-        console.warn('JSON inválido em descontos_diversos', e);
+        console.warn('JSON inválido em descontos_diversos', r.descontos_diversos, e);
       }
-      descontos.forEach((d, i) => {
-        console.debug(`– desconto ${i}`, d);
-        addDiscountLine();
-        const $dlinha = $('#discount-container .linha_3').eq(i);
-        $dlinha.find('.desconto-type').val(d.tipo);
-        $dlinha.find('.desconto-valor').val(
-          d.valor.toFixed(2).replace('.', ',')
-        );
-        $dlinha.find('.desconto-obs').val(d.obs);
-      });
-      // após inserir linhas, recalcula totais gerais
-      calcularDescontosDiversos();
-      updateLiquidPayable();
+      
+      if (descontos && descontos.length > 0) {
+          descontos.forEach((d, i) => {
+            console.debug(`– desconto ${i}`, d);
+            addDiscountLine(); // Supondo que addDiscountLine() adiciona uma nova linha
+            const $dlinha = $('#discount-container .linha_3').eq(i); // Garanta esta seleção
+            $dlinha.find('.desconto-type').val(d.tipo || '+');
+            $dlinha.find('.desconto-valor').val(
+              d.valor ? parseFloat(d.valor).toFixed(2).replace('.', ',') : '0,00'
+            );
+            $dlinha.find('.desconto-obs').val(d.obs || '');
+          });
+      } else {
+          addDiscountLine(); // Adiciona uma linha de desconto em branco se não houver descontos
+      }
+      
+      // após inserir linhas e preencher comissões, recalcula totais gerais
+      if(typeof calcularDescontosDiversos === 'function') calcularDescontosDiversos();
+      if(typeof updateLiquidPayable === 'function') updateLiquidPayable(); // Atualiza o total líquido final
+      if(typeof calculaTotais === 'function') calculaTotais(); // Para garantir que tudo seja recalculado
 
       // 4) Exibe o modal
       $('#modalForm').modal('show');
@@ -289,7 +340,7 @@ function handleInput(input) {
 		return parseFloat(valor).toFixed(2).replace('.', ',');
 	}
 
-	function mostrar(id) {
+  function mostrar(id) {
   $.ajax({
     url: 'paginas/romaneio_compra/buscar_dados.php',
     type: 'POST',
@@ -312,21 +363,29 @@ function handleInput(input) {
       $('#total_liquido_modal').text('R$ ' + formatarNumero(r.total_liquido));
 
       // Produtos
-      let html = '';
-      res.produtos.forEach(item => {
-        html += `
-          <tr>
-            <td>${item.nome_produto}</td>
-            <td>${item.tipo_caixa}</td>
-			<td>${item.quant}</td>	
-            <td>${formatarNumero(item.preco_kg)}</td>
-            <td>${formatarNumero(item.preco_unit)}</td>
-            <td>${formatarNumero(item.valor)}</td>
-          </tr>`;
-      });
-      $('#produtos_modal').html(html);
+      let htmlProdutos = ''; // Renomeado para evitar conflito com htmlDesc (boa prática)
+      if (res.produtos && res.produtos.length) {
+        res.produtos.forEach(item => {
+          htmlProdutos += `
+            <tr>
+              <td>${item.nome_produto || '-'}</td>
+              <td>${item.tipo_caixa || '-'}</td>
+              <td>${item.quant || '0'}</td>  
+              <td>${formatarNumero(item.preco_kg)}</td>
+              <td>${formatarNumero(item.preco_unit)}</td>
+              <td>${formatarNumero(item.valor)}</td>
+            </tr>`;
+        });
+      } else {
+        htmlProdutos = '<tr><td colspan="6" class="text-center">Nenhum produto encontrado</td></tr>';
+      }
+      $('#produtos_modal').html(htmlProdutos);
 
-      // Comissões
+      // Deduções e Descontos Fixos (anteriormente "Comissões")
+      // 1. Adicionar o preenchimento para desc_avista_perc_modal
+      const descAvistaPercentual = r.desc_avista ? parseFloat(r.desc_avista).toFixed(2) : '0.00';
+      $('#desc_avista_perc_modal').text(descAvistaPercentual + '%'); 
+      
       $('#desc_funrural_modal').text('R$ ' + formatarNumero(r.desc_funrural));
       $('#desc_ima_modal').text('R$ ' + formatarNumero(r.desc_ima));
       $('#desc_abanorte_modal').text('R$ ' + formatarNumero(r.desc_abanorte));
@@ -334,19 +393,28 @@ function handleInput(input) {
 
       // Descontos Diversos (JSON string -> array)
       let descontos = [];
-      try { descontos = JSON.parse(r.descontos_diversos || '[]'); }
-      catch(e){ console.warn('JSON inválido em descontos_diversos', e); }
+      try { 
+        if (r.descontos_diversos && r.descontos_diversos.trim() !== "") {
+          descontos = JSON.parse(r.descontos_diversos); 
+        }
+      }
+      catch(e){ 
+        console.warn('JSON inválido em descontos_diversos:', r.descontos_diversos, e); 
+        descontos = []; // Garante que descontos seja um array
+      }
+      
       let htmlDesc = '';
-      if (descontos.length) {
+      if (descontos && descontos.length > 0) { // Adicionado verificação se descontos é um array e tem itens
         descontos.forEach(d => {
+          // 2. Ajustar a ordem das colunas para: Tipo, Obs, Valor
           htmlDesc += `<tr>
-            <td>${d.tipo === '+' ? 'Adicionar' : 'Subtrair'}</td>
-            <td>R$ ${formatarNumero(d.valor)}</td>
+            <td>${d.tipo || '-'}</td> 
             <td>${d.obs || ''}</td>
+            <td>R$ ${formatarNumero(d.valor)}</td>
           </tr>`;
         });
       } else {
-        htmlDesc = '<tr><td colspan="3">Nenhum desconto</td></tr>';
+        htmlDesc = '<tr><td colspan="3" class="text-center">Nenhum desconto diverso informado</td></tr>';
       }
       $('#descontos_modal').html(htmlDesc);
 
@@ -355,9 +423,43 @@ function handleInput(input) {
     },
     error: function(err) {
       console.error('Erro ao buscar dados do romaneio:', err);
-      alert('Não foi possível carregar os detalhes. Veja o console para mais detalhes.');
+      // Tenta mostrar mais detalhes do erro se disponíveis
+      let errorMsg = 'Não foi possível carregar os detalhes.';
+      if(err.responseJSON && err.responseJSON.mensagem) {
+        errorMsg = err.responseJSON.mensagem;
+      } else if (err.responseText) {
+        try {
+          const parsedError = JSON.parse(err.responseText);
+          if (parsedError && parsedError.mensagem) {
+            errorMsg = parsedError.mensagem;
+          }
+        } catch(e) {
+          // Se não for JSON, pode mostrar parte do texto do erro (cuidado com HTML)
+          // errorMsg += "\nDetalhes: " + (err.responseText.substring(0, 200) || "Erro desconhecido.");
+          console.warn("Resposta de erro não é JSON:", err.responseText);
+        }
+      }
+      alert(errorMsg + ' Veja o console para mais detalhes técnicos.');
     }
   });
+}
+
+// Supondo que você tenha funções de formatação como estas (ajuste conforme necessário):
+function formatarData(dataStr) {
+  if (!dataStr) return '-';
+  // Exemplo: dataStr pode ser 'YYYY-MM-DD HH:MM:SS' ou 'YYYY-MM-DD'
+  const dataObj = new Date(dataStr.split(' ')[0]); // Pega apenas a parte da data
+  if (isNaN(dataObj.getTime())) return dataStr; // Retorna original se inválida
+  // Adiciona 1 dia porque o new Date() pode interpretar como UTC e subtrair um dia dependendo do fuso
+  dataObj.setDate(dataObj.getDate() + 1);
+  return dataObj.toLocaleDateString('pt-BR'); // Formato DD/MM/YYYY
+}
+
+function formatarNumero(valor) {
+  if (valor === null || valor === undefined || valor === '') return '0,00';
+  let num = parseFloat(valor);
+  if (isNaN(num)) return '0,00';
+  return num.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 // Helpers (se ainda não tiver)
@@ -378,14 +480,73 @@ function formatarData(d) {
   return dt.toLocaleDateString('pt-BR');
 }
 
-	function limparCampos() {
-		$('#id').val('');
-		$('#fornecedor').val('');
-		$('#data').val('00-00-00');
+function limparCampos() {
+  // 1) Limpa campos fixos do cabeçalho
+  console.log("aqui123123");
 
-		$('#ids').val('');
-		$('#btn-deletar').hide();
-	}
+  $('#mensagem-sucesso').hide();
+
+  $('.data_atual').val(new Date().toISOString().split('T')[0]);
+  $('#fornecedor').val('');
+  $('#plano_pgto').val('');
+  $('#nota_fiscal').val('');
+  $('#quant_dias').val('');
+  $('#vencimento').val('');
+  $('#fazenda').val('');
+  $('#cliente').val('');
+  $('#desc-avista').val('');
+  $('#nota_fiscal').val('');
+
+  // 2) Limpa sessão de produtos
+  $('#linha-container_1').empty();
+  addNewLine1();  // Insere a primeira linha em branco
+
+  // 3) Limpa totais de produtos
+  $('#total_caixa').text('0 CXS');
+  $('#total_kg').text('0 KG');
+  $('#total_bruto').text('R$ 0,00');
+  $('#desc-avista').text('');
+  $('#total-desc').text('R$ 0,00');
+  $('#total-geral').text('0,00');
+  $('#valor_liquido').val('0,00');
+
+    // 4) **Não** remover o container todo. Apenas limpar valores:
+  $('#info_funrural, #preco_unit_funrural').prop('selectedIndex', 0);
+  $('#valor_funrural').val('0,00');
+  $('#info_ima, #preco_unit_ima').prop('selectedIndex', 0);
+  $('#valor_ima').val('0,00');
+  $('#info_abanorte, #preco_unit_abanorte').prop('selectedIndex', 0);
+  $('#valor_abanorte').val('0,00');
+  $('#taxa_adm_percent').val('');
+  $('#preco_unit_taxa_adm').prop('selectedIndex', 0);
+  $('#valor_taxa_adm').val('0,00');
+  $('#total_comissao').text('0,00');
+  // Se suas linhas de comissão são estáticas na página, resete cada select/input:
+  $('#info_funrural, #preco_unit_funrural').prop('selectedIndex', 0);
+  $('#valor_funrural').val('0,00');
+  $('#info_ima, #preco_unit_ima').prop('selectedIndex', 0);
+  $('#valor_ima').val('0,00');
+  $('#info_abanorte, #preco_unit_abanorte').prop('selectedIndex', 0);
+  $('#valor_abanorte').val('0,00');
+  $('#taxa_adm_percent').val('');
+  $('#preco_unit_taxa_adm').prop('selectedIndex', 0);
+  $('#valor_taxa_adm').val('0,00');
+  $('#total_comissao').text('0,00');
+
+  // 5) Limpa sessão de descontos diversos
+  $('#discount-container').empty();
+  addDiscountLine();  // Insere uma linha de desconto em branco
+  $('#total_descontos_diversos').text('0,00');
+
+  // 6) Limpa total líquido a pagar
+  $('#total_liquido_pagar').text('0,00');
+
+  // 7) Recalcula todas as fórmulas (caso existam listeners)
+  if (typeof calculaTotais === 'function') calculaTotais();
+  if (typeof calculaTotais2 === 'function') calculaTotais2();
+  if (typeof calcularDescontosDiversos === 'function') calcularDescontosDiversos();
+  if (typeof updateLiquidPayable === 'function') updateLiquidPayable();
+}
 
 	function selecionar(id) {
 		var ids = $('#ids').val();

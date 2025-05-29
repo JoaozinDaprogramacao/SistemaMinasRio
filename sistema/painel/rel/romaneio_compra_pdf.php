@@ -151,7 +151,7 @@ $descontos = json_decode($romaneio['descontos_diversos'] ?? '[]', true) ?: [];
     </tr>
     <?php endforeach; ?>
     <tr class="total-bruto">
-      <td colspan="5" style="text-align:right;">TOTAL BRUTO</td>
+      <td colspan="5" style="text-align:left;">TOTAL BRUTO</td>
       <td>R$ <?= number_format(array_sum(array_column($produtos,'valor')),2,',','.') ?></td>
     </tr>
   </table>
@@ -175,7 +175,7 @@ $descontos = json_decode($romaneio['descontos_diversos'] ?? '[]', true) ?: [];
       <td>R$ <?= number_format($romaneio['desc_taxaadm'],2,',','.') ?></td>
     </tr>
     <tr class="total-comissao">
-      <td colspan="5" style="text-align:right;">TOTAL COMISSÃO</td>
+      <td colspan="5" style="text-align:left;">TOTAL IMPOSTOS E TAXAS</td>
       <td>
         R$ <?= number_format(
           $romaneio['desc_funrural']
@@ -189,17 +189,17 @@ $descontos = json_decode($romaneio['descontos_diversos'] ?? '[]', true) ?: [];
   <!-- descontos diversos -->
   <table class="tabela-dados descontos">
     <tr>
-      <th>TIPO</th><th>VALOR R$</th><th>OBS</th>
+      <th>TIPO</th><th>OBS</th><th>VALOR R$</th>
     </tr>
     <?php foreach($descontos as $d): ?>
     <tr>
       <td><?= $d['tipo']==='+'?'Adicionar':'Subtrair' ?></td>
-      <td>R$ <?= number_format($d['valor'],2,',','.') ?></td>
       <td><?= $d['obs'] ?></td>
+      <td>R$ <?= number_format($d['valor'],2,',','.') ?></td>
     </tr>
     <?php endforeach; ?>
     <tr class="total-diversos">
-      <td colspan="2" style="text-align:right;">VALOR LÍQUIDO A PAGAR</td>
+      <td colspan="2" style="text-align:left;">VALOR LÍQUIDO A PAGAR</td>
       <td>R$ <?= number_format($romaneio['total_liquido'],2,',','.') ?></td>
     </tr>
   </table>
