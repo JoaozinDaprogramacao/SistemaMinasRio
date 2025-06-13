@@ -191,6 +191,20 @@ HTML;
     foreach ($res as $item) {
         $data_formatada = date('d/m/Y \à\s H:i', strtotime($item['data']));
 
+        $descricao_crua = $item['descricao'];
+        // Fazendo a consulta para obter o nome do plano de pagamento com base no ID
+		$query_descricao = $pdo->query("SELECT nome FROM clientes WHERE id = '$descricao_crua'");
+
+		// Recuperando o nome do plano de pagamento
+		$descricao = $query_descricao->fetch(PDO::FETCH_ASSOC);
+
+        // Verificando se o resultado foi encontrado e atribuindo o nome do plano
+		if ($descricao) {
+			$descricao = $descricao['nome'];
+		} else {
+			$descricao = 'Descrição não encontrado';
+		}
+
         echo <<<HTML
         <tr>
             <td class="text-center">
@@ -200,7 +214,7 @@ HTML;
                 </div>
             </td>
             <td>{$data_formatada}</td>
-            <td>{$item['descricao']}</td>
+            <td>{$descricao}</td>
             <td>{$item['compra']}</td>
             <td>{$item['venda']}</td>
             <td>R$ {$item['preco_unidade']}</td>
