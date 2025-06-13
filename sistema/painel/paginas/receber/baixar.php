@@ -6,6 +6,7 @@ $id_usuario = $_SESSION['id'];
 
 $id = $_POST['id-baixar'];
 $banco = $_POST['banco'];
+$descricao_banco = $_POST['descricao_banco'] ?? 0;
 $data_atual = date('Y-m-d');
 	$dia = date('d');
 	$mes = date('m');
@@ -122,6 +123,7 @@ if(@count($res1) > 0){
 if($valor == $valor_antigo){
     // Inserir na tabela linha_bancos
     $pdo->query("INSERT INTO linha_bancos SET 
+		descricao = '$descricao_banco',
         id_banco = '$banco',
         data = '$data_baixar',
         remetente = '$id_usuario',
@@ -208,6 +210,7 @@ if($valor == $valor_antigo){
     
     // Inserir na tabela linha_bancos
     $pdo->query("INSERT INTO linha_bancos SET 
+		descricao = '$descricao_banco',
         id_banco = '$banco',
         data = curDate(),
         descricao = '$descricao',

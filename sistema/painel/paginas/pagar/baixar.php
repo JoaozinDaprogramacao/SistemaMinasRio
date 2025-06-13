@@ -17,6 +17,7 @@ $subtotal = str_replace(',', '.', $_POST['subtotal']);
 $saida = $_POST['saida-baixar'];
 $data_baixar = $_POST['data-baixar'];
 $banco = $_POST['banco'];
+$descricao_banco = $_POST['descricao_banco'] ?? 0;
 
 if (empty($banco)) {
     echo 'Por favor selecione um banco para o pagamento!';
@@ -64,6 +65,7 @@ if ($valor == $valor_antigo) {
 
     // lançar movimentação
     $pdo->query("INSERT INTO linha_bancos SET 
+	    descricao = '$descricao_banco',
         id_banco = '$banco',
         data = '$data_baixar',
         remetente = '$id_usuario',
@@ -172,6 +174,7 @@ if ($valor == $valor_antigo) {
     
     // movimentação
     $pdo->query("INSERT INTO linha_bancos SET 
+	    descricao = '$descricao_banco',
         id_banco = '$banco',
         data = '$data_baixar',
         remetente = '$id_usuario',
@@ -187,5 +190,5 @@ if ($valor == $valor_antigo) {
     $pdo->query("UPDATE bancos SET saldo = saldo - $subtotal WHERE id = '$banco'");
 }
 
-echo 'Baixado com Sucesso';
+echo 'Baixado com Sucesso ' . $descricao_banco;
 ?>

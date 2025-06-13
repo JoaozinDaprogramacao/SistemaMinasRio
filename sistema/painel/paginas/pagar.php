@@ -387,6 +387,23 @@ if(@$pagar == 'ocultar'){
 
 									</select>
                         </div>
+
+						<div class="col-md-6 mb-2">
+							<label>Descrição (Banco)</label> 
+							<select class="form-select" name="descricao_banco" id="descricao_banco">  
+								<option value="">Selecione a Classificação</option>
+								<?php 
+								// Correção: Removido o ponto e vírgula antes do "order by"
+								$query_class = $pdo->query("SELECT * FROM descricao_banco order by descricao asc");
+								$res_class = $query_class->fetchAll(PDO::FETCH_ASSOC);
+								for($i=0; $i < @count($res_class); $i++){
+								?>  
+									<option value="<?php echo $res_class[$i]['id'] ?>">
+										<?php echo $res_class[$i]['descricao'] ?>
+									</option>
+								<?php } ?>
+							</select>
+						</div>
                     </div>
 
 					
@@ -773,6 +790,22 @@ if(@$pagar == 'ocultar'){
 									</select>
 								</div>
 							</div>
+							<div class="col-md-6 mb-2">
+							<label>Descrição (Banco)</label> 
+							<select class="form-select" name="descricao_banco" id="descricao_banco">  
+								<option value="">Selecione a Classificação</option>
+								<?php 
+								// Correção: Removido o ponto e vírgula antes do "order by"
+								$query_class = $pdo->query("SELECT * FROM descricao_banco order by descricao asc");
+								$res_class = $query_class->fetchAll(PDO::FETCH_ASSOC);
+								for($i=0; $i < @count($res_class); $i++){
+								?>  
+									<option value="<?php echo $res_class[$i]['id'] ?>">
+										<?php echo $res_class[$i]['descricao'] ?>
+									</option>
+								<?php } ?>
+							</select>
+						</div>
 						</div>
 
 

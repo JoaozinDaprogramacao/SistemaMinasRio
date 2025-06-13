@@ -16,6 +16,7 @@ $frequencia = $_POST['frequencia'];
 $obs = $_POST['obs'];
 $id = $_POST['id'];
 $banco = $_POST['banco'] ?? 0;
+$descricao_banco = $_POST['descricao_banco'] ?? 0;
 
 $valor = str_replace(',', '.', $valor);
 $valorF = @number_format($valor, 2, ',', '.');
@@ -152,6 +153,7 @@ if($vencimento == $data_pgto) {
 
 	// Inserir na tabela linha_bancos
 	$pdo->query("INSERT INTO linha_bancos SET 
+	descricao = '$descricao_banco',
 	id_banco = '$banco',
 	data = '$data_pgto',
 	remetente = '$id_usuario',

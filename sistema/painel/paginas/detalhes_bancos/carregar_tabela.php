@@ -84,6 +84,7 @@ if ($linhas > 0) {
             <tr> 
                 <th class="text-center">Selecionar</th>
                 <th>Data</th>
+                <th>Descrição</th>
                 <th>Nº Fiscal</th>
                 <th>Crédito R$</th>
                 <th>Débito R$</th>
@@ -101,6 +102,20 @@ HTML;
         $debito_formatado = number_format($item['debito'], 2, ',', '.');
         $saldo_formatado = number_format($item['saldo'], 2, ',', '.');
 
+        $descricao_crua = $item['descricao'];
+        // Fazendo a consulta para obter o nome do plano de pagamento com base no ID
+		$query_descricao = $pdo->query("SELECT descricao FROM descricao_banco WHERE id = '$descricao_crua'");
+
+		// Recuperando o nome do plano de pagamento
+		$descricao = $query_descricao->fetch(PDO::FETCH_ASSOC);
+
+		// Verificando se o resultado foi encontrado e atribuindo o nome do plano
+		if ($descricao) {
+			$descricao = $descricao['descricao'];
+		} else {
+			$descricao = 'Descrição não encontrado';
+		}
+
         echo <<<HTML
         <tr>
             <td class="text-center">
@@ -110,6 +125,7 @@ HTML;
                 </div>
             </td>
             <td>{$data_formatada}</td>
+            <th>{$descricao}</td>
             <td>{$item['n_fiscal']}</td>
             <td class="text-success fw-bold">R$ {$credito_formatado}</td>
             <td class="text-danger fw-bold">R$ {$debito_formatado}</td>
