@@ -434,13 +434,18 @@ echo <<<HTML
 					<input type="hidden" name="id" value="{$id}">
 					<big><button class="{$ocultar_pendentes} icones_mobile" title="Imprimir Recibo 80mmm" style="background:transparent; border:none; margin:0; padding:0"><i class="fa fa-print " style="color:#666464"></i></button></big>
 					</form>
+HTML;
+// Bloco 2: Lógica condicional para o novo botão de impressão
+// Este botão só aparecerá se $id_ref não for vazio
+if (!empty($id_ref)) {
+    echo <<<HTML
+        <big><a class="icones_mobile" href="#" onclick="imprimir('{$id_ref}')" title="Visualizar Romaneio"><i class="fa fa-file-pdf-o text-info"></i></a></big>
+    HTML;
+}
 
-
-
-	
-
-
-</td>
+// Bloco 3: Fechamento da coluna e da linha
+echo <<<HTML
+    </td>
 </tr>
 HTML;
 
@@ -475,10 +480,15 @@ HTML;
 }
 ?>
 
+<script>
+	function imprimir(id) {
+		window.open('rel/gerar_pdf_romaneio_compra.php?id=' + id, '_blank');
+	}
 
+</script>
 
 <script type="text/javascript">
-	$(document).ready( function () {		
+	$(document).ready( function () {	
     $('#tabela').DataTable({
     	"language" : {
             //"url" : '//cdn.datatables.net/plug-ins/1.13.2/i18n/pt-BR.json'
