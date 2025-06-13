@@ -286,7 +286,7 @@ if (@$produtos == 'ocultar') {
 							<select name="desc_2[]" class="desc_2" onchange="handleInput2(this); calcularValores2(this.closest('.linha_2'));">
 								<option value="">Selecione Descrição</option>
 								<?php
-								$query = $pdo->query("SELECT * from descricao order by id asc");
+								$query = $pdo->query("SELECT * from descricao_romaneio order by id asc");
 								$res = $query->fetchAll(PDO::FETCH_ASSOC);
 								$linhas = @count($res);
 								if ($linhas > 0) {
