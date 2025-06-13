@@ -15,6 +15,7 @@ $forma_pgto = $_POST['forma_pgto'];
 $frequencia = $_POST['frequencia'];
 $obs = $_POST['obs'];
 $id = $_POST['id'];
+$banco = $_POST['banco'] ?? 0;
 
 $valor = str_replace(',', '.', $valor);
 $valorF = @number_format($valor, 2, ',', '.');
@@ -142,6 +143,32 @@ $query->bindValue(":funcionario", $funcionario);
 $query->bindValue(":valor", $valor);
 $query->bindValue(":obs", $obs);
 $query->execute();
+
+
+if($vencimento == $data_pgto) {
+
+
+	$valor_para_db = preg_replace('/\.(?=.*\.)/', '', $valor);
+
+	// Inserir na tabela linha_bancos
+	$pdo->query("INSERT INTO linha_bancos SET 
+	id_banco = '$banco',
+	data = '$data_pgto',
+	remetente = '$id_usuario',
+	n_fiscal = '',
+	classificacao = 1,
+	mes_ref = MONTH('$data_pgto'),
+	credito = '0',
+	debito = '$valor_para_db',
+	saldo = (SELECT saldo FROM bancos WHERE id = '$banco') - '$valor_para_db',
+	status = 'Confirmado'
+	");
+    $pdo->query("UPDATE bancos SET 
+        saldo = saldo + $valor_para_db 
+        WHERE id = '$banco'
+    ");
+}
+
 
 echo 'Salvo com Sucesso';
 ?>

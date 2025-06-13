@@ -87,7 +87,7 @@ $query2 = $pdo->query("SELECT * FROM clientes where id = '$cliente'");
 $res2 = $query2->fetchAll(PDO::FETCH_ASSOC);
 if(@count($res2) > 0){
 	$nome_cliente = $res2[0]['nome'];
-	$telefone_cliente = $res2[0]['telefone'];
+	$telefone_cliente = $res2[0]['contato'];
 }else{
 	$nome_cliente = 'Sem Registro';
 	$telefone_cliente = "";

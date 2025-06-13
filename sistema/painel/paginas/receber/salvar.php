@@ -14,6 +14,7 @@ $forma_pgto = $_POST['forma_pgto'];
 $frequencia = $_POST['frequencia'];
 $obs = $_POST['obs'];
 $id = $_POST['id'];
+$banco = $_POST['banco'] ?? 0;
 
 $valor = str_replace(',', '.', $valor);
 
@@ -33,7 +34,7 @@ if($frequencia == ""){
 
 if($data_pgto == ""){
 	$pgto = '';
-	$usu_pgto = '';
+	$usu_pgto = ' ,usuario_pgto = 0';
 	$pago = 'Não';
 }else{
 	$pgto = " ,data_pgto = '$data_pgto'";
@@ -51,7 +52,7 @@ $query2 = $pdo->query("SELECT * FROM clientes where id = '$cliente'");
 $res2 = $query2->fetchAll(PDO::FETCH_ASSOC);
 if(@count($res2) > 0){
 	$nome_cliente = $res2[0]['nome'];
-	$telefone_cliente = $res2[0]['telefone'];
+	$telefone_cliente = $res2[0]['contato'];
 }else{
 	$nome_cliente = 'Sem Registro';
 	$telefone_cliente = "";
@@ -143,27 +144,31 @@ $query->bindValue(":obs", "$obs");
 $query->execute();
 $ultimo_id = $pdo->lastInsertId();
 
-//enviar whatsapp
-if($api_whatsapp != 'Não' and $telefone_cliente != ''){
-
-	$telefone_envio = '55'.preg_replace('/[ ()-]+/' , '' , $telefone_cliente);
-	$mensagem_whatsapp = '💰 *'.$nome_sistema.'*%0A';
-	$mensagem_whatsapp .= '_Conta Vencendo Hoje_ %0A';
-	$mensagem_whatsapp .= '*Descrição:* '.$descricao.' %0A';
-	$mensagem_whatsapp .= '*Valor:* '.$valorF.' %0A';	
+if($vencimento == $data_pgto) {
 
 
-	if($dados_pagamento != ""){
-				$mensagem_whatsapp .= '*Dados para o Pagamento:* %0A';
-				$mensagem_whatsapp .= $dados_pagamento;
-			}
-	
-	$data_agd = $vencimento.' 08:00:00';
-	require('../../apis/agendar.php');
+	$valor_para_db = preg_replace('/\.(?=.*\.)/', '', $valor);
 
-	$pdo->query("UPDATE $tabela SET hash = '$hash' where id = '$ultimo_id'");
-	
+// Inserir na tabela linha_bancos
+		$pdo->query("INSERT INTO linha_bancos SET 
+        id_banco = '$banco',
+        data = '$data_pgto',
+        remetente = '$id_usuario',
+        n_fiscal = '',
+        classificacao = 1,
+        mes_ref = MONTH('$data_pgto'),
+        credito = '$valor_para_db',
+        debito = '0',
+        saldo = (SELECT saldo FROM bancos WHERE id = '$banco') + '$valor_para_db',
+        status = 'Confirmado'
+    ");
+
+    $pdo->query("UPDATE bancos SET 
+        saldo = saldo + $valor_para_db 
+        WHERE id = '$banco'
+    ");
 }
+
 
 
 echo 'Salvo com Sucesso';

@@ -347,6 +347,25 @@ if(@$receber == 'ocultar'){
 						</div>
 						
 					</div>
+					<div class="row d-none" id="div-banco">
+                        <div class="col-md-6 mb-2">
+						<label>Banco</label> 
+									<select class="form-select" name="banco" id="banco" onchange="calcularTaxa()">	
+										<option value="">Selecione</option>
+										<?php 
+										$query = $pdo->query("SELECT * FROM bancos order by id asc");
+										$res = $query->fetchAll(PDO::FETCH_ASSOC);
+										for($i=0; $i < @count($res); $i++){
+											foreach ($res[$i] as $key => $value){}	
+
+												?>	
+											<option value="<?php echo $res[$i]['id'] ?>"><?php echo $res[$i]['banco'] ?></option>
+
+										<?php } ?>
+
+									</select>
+                        </div>
+                    </div>
 
 					
 
@@ -369,7 +388,40 @@ if(@$receber == 'ocultar'){
 
 
 
+<script type="text/javascript">
+    $(document).ready(function() {
 
+        // Função para verificar as datas e mostrar/esconder o campo do banco
+        function verificarDatasEExibirBanco() {
+            var vencimento = $('#vencimento').val();
+            var dataPgto = $('#data_pgto').val();
+
+            // A condição é: data de pagamento não pode ser vazia E precisa ser igual ao vencimento
+            if (dataPgto && vencimento && dataPgto === vencimento) {
+                $('#div-banco').removeClass('d-none'); // Mostra o campo do banco
+            } else {
+                $('#div-banco').addClass('d-none'); // Esconde o campo do banco
+            }
+        }
+
+        // Adiciona um "escutador" para quando o valor dos campos de data mudar
+        $('#vencimento, #data_pgto').on('change', function() {
+            verificarDatasEExibirBanco();
+        });
+
+        // Também é uma boa prática executar a função quando o modal for aberto,
+        // caso os dados já venham preenchidos de uma edição.
+        $('#modalForm').on('shown.bs.modal', function () {
+            verificarDatasEExibirBanco();
+        });
+
+        // E garantir que o campo do banco fique escondido ao fechar o modal
+        $('#modalForm').on('hidden.bs.modal', function () {
+            $('#div-banco').addClass('d-none');
+        });
+
+    });
+</script>
 
 
 	<!-- Modal Dados -->
@@ -943,7 +995,7 @@ if(@$receber == 'ocultar'){
 
 
 
-			var reader = new FileReader();
+			var reader = new	 FileReader();
 
 			reader.onloadend = function () {
 				target.src = reader.result;
