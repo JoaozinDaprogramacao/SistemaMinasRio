@@ -330,6 +330,70 @@ foreach ($obs_3 as $key => $observacao) {
 }
 
 
+
+
+// ==========================================================
+// INÍCIO: LANÇAMENTO/ATUALIZAÇÃO NO CONTAS A RECEBER
+// ==========================================================
+
+// Prepara os dados para a tabela 'receber'
+$descricao_receber = "Venda Romaneio Nº " . $romaneio_venda_id;
+
+// Esta variável já foi calculada no início, mas vamos usar o valor final aqui.
+$total_liquido_final = floatval(str_replace(',', '.', $_POST['valor_liquido']));
+
+
+if ($id != "") {
+    // Se está EDITANDO, ATUALIZA a conta a receber existente
+    $check_receber = $pdo->prepare("SELECT id FROM receber WHERE id_ref = ? AND referencia = 'Romaneio Venda'");
+    $check_receber->execute([$romaneio_venda_id]);
+    
+    if ($check_receber->rowCount() > 0) {
+        $query_receber = $pdo->prepare("UPDATE receber SET 
+            cliente = :cliente,
+            valor = :valor,
+            vencimento = :vencimento,
+            pago = 'Não',
+            data_pgto = NULL,
+            usuario_pgto = 0  -- <-- ADICIONADO AQUI
+            WHERE id_ref = :id_ref AND referencia = 'Romaneio Venda'");
+    } else {
+        $id = ""; // Força a lógica de inserção se não encontrar um registro para atualizar
+    }
+}
+
+if ($id == "") {
+    // Se é NOVO (ou não encontrou na edição), INSERE uma nova conta a receber
+    $query_receber = $pdo->prepare("INSERT INTO receber SET 
+        descricao = :descricao,
+        cliente = :cliente,
+        valor = :valor,
+        vencimento = :vencimento,
+        data_lanc = CURDATE(),
+        usuario_lanc = :usuario_lanc,
+        pago = 'Não',
+        referencia = 'Romaneio Venda',
+        id_ref = :id_ref,
+        usuario_pgto = 0  -- <-- ADICIONADO AQUI
+    ");
+    
+    $query_receber->bindValue(":descricao", $descricao_receber);
+    $query_receber->bindValue(":usuario_lanc", $id_usuario);
+}
+
+// Bind dos valores comuns para INSERT e UPDATE
+$query_receber->bindValue(":cliente", $atacadista);
+$query_receber->bindValue(":valor", $total_liquido_final);
+$query_receber->bindValue(":vencimento", $vencimento);
+$query_receber->bindValue(":id_ref", $romaneio_venda_id);
+$query_receber->execute();
+
+// ==========================================================
+// FIM: LANÇAMENTO NO CONTAS A RECEBER
+// ==========================================================
+
+
+
 	$pdo->commit();
 	echo json_encode([
 		'status' => 'sucesso',
@@ -349,7 +413,7 @@ foreach ($obs_3 as $key => $observacao) {
 	error_log("Erro PDO: " . $e->getMessage());
 	echo json_encode([
 		'status' => 'erro',
-		'mensagem' => $mensagem_erro
+		'mensagem' => $mensagem_erro . ' (Debug: ' . $e->getMessage() . ')'
 	]);
 } catch (Exception $e) {
 	$pdo->rollBack();

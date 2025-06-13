@@ -23,7 +23,7 @@ try {
         SELECT 
             lpc.*,
             p.nome         AS nome_produto,
-            tc.tipo        AS tipo_caixa
+            tc.tipo        AS nome_tipo_caixa  -- ALTERAÇÃO AQUI: Renomeado para não sobrescrever o ID
         FROM linha_produto_compra lpc
         LEFT JOIN produtos p ON lpc.variedade   = p.id 
         LEFT JOIN tipo_caixa    tc ON lpc.tipo_caixa = tc.id
@@ -73,3 +73,4 @@ try {
         'message' => $e->getMessage()
     ], JSON_UNESCAPED_UNICODE);
 }
+?>

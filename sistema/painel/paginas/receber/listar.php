@@ -482,7 +482,7 @@ HTML;
 
 <script>
 	function imprimir(id) {
-		window.open('rel/gerar_pdf_romaneio_compra.php?id=' + id, '_blank');
+		window.open('rel/gerar_pdf_romaneio.php?id=' + id, '_blank');
 	}
 
 </script>
