@@ -194,80 +194,104 @@ HTML;
 <script type="text/javascript">
   
 
+  function mostrar(id) {
+  $.ajax({
+    url: 'paginas/romaneio_venda/buscar_dados.php',
+    method: 'POST',
+    data: { id: id },
+    dataType: 'json',
+    success: function(dados) {
+      // CORREÇÃO: Acessar os dados dentro do objeto 'romaneio'
+      console.log("ID: " + dados.romaneio.id); 
+      $('#id_dados').text(dados.romaneio.id);
+      
+      // Formatando a data para o padrão brasileiro (opcional, mas recomendado)
+      let dataFormatada = new Date(dados.romaneio.data).toLocaleDateString('pt-BR');
+      let vencimentoFormatado = new Date(dados.romaneio.vencimento).toLocaleDateString('pt-BR');
 
-	function mostrar(id) {
-		$.ajax({
-			url: 'paginas/romaneio_venda/buscar_dados.php',
-			method: 'POST',
-			data: {id: id},
-			dataType: 'json',
-			success: function(dados) {
-				$('#id_dados').text(dados.id);
-				$('#data_dados').text(dados.data);
-				$('#cliente_dados').text(dados.cliente);
-				$('#nota_fiscal_dados').text(dados.nota_fiscal);
-				$('#plano_pgto_dados').text(dados.plano_pgto);
-				$('#vencimento_dados').text(dados.vencimento);
-				
-				// Produtos
-				let htmlProdutos = '<table class="table table-striped"><thead><tr><th>Produto</th><th>Qtd</th><th>Tipo Cx</th><th>Preço KG</th><th>Preço Unit</th><th>Valor</th></tr></thead><tbody>';
-				dados.produtos.forEach(function(item) {
-					htmlProdutos += `<tr>
-						<td>${item.nome_produto || '-'}</td>
-						<td>${item.quant || '0'}</td>
-						<td>${item.tipo_caixa || '-'}</td>
-						<td>R$ ${parseFloat(item.preco_kg || 0).toFixed(2).replace('.', ',')}</td>
-						<td>R$ ${parseFloat(item.preco_unit || 0).toFixed(2).replace('.', ',')}</td>
-						<td>R$ ${parseFloat(item.valor || 0).toFixed(2).replace('.', ',')}</td>
-					</tr>`;
-				});
-				htmlProdutos += '</tbody></table>';
-				$('#itens_dados').html(htmlProdutos);
-				
-				// Comissões
-				let htmlComissoes = '<table class="table table-striped"><thead><tr><th>Descrição</th><th>Qtd Cx</th><th>Tipo Cx</th><th>Preço KG</th><th>Preço Unit</th><th>Valor</th></tr></thead><tbody>';
-				dados.comissoes.forEach(function(item) {
-					htmlComissoes += `<tr>
-						<td>${item.nome_produto || item.descricao || '-'}</td>
-						<td>${item.quant_caixa || '0'}</td>
-						<td>${item.tipo_caixa || '-'}</td>
-						<td>R$ ${parseFloat(item.preco_kg || 0).toFixed(2).replace('.', ',')}</td>
-						<td>R$ ${parseFloat(item.preco_unit || 0).toFixed(2).replace('.', ',')}</td>
-						<td>R$ ${parseFloat(item.valor || 0).toFixed(2).replace('.', ',')}</td>
-					</tr>`;
-				});
-				htmlComissoes += '</tbody></table>';
-				$('#comissoes_dados').html(htmlComissoes);
-				
-				// Materiais
-				let htmlMateriais = '<table class="table table-striped"><thead><tr><th>Observações</th><th>Material</th><th>Qtd</th><th>Preço Unit</th><th>Valor</th></tr></thead><tbody>';
-				dados.materiais.forEach(function(item) {
-					htmlMateriais += `<tr>
-						<td>${item.descricao_completa || '-'}</td>
-						<td>${item.nome_material || '-'}</td>
-						<td>${item.quantidade || '0'}</td>
-						<td>R$ ${parseFloat(item.preco_unit || 0).toFixed(2).replace('.', ',')}</td>
-						<td>R$ ${parseFloat(item.valor || 0).toFixed(2).replace('.', ',')}</td>
-					</tr>`;
-				});
-				htmlMateriais += '</tbody></table>';
-				$('#materiais_dados').html(htmlMateriais);
-				
-				// Valores finais
-				$('#adicional_dados').text('R$ ' + dados.adicional);
-				$('#descricao_a_dados').text(dados.descricao_a);
-				$('#desconto_dados').text('R$ ' + dados.desconto);
-				$('#descricao_d_dados').text(dados.descricao_d);
-				$('#total_liquido_dados').text('R$ ' + dados.total_liquido);
-				
-				$('#modalDados').modal('show');
-			},
-			error: function(xhr, status, error) {
-				console.error('Erro:', error);
-			}
-		});
-	}
+      $('#data_dados').text(dataFormatada);
+      $('#cliente_dados').text(dados.romaneio.nome_cliente); // CORREÇÃO: O nome da chave é 'nome_cliente'
+      $('#nota_fiscal_dados').text(dados.romaneio.nota_fiscal || '-'); // Usar || '-' para campos vazios
+      $('#plano_pgto_dados').text(dados.romaneio.nome_plano); // CORREÇÃO: Usar 'nome_plano' para mostrar o texto
+      $('#vencimento_dados').text(vencimentoFormatado);
+      
+      // Os loops para produtos, comissões e materiais já estavam corretos,
+      // pois eles estão no nível principal do JSON.
+      // Apenas um pequeno ajuste no nome da chave em materiais.
 
+      // Produtos
+      let htmlProdutos = '<table class="table table-striped"><thead><tr><th>Produto</th><th>Qtd</th><th>Tipo Cx</th><th>Preço KG</th><th>Preço Unit</th><th>Valor</th></tr></thead><tbody>';
+      if (dados.produtos && dados.produtos.length > 0) {
+        dados.produtos.forEach(function(item) {
+          htmlProdutos += `<tr>
+            <td>${item.nome_produto || '-'}</td>
+            <td>${item.quant || '0'}</td>
+            <td>${item.tipo_caixa_completo || '-'}</td>
+            <td>R$ ${parseFloat(item.preco_kg || 0).toFixed(2).replace('.', ',')}</td>
+            <td>R$ ${parseFloat(item.preco_unit || 0).toFixed(2).replace('.', ',')}</td>
+            <td>R$ ${parseFloat(item.valor || 0).toFixed(2).replace('.', ',')}</td>
+          </tr>`;
+        });
+      } else {
+        htmlProdutos += '<tr><td colspan="6" class="text-center">Nenhum produto encontrado.</td></tr>';
+      }
+      htmlProdutos += '</tbody></table>';
+      $('#itens_dados').html(htmlProdutos);
+      
+      // Comissões
+      let htmlComissoes = '<table class="table table-striped"><thead><tr><th>Descrição</th><th>Qtd Cx</th><th>Tipo Cx</th><th>Preço KG</th><th>Preço Unit</th><th>Valor</th></tr></thead><tbody>';
+      if (dados.comissoes && dados.comissoes.length > 0) {
+        dados.comissoes.forEach(function(item) {
+          // No seu JSON, o nome vem como null, a descrição é um número. Adicionei uma lógica para exibir algo útil.
+          htmlComissoes += `<tr>
+            <td>${item.nome_produto || `Comissão ID ${item.descricao}` || '-'}</td>
+            <td>${item.quant_caixa || '0'}</td>
+            <td>${item.tipo_caixa_completo || '-'}</td>
+            <td>R$ ${parseFloat(item.preco_kg || 0).toFixed(2).replace('.', ',')}</td>
+            <td>R$ ${parseFloat(item.preco_unit || 0).toFixed(2).replace('.', ',')}</td>
+            <td>R$ ${parseFloat(item.valor || 0).toFixed(2).replace('.', ',')}</td>
+          </tr>`;
+        });
+      } else {
+        htmlComissoes += '<tr><td colspan="6" class="text-center">Nenhuma comissão encontrada.</td></tr>';
+      }
+      htmlComissoes += '</tbody></table>';
+      $('#comissoes_dados').html(htmlComissoes);
+      
+      // Materiais
+      let htmlMateriais = '<table class="table table-striped"><thead><tr><th>Observações</th><th>Material</th><th>Qtd</th><th>Preço Unit</th><th>Valor</th></tr></thead><tbody>';
+      if (dados.materiais && dados.materiais.length > 0) {
+        dados.materiais.forEach(function(item) {
+          htmlMateriais += `<tr>
+            <td>${item.observacoes || '-'}</td>
+            <td>${item.nome_material || '-'}</td>
+            <td>${item.quant || '0'}</td> <td>R$ ${parseFloat(item.preco_unit || 0).toFixed(2).replace('.', ',')}</td>
+            <td>R$ ${parseFloat(item.valor || 0).toFixed(2).replace('.', ',')}</td>
+          </tr>`;
+        });
+      } else {
+        htmlMateriais += '<tr><td colspan="5" class="text-center">Nenhum material encontrado.</td></tr>';
+      }
+      htmlMateriais += '</tbody></table>';
+      $('#materiais_dados').html(htmlMateriais);
+      
+      // Valores finais - CORREÇÃO: Acessar de 'dados.romaneio'
+      $('#adicional_dados').text('R$ ' + parseFloat(dados.romaneio.adicional || 0).toFixed(2).replace('.', ','));
+      $('#descricao_a_dados').text(dados.romaneio.descricao_a);
+      $('#desconto_dados').text('R$ ' + parseFloat(dados.romaneio.desconto || 0).toFixed(2).replace('.', ','));
+      $('#descricao_d_dados').text(dados.romaneio.descricao_d);
+      $('#total_liquido_dados').text('R$ ' + parseFloat(dados.romaneio.total_liquido || 0).toFixed(2).replace('.', ','));
+      
+      $('#modalDados').modal('show');
+    },
+    error: function(xhr, status, error) {
+      // É uma boa prática mostrar um erro para o usuário também
+      console.error('Erro na requisição AJAX:', status, error);
+      console.error('Resposta do servidor:', xhr.responseText);
+      alert('Ocorreu um erro ao buscar os dados. Verifique o console para mais detalhes.');
+    }
+  });
+}
 	function imprimir(id) {
 		window.open('rel/gerar_pdf_romaneio.php?id=' + id, '_blank');
 	}

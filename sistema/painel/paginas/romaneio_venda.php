@@ -849,16 +849,16 @@ function mascara_decimal(el) {
 						<div class="table-responsive mt-4">
 							<table class="table table-bordered">
 								<tr>
-									<td class="bg-light"><strong>Valor Adicional:</strong></td>
-									<td><span id="adicional_dados"></span></td>
 									<td class="bg-light"><strong>Descrição:</strong></td>
 									<td><span id="descricao_a_dados"></span></td>
+									<td class="bg-light"><strong>Valor Adicional:</strong></td>
+									<td><span id="adicional_dados"></span></td>
 								</tr>
 								<tr>
-									<td class="bg-light"><strong>Valor Desconto:</strong></td>
-									<td><span id="desconto_dados"></span></td>
 									<td class="bg-light"><strong>Descrição:</strong></td>
 									<td><span id="descricao_d_dados"></span></td>
+									<td class="bg-light"><strong>Valor Desconto:</strong></td>
+									<td><span id="desconto_dados"></span></td>
 								</tr>
 								<tr>
 									<td class="bg-light"><strong>Valor Total:</strong></td>
