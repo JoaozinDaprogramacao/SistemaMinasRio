@@ -388,7 +388,7 @@ function mascara_decimal(el) {
 						</div>
 						<div class="coluna_romaneio">
 							<label for="material">Descrição</label>
-							<select name="material[]"  class="material" onchange="handleInput(this); calcularValores(this.closest('.linha_3'));">
+							<select name="material[]"  class="material" onchange="handleInput3(this); calcularValores(this.closest('.linha_3'));">
 								<option value="">Selecione um Material</option>
 								<?php
 								$query = $pdo->query("SELECT * from materiais order by id asc");

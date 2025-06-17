@@ -82,9 +82,22 @@ function handleInput3(input) {
     const linha = input.closest(".linha_3");
     const container = document.getElementById("linha-container_3");
 
-    // Verifica se a linha é a última e está preenchida
-    const allInputsFilled = [...linha.querySelectorAll("input, select")].every((field) => field.value.trim() !== "");
-    if (allInputsFilled) {
+    // --- LÓGICA ALTERADA ---
+    // Em vez de checar todos os campos, vamos checar apenas os que são obrigatórios.
+    // Assumi que o campo do produto tem a classe 'produto_3'. Se for diferente, ajuste abaixo.
+    const produtoField = linha.querySelector(".material");
+    const quantidadeField = linha.querySelector(".quant_3");
+    const precoUnitField = linha.querySelector(".preco_unit_3");
+
+    // Verifica se os campos obrigatórios foram preenchidos
+    // (O '?' antes do '.value' evita erros caso o campo não seja encontrado)
+    const allRequiredFilled = 
+        produtoField?.value.trim() !== "" &&
+        quantidadeField?.value.trim() !== "" &&
+        precoUnitField?.value.trim() !== "";
+
+    if (allRequiredFilled) {
+        // Verifica se esta é a última linha no container
         const isLastLine = linha === container.lastElementChild;
         if (isLastLine) {
             addNewLine3();
