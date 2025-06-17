@@ -1,4 +1,5 @@
 document.addEventListener("DOMContentLoaded", () => {
+    console.log("wowowow");
     addNewLine1();
     addNewLine2();
     addNewLine3();
@@ -7,6 +8,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 // Função para adicionar uma nova linha
 function addNewLine1() {
+    console.log('TÁ CHAMANDO SIM SEU BURRO');
     const template = document.getElementById("linha-template_1");
     const container = document.getElementById("linha-container_1");
 
@@ -191,14 +193,16 @@ function calculaTotais() {
 
 
     const planoPgto = document.querySelector("#plano_pgto");
-    let selectedText = planoPgto.children[planoPgto.selectedIndex].text;
-    selectedText = selectedText.toUpperCase();
-
-    let desconto = false;
-
-    if (selectedText.includes("VISTA")) {
-        desconto = true;
+    if (!planoPgto) {
+      console.warn("select #plano_pgto não encontrado");
+      return;
     }
+    // seleciona a <option> de fato
+    const idx = planoPgto.selectedIndex;
+    const option = planoPgto.options[idx];
+    const selectedText = option ? option.text.toUpperCase() : "";
+    const desconto = selectedText.includes("VISTA");
+    
 
     let totalBrutoSoma = 0;
     let totalCaixaSoma = 0;
@@ -368,16 +372,18 @@ function atualizarValorLiquido() {
 }
 
 // Função para formatar entrada decimal
-function mascara_decimal(campo_id) {
-    const elemento = document.getElementById(campo_id);
-    let valor = elemento.value.replace(/\D/g, '');
+function mascara_decimal(campo) {
+    console.log("ROMANEIO JS USADO");
+    // 'campo' já é o elemento <input>
+    let valor = campo.value.replace(/\D/g, '');
     
     valor = (parseFloat(valor) / 100).toFixed(2);
     valor = valor.replace('.', ',');
-    elemento.value = valor;
+    campo.value = valor;
     
     atualizarValorLiquido();
 }
+
 
 // ... existing code ...
 

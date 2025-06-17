@@ -55,6 +55,8 @@ if (!empty($_POST['plano_pgto'])) {
 	}
 }
 
+$desc_avista = $_POST['desc-avista'] ?? 0;
+
 // Validação da Nota Fiscal (apenas verificar duplicidade se for informada)
 if (!empty($_POST['nota_fiscal'])) {
 	$nota = $_POST['nota_fiscal'];
@@ -92,17 +94,6 @@ if (isset($_POST['valor_1'])) {
 
 if (!$tem_produtos) {
 	$erros[] = "Adicione pelo menos um produto";
-}
-
-// Validação do Total Líquido
-$total_liquido = 0;
-if (isset($_POST['valor_1'])) {
-	foreach ($_POST['valor_1'] as $valor) {
-		$total_liquido += floatval(str_replace(',', '.', $valor));
-	}
-	if ($total_liquido <= 0) {
-		$erros[] = "O valor total deve ser maior que zero";
-	}
 }
 
 // Se houver erros, retorna
@@ -143,39 +134,89 @@ $desconto = str_replace(',', '.', $desconto);
 // Converter string de IDs em array
 $romaneios_array = explode(',', $romaneios_selecionados);
 
-try {
-	$pdo->beginTransaction();
+// --- 1) soma do total bruto de produtos ---
+$total_bruto = 0;
+foreach ($valor_1 as $v) {
+    $total_bruto += floatval(str_replace(',', '.', $v));
+}
 
-	// Inserir ou atualizar romaneio_venda
-	if ($id == "") {
-		$query = $pdo->prepare("INSERT INTO $tabela SET 
-			atacadista = :atacadista, 
-			data = :data, 
-			nota_fiscal = :nota_fiscal, 
-			plano_pgto = :plano_pgto, 
-			vencimento = :vencimento, 
-			total_liquido = :total_liquido, 
-			quant_dias = :quant_dias,
-			adicional = :adicional,
-			descricao_a = :descricao_a,
-			desconto = :desconto,
-			descricao_d = :descricao_d");
-	} else {
-		$query = $pdo->prepare("UPDATE $tabela SET 
-			atacadista = :atacadista, 
-			data = :data, 
-			nota_fiscal = :nota_fiscal, 
-			plano_pgto = :plano_pgto, 
-			vencimento = :vencimento, 
-			total_liquido = :total_liquido, 
-			quant_dias = :quant_dias,
-			adicional = :adicional,
-			descricao_a = :descricao_a,
-			desconto = :desconto,
-			descricao_d = :descricao_d 
-			WHERE id = :id");
-		$query->bindValue(":id", $id);
-	}
+// --- 2) soma das comissões ---
+$total_comissao = 0;
+if (!empty($_POST['valor_2'])) {
+    foreach ($_POST['valor_2'] as $v2) {
+        $total_comissao += floatval(str_replace(',', '.', $v2));
+    }
+}
+
+// --- 3) soma dos materiais ---
+$total_materiais = 0;
+if (!empty($_POST['valor_3'])) {
+    foreach ($_POST['valor_3'] as $v3) {
+        $total_materiais += floatval(str_replace(',', '.', $v3));
+    }
+}
+
+// --- 4) adicional fixo ---
+$valor_adicional = floatval(str_replace(',', '.', $adicional));
+
+// --- 5) desconto fixo ---
+$valor_desconto   = floatval(str_replace(',', '.', $desconto));
+
+// --- 6) desconto à vista (%) sobre o total bruto ---
+$perc_avista      = floatval(str_replace(',', '.', $desc_avista));
+$valor_desc_avista = $total_bruto * ($perc_avista / 100);
+
+// --- 7) total líquido final ---
+$total_liquido = $total_bruto
+               + $total_comissao
+               + $total_materiais
+               + $valor_adicional
+               - $valor_desconto
+               - $valor_desc_avista;
+
+// validação básica
+if ($total_bruto <= 0) {
+    $erros[] = "O total bruto deve ser maior que zero";
+}
+
+
+try {
+    $pdo->beginTransaction();
+
+    if ($id == "") {
+        // 2a) Incluir desc_avista no INSERT
+        $query = $pdo->prepare("INSERT INTO $tabela SET 
+            atacadista      = :atacadista, 
+            data            = :data, 
+            nota_fiscal     = :nota_fiscal, 
+            plano_pgto      = :plano_pgto, 
+            vencimento      = :vencimento, 
+            total_liquido   = :total_liquido, 
+            quant_dias      = :quant_dias,
+            adicional       = :adicional,
+            descricao_a     = :descricao_a,
+            desconto        = :desconto,
+            descricao_d     = :descricao_d,
+            desc_avista     = :desc_avista
+        ");
+    } else {
+        // 2b) E no UPDATE
+        $query = $pdo->prepare("UPDATE $tabela SET 
+            atacadista      = :atacadista, 
+            data            = :data, 
+            nota_fiscal     = :nota_fiscal, 
+            plano_pgto      = :plano_pgto, 
+            vencimento      = :vencimento, 
+            total_liquido   = :total_liquido, 
+            quant_dias      = :quant_dias,
+            adicional       = :adicional,
+            descricao_a     = :descricao_a,
+            desconto        = :desconto,
+            descricao_d     = :descricao_d,
+            desc_avista     = :desc_avista
+          WHERE id = :id");
+        $query->bindValue(":id", $id);
+    }
 
 	// Bind dos valores comuns
 	$query->bindValue(":atacadista", $atacadista);
@@ -189,6 +230,8 @@ try {
 	$query->bindValue(":descricao_a", $descricao_a);
 	$query->bindValue(":desconto", $desconto);
 	$query->bindValue(":descricao_d", $descricao_d);
+    $query->bindValue(":desc_avista", $desc_avista, PDO::PARAM_INT);
+
 	$query->execute();
 
 	$romaneio_venda_id = $id ?: $pdo->lastInsertId();

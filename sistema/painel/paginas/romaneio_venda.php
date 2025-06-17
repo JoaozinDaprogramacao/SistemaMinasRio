@@ -9,6 +9,33 @@ if (@$produtos == 'ocultar') {
 }
 ?>
 
+<script src="js/ajax.js"></script>
+<script>
+function mascara_decimal(el) {
+  // el pode ser this (o próprio <input>) ou um seletor jQuery
+  var $el = $(el);
+  var v   = $el.val() || '';
+  
+  // 1) tira tudo que não for dígito
+  v = v.replace(/\D/g, '');
+  // 2) se vazio, vira "0"
+  if (v === '') v = '0';
+  // 3) garante no mínimo 3 dígitos
+  while (v.length < 3) v = '0' + v;
+  // 4) separa reais / centavos
+  var inteiro  = v.slice(0, -2);
+  var centavos = v.slice(-2);
+  // 5) separador de milhares (opcional)
+  inteiro = inteiro.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  // 6) atualiza campo
+  $el.val(inteiro + ',' + centavos);
+
+  // 7) recálculo de totais
+  if (typeof calculaTotais === 'function') calculaTotais();
+}
+</script>
+
+
 <div class="justify-content-between">
 	<div class="left-content mt-2 mb-3">
 		<a class="btn ripple btn-primary text-white" onclick="inserir()" type="button"><i class="fe fe-plus me-2"></i>Novo Romaneio</a>
@@ -170,7 +197,7 @@ if (@$produtos == 'ocultar') {
 
 								<div class="col-md-6">
 									<label class="form-label">Cliente</label>
-									<select id="cliente" name="cliente" class="form-select form-select-sm sel2" onchange="buscarDadosCliente(this.value); calculaTotais();">
+									<select id="cliente_modal" name="cliente" class="form-select form-select-sm" onchange="buscarDadosCliente(this.value); calculaTotais();">
 										<option value="0">Escolher Cliente</option>
 										<?php
 										$query = $pdo->query("SELECT * from clientes order by id asc");
@@ -213,7 +240,7 @@ if (@$produtos == 'ocultar') {
 						</div>
 						<div class="coluna_romaneio">
 							<label for="preco_kg_1">Preço KG</label>
-							<input type="text" class="preco_kg_1" id="preco_kg_1" name="preco_kg_1[]" onkeyup="mascara_decimal('preco_kg_1'); handleInput(this); calcularValores(this.closest('.linha_1'));">
+							<input type="text" class="preco_kg_1" id="preco_kg_1" name="preco_kg_1[]" onkeyup="mascara_decimal(this); handleInput(this); calcularValores(this.closest('.linha_1'));">
 						</div>
 						<div class="coluna_romaneio">
 							<label for="tipo_cx_1">TIPO CX</label>
@@ -302,7 +329,7 @@ if (@$produtos == 'ocultar') {
 						</div>
 						<div class="coluna_romaneio">
 							<label for="preco_kg_2">Preço KG</label>
-							<input type="text" class="preco_kg_2" name="preco_kg_2[]" onkeyup="mascara_decimal('preco_kg_2'); handleInput2(this); calcularValores2(this.closest('.linha_2'));">
+							<input type="text" class="preco_kg_2" name="preco_kg_2[]" onkeyup="mascara_decimal(this);  handleInput2(this); calcularValores2(this.closest('.linha_2'));">
 						</div>
 						<div class="coluna_romaneio">
 							<label for="tipo_cx_2">TIPO CX</label>
@@ -380,7 +407,7 @@ if (@$produtos == 'ocultar') {
 						</div>
 						<div class="coluna_romaneio">
 							<label for="preco_unit_3">PREÇO UNIT.</label>
-							<input type="text" class="preco_unit_3" name="preco_unit_3[]" onkeyup="handleInput3(this); calcularValores3(this.closest('.linha_3'));">
+							<input type="text" class="preco_unit_3" name="preco_unit_3[]" onkeyup="mascara_decimal(this); handleInput3(this); calcularValores3(this.closest('.linha_3'));">
 						</div>
 						<div class="coluna_romaneio">
 							<label for="valor_3">Valor</label>
@@ -413,7 +440,7 @@ if (@$produtos == 'ocultar') {
                 Adicional
             </label>
             <input type="text" placeholder="Descrição do Adicional" name="descricao_adicional" id="descricao_adicional">
-            <input type="text" placeholder="Valor do Adicional" name="valor_adicional" id="valor_adicional" onkeyup="mascara_decimal('valor_adicional')">
+            <input type="text" placeholder="Valor do Adicional" name="valor_adicional" id="valor_adicional" onkeyup="mascara_decimal(this)">
         </div>
 
         <!-- Quebra de linha -->
@@ -426,7 +453,7 @@ if (@$produtos == 'ocultar') {
                 Desconto
             </label>
             <input type="text" placeholder="Descrição do Desconto" name="descricao_desconto" id="descricao_desconto">
-            <input type="text" placeholder="Valor do Desconto" name="valor_desconto" id="valor_desconto" onkeyup="mascara_decimal('valor_desconto')">
+            <input type="text" placeholder="Valor do Desconto" name="valor_desconto" id="valor_desconto" onkeyup="mascara_decimal(this)">
         </div>
     </div>
 </div>
@@ -956,7 +983,6 @@ if (@$produtos == 'ocultar') {
 <script type="text/javascript">
 	var pag = "<?= $pag ?>"
 </script>
-<script src="js/ajax.js"></script>
 
 <script type="text/javascript">
 	$(document).ready(function() {
@@ -1315,7 +1341,8 @@ function carregarDadosRomaneios() {
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
 <script type="text/javascript">
-	function limparFormulario() {
+	function limparCampos() {
+		console.log("jesus");
 		// Desabilitar temporariamente os eventos change
 		$('#fornecedor, #plano_pgto, .produto_1, .tipo_cx_1').off('change');
 		
@@ -1326,6 +1353,8 @@ function carregarDadosRomaneios() {
 		$('#nota_fiscal').val('');
 		$('#quant_dias').val('0');
 		$('#vencimento').val('');
+
+		$('#desc-avista').val('');
 		
 		// Limpar valores e descrições
 		$('#valor_adicional').val('0,00');
@@ -1363,6 +1392,8 @@ function carregarDadosRomaneios() {
 			// Dispara o trigger manualmente após reativar os eventos
 			calculaTotais();
 		}, 100);
+
+		addNewLine1();
 	}
 
 	// Adicione antes do submit do form-romaneio
@@ -1427,7 +1458,7 @@ function carregarDadosRomaneios() {
 						$('#mensagem-sucesso').html(data.mensagem).show();
 						
 						// Limpa todo o formulário incluindo romaneios selecionados
-						limparFormulario();
+						limparCampos();
 						
 						// Fecha o modal
 						$('#modalForm').modal('hide');

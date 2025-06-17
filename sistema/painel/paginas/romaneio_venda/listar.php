@@ -98,25 +98,42 @@ echo <<<HTML
 HTML;
 
 for($i=0; $i<$linhas; $i++){
-	$id = $res[$i]['id'];
-	$atacadista = $res[$i]['atacadista'];
-	$data = $res[$i]['data'];
+	// --- DADOS BÁSICOS ---
+    $id = $res[$i]['id'];
+    $atacadista = $res[$i]['atacadista'];
+    
+    // --- NOVOS DADOS DO ROMANEIO (ALTERADO) ---
+    // Captura de todos os campos da tabela romaneio_venda
+    $data_db = $res[$i]['data'];
+    $total_liquido = $res[$i]['total_liquido'];
+    $nota_fiscal = $res[$i]['nota_fiscal'];
+    $vencimento_db = $res[$i]['vencimento'];
+    $plano_pgto = $res[$i]['plano_pgto'];
+    $quant_dias = $res[$i]['quant_dias'];
+    $adicional = $res[$i]['adicional'];
+    $descricao_a = $res[$i]['descricao_a'];
+    $desconto = $res[$i]['desconto'];
+    $descricao_d = $res[$i]['descricao_d'];
 
-	$dataF = implode('/', array_reverse(@explode('-', $data)));
+    // --- FORMATAÇÃO DE DATAS (ALTERADO) ---
+    // Formata a data para o formato YYYY-MM-DD, ideal para inputs type="date"
+    $data_input = date('Y-m-d', strtotime($data_db));
+    // Formata o vencimento também, tratando se for nulo
+    $vencimento_input = $vencimento_db ? date('Y-m-d', strtotime($vencimento_db)) : '';
+    
+    // Formatação de data para exibição na tabela (DD/MM/YYYY)
+    $data_exibicao = date('d/m/Y', strtotime($data_db));
 
-			// Consulta para pegar o nome do fornecedor
-		$query_nome_fornecedor = $pdo->query("SELECT nome FROM clientes WHERE id = '$atacadista'");
+    // Consulta para pegar o nome do fornecedor (atacadista)
+    $query_nome_fornecedor = $pdo->query("SELECT nome FROM clientes WHERE id = '$atacadista'");
+    $fornecedor_nome_array = $query_nome_fornecedor->fetch(PDO::FETCH_ASSOC);
+    $fornecedor_nome = $fornecedor_nome_array ? $fornecedor_nome_array['nome'] : "Não encontrado";
+    
+    // Preparar strings para passar para JS de forma segura
+    $nota_fiscal_js = htmlspecialchars($nota_fiscal, ENT_QUOTES);
+    $descricao_a_js = htmlspecialchars($descricao_a, ENT_QUOTES);
+    $descricao_d_js = htmlspecialchars($descricao_d, ENT_QUOTES);
 
-		// Fetch o resultado da consulta
-		$fornecedor_nome_array = $query_nome_fornecedor->fetch(PDO::FETCH_ASSOC);
-
-		// Verifique se o resultado foi encontrado e extraia o nome do fornecedor
-		if ($fornecedor_nome_array) {
-			$fornecedor_nome = $fornecedor_nome_array['nome'];
-		} else {
-			// Caso o fornecedor não seja encontrado
-			$fornecedor_nome = "Fornecedor não encontrado";
-		}
 
 
 echo <<<HTML
@@ -132,7 +149,8 @@ echo <<<HTML
 <td>{$data}</td>
 
 <td>
-	<big><a class="btn btn-info btn-sm" href="#" onclick="editar('{$id}','{$atacadista}','{$dataF}')" title="Editar Dados"><i class="fa fa-edit "></i></a></big>
+<big><a class="btn btn-info btn-sm" href="#" onclick="editar('{$id}')" title="Editar Dados"><i class="fa fa-edit"></i></a></big>
+
 
 	<div class="dropdown" style="display: inline-block;">                      
                         <a class="btn btn-danger btn-sm" href="#" aria-expanded="false" aria-haspopup="true" data-bs-toggle="dropdown" class="dropdown"><i class="fa fa-trash "></i> </a>
@@ -174,30 +192,7 @@ HTML;
 
 
 <script type="text/javascript">
-	$(document).ready( function () {		
-    $('#tabela').DataTable({
-    	"language" : {
-            //"url" : '//cdn.datatables.net/plug-ins/1.13.2/i18n/pt-BR.json'
-        },
-        "ordering": false,
-		"stateSave": true
-    });
-} );
-</script>
-
-<script type="text/javascript">
-	function editar(id, atacadista, data){
-
-		$('#mensagem').text('');
-    	$('#titulo_inserir').text('Editar Registro');
-
-    	$('#id').val(id);
-    	$('#atacadista').val(atacadista); 
-    	$('#data').val(data)
-    
-
-    	$('#modalForm').modal('show');
-	}
+  
 
 
 	function mostrar(id) {
@@ -277,15 +272,6 @@ HTML;
 		window.open('rel/gerar_pdf_romaneio.php?id=' + id, '_blank');
 	}
 
-	function limparCampos(){
-		console.log("aqui limpar 13123")
-		$('#id').val('');
-    	$('#atacadista').val(''); 
-    	$('#data').val('00-00-00');
-
-    	$('#ids').val('');
-    	$('#btn-deletar').hide();	
-	}
 
 	function selecionar(id){
 
@@ -325,5 +311,243 @@ HTML;
 	function relatorio() {
 		window.open('rel/romaneio_venda_rel.php', '_blank');
 	}
+
+</script>
+
+<script type="text/javascript">
+    $(document).ready(function() {
+        $('#tabela').DataTable({
+            "destroy": true,
+            "language": {
+                // "url": "//cdn.datatables.net/plug-ins/1.13.2/i18n/pt-BR.json"
+            },
+            "ordering": false,
+            "stateSave": true
+        });
+
+        // Seus outros listeners
+    });
+
+    // Helper para formatar números
+    function formatarNumeroBR(valor) {
+        if (valor === null || valor === undefined || valor === '') return '0,00';
+        let num = parseFloat(valor);
+        if (isNaN(num)) return '0,00';
+        return num.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    /**
+     * Função EDITAR: CORRIGIDA para garantir que os options dos selects existam
+     */
+    // Dentro do seu arquivo romaneio.js (ou similar)
+
+    function editar(id) {
+  console.debug('=== editar() iniciado para ID:', id);
+
+  // 1) Limpa e prepara
+  limparCampos();
+  $('#titulo_inserir').text(`Editar Romaneio de Venda Nº ${id}`);
+  $('#id').val(id);
+
+  // 2) Busca dados
+  $.ajax({
+    url: 'paginas/romaneio_venda/buscar_dados.php',
+    type: 'POST',
+    dataType: 'json',
+    data: { id },
+    success(res) {
+      if (!res || !res.romaneio) {
+        alert('Não foi possível carregar os dados.');
+        return;
+      }
+      const r = res.romaneio;
+
+      // 3) Abre modal
+      $('#modalForm').modal('show');
+
+      // 4) Aguarda DOM
+      setTimeout(() => {
+        // 4.1) Desativa o onchange embutido DO SELECT
+        $('#plano_pgto').removeAttr('onchange');
+
+        // ----- Cabeçalho -----
+        $('input[name="data"]').val(r.data?.split(' ')[0] || '');
+        $('input[name="vencimento"]').val(r.vencimento?.split(' ')[0] || '');
+        $('input[name="nota_fiscal"]').val(r.nota_fiscal || '');
+        $('#quant_dias').val(r.quant_dias || 0);
+
+        // ----- Plano Pgto (nome → ID) -----
+        const normalize = s => s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
+        const target = normalize(r.nome_plano || '');
+        let planoId = '';
+        $('#plano_pgto option').each(function() {
+          if (normalize($(this).text()) === target) {
+            planoId = this.value;
+            return false;
+          }
+        });
+        $('#plano_pgto').val(planoId);
+
+
+        $('#cliente_modal').val(r.atacadista || '').trigger('change');
+
+        // ----- Produtos -----
+        $('#linha-container_1').empty();
+        if (res.produtos?.length) {
+          res.produtos.forEach((item, idx) => {
+            console.debug('addNewLine1 para produto', idx);
+            addNewLine1();
+            const $ln = $('#linha-container_1 .linha_1').eq(idx);
+            $ln.find('.quant_caixa_1').val(item.quant||'');
+            $ln.find('.produto_1')   .val(item.variedade||'');
+            $ln.find('.preco_kg_1')  .val(item.preco_kg
+                                          ? parseFloat(item.preco_kg).toFixed(2).replace('.',',')
+                                          :'0,00');
+            $ln.find('.tipo_cx_1')   .val(item.tipo_caixa||'');
+            $ln.find('.preco_unit_1').val(item.preco_unit
+                                          ? parseFloat(item.preco_unit).toFixed(2).replace('.',',')
+                                          :'0,00');
+            $ln.find('.valor_1')     .val(item.valor
+                                          ? parseFloat(item.valor).toFixed(2).replace('.',',')
+                                          :'0,00');
+            calcularValores($ln.get(0));
+          });
+          $('#desc-avista').val(r.desc_avista);
+        } else {
+          console.debug('sem produtos: addNewLine1');
+          addNewLine1();
+        }
+
+        // ----- Comissões -----
+        $('#linha-container_2').empty();
+        if (res.comissoes?.length) {
+          res.comissoes.forEach((item, idx) => {
+            console.debug('addNewLine2 para comissão', idx);
+            addNewLine2();
+            const $ln = $('#linha-container_2 .linha_2').eq(idx);
+            $ln.find('.desc_2')       .val(item.descricao||'');
+            $ln.find('.quant_caixa_2').val(item.quant_caixa||'');
+            $ln.find('.preco_kg_2')   .val(item.preco_kg
+                                          ? parseFloat(item.preco_kg).toFixed(2).replace('.',',')
+                                          :'0,00');
+            $ln.find('.tipo_cx_2')    .val(item.tipo_caixa||'');
+            $ln.find('.preco_unit_2') .val(item.preco_unit
+                                          ? parseFloat(item.preco_unit).toFixed(2).replace('.',',')
+                                          :'0,00');
+            $ln.find('.valor_2')      .val(item.valor
+                                          ? parseFloat(item.valor).toFixed(2).replace('.',',')
+                                          :'0,00');
+            calcularValores2($ln.get(0));
+          });
+        } else {
+          console.debug('sem comissões: addNewLine2');
+          addNewLine2();
+        }
+
+        // ----- Materiais -----
+        $('#linha-container_3').empty();
+        if (res.materiais?.length) {
+          res.materiais.forEach((item, idx) => {
+            console.debug('addNewLine3 para material', idx);
+            addNewLine3();
+            const $ln = $('#linha-container_3 .linha_3').eq(idx);
+            $ln.find('.obs_3')       .val(item.observacoes||'');
+            $ln.find('.material')    .val(item.descricao||'');
+            $ln.find('.quant_3')     .val(item.quant||'');
+            $ln.find('.preco_unit_3').val(item.preco_unit
+                                          ? parseFloat(item.preco_unit).toFixed(2).replace('.',',')
+                                          :'0,00');
+            $ln.find('.valor_3')     .val(item.valor
+                                          ? parseFloat(item.valor).toFixed(2).replace('.',',')
+                                          :'0,00');
+            calcularValores3($ln.get(0));
+          });
+        } else {
+          console.debug('sem materiais: addNewLine3');
+          addNewLine3();
+        }
+
+        
+        $('#valor_adicional').val(r.adicional.toFixed(2).replace('.',','));
+        $('#descricao_adicional').val(r.descricao_a);
+
+        $('#valor_desconto').val(r.desconto.toFixed(2).replace('.',','));
+        $('#descricao_desconto').val(r.descricao_d);
+        
+        // 5) Recalcula TUDO manualmente
+        calculaTotais();
+        calculaTotais2();
+        calculaTotais3();
+      }, 100);
+    },
+    error(err) {
+      console.error('Erro ao buscar dados (venda):', err);
+      alert('Não foi possível carregar detalhes. Veja o console.');
+    }
+  });
+}
+
+
+
+
+
+    /**
+     * Função ADICIONAR LINHA DE PRODUTO: CORRIGIDA para usar os campos corretos
+     */
+    function adicionarLinhaProduto(item = {}) {
+        // CORREÇÃO 1: Usando item.tipo_caixa para o VALUE e item.tipo_caixa_completo para o TEXTO.
+        const optionTipoCaixa = item.tipo_caixa 
+            ? `<option value="${item.tipo_caixa}" selected>${item.tipo_caixa_completo}</option>` 
+            : '<option value="">Selecione...</option>';
+
+        const optionVariedade = item.variedade
+            ? `<option value="${item.variedade}" selected>${item.nome_produto}</option>`
+            : '<option value="">Selecione Variedade...</option>';
+
+        const linha = `
+            <tr>
+                <td><input type="number" step="1" name="produto_quant[]" class="form-control" value="${item.quant || ''}" required></td>
+                <td>
+                    <select name="produto_id[]" class="form-control" required>
+                        ${optionVariedade}
+                    </select>
+                </td>
+                <td><input type="text" name="produto_preco_kg[]" class="form-control" value="${formatarNumeroBR(item.preco_kg)}"></td>
+                <td>
+                    <select name="produto_tipo_caixa[]" class="form-control">
+                        ${optionTipoCaixa}
+                    </select>
+                </td>
+                <td><input type="text" name="produto_preco_unit[]" class="form-control" value="${formatarNumeroBR(item.preco_unit)}"></td>
+                <td><input type="text" name="produto_valor[]" class="form-control" value="${formatarNumeroBR(item.valor)}" readonly></td>
+                <td><button type="button" class="btn btn-danger btn-sm" onclick="removerLinha(this)">-</button></td>
+            </tr>
+        `;
+        $('#tbodyProdutos').append(linha);
+    }
+
+    // Função para adicionar linha de comissão (também corrigida)
+    function adicionarLinhaComissao(item = {}) {
+         const optionTipoCaixa = item.tipo_caixa 
+            ? `<option value="${item.tipo_caixa}" selected>${item.tipo_caixa_completo}</option>` 
+            : '<option value="">Selecione...</option>';
+
+        const linha = `
+             <tr>
+                <td><input type="text" name="comissao_desc[]" class="form-control" value="${item.descricao || ''}"></td>
+                <td><input type="number" step="1" name="comissao_quant[]" class="form-control" value="${item.quant_caixa || ''}"></td>
+                <td><input type="text" name="comissao_valor[]" class="form-control" value="${formatarNumeroBR(item.valor)}"></td>
+                <td><button type="button" class="btn btn-danger btn-sm" onclick="removerLinha(this)">-</button></td>
+            </tr>
+        `;
+        $('#tbodyComissoes').append(linha);
+    }
+    
+    // Função para adicionar linha de material (sem alterações necessárias aqui)
+    function adicionarLinhaMaterial(item = {}) { /* ... sua função aqui ... */ }
+    function removerLinha(botao) { /* ... sua função aqui ... */ }
+
+    // Suas outras funções (mostrar, imprimir, selecionar, etc.)
+    // ...
 
 </script>
