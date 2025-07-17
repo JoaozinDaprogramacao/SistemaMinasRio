@@ -3,11 +3,12 @@ require_once("../../../conexao.php");
 
 $id = $_POST['id'];
 
-// Buscar dados do romaneio (agora incluindo desc_avista) - Esta parte permanece igual
+// --- MODIFICAÇÃO APLICADA AQUI ---
+// Buscar dados do romaneio com a lógica inteligente para o nome do fornecedor.
 $query_romaneio = $pdo->prepare("
   SELECT 
     rc.*,
-    f.razao_social    AS nome_fornecedor,
+    COALESCE(NULLIF(TRIM(f.razao_social), ''), f.nome_atacadista) AS nome_fornecedor,
     p.nome            AS nome_plano,
     c.nome            AS nome_cliente,
     rc.desc_avista    AS desc_avista
@@ -21,11 +22,11 @@ $query_romaneio->bindValue(":id", $id);
 $query_romaneio->execute();
 $romaneio = $query_romaneio->fetch(PDO::FETCH_ASSOC);
 
-// Buscar produtos - Modificações aqui
+// Buscar produtos - Esta parte permanece igual, pois não busca o nome do fornecedor.
 $query_produtos = $pdo->prepare("
   SELECT 
     lpc.*,
-    CONCAT(p.nome, COALESCE(CONCAT(' - ', cat.nome), '')) as nome_produto, -- Modificado aqui
+    CONCAT(p.nome, COALESCE(CONCAT(' - ', cat.nome), '')) as nome_produto,
     COALESCE(
       CONCAT(
         FORMAT(tc.tipo, 2),
@@ -42,7 +43,7 @@ $query_produtos = $pdo->prepare("
   FROM linha_produto_compra lpc
   LEFT JOIN produtos   p   ON lpc.variedade   = p.id
   LEFT JOIN tipo_caixa tc  ON lpc.tipo_caixa  = tc.id
-  LEFT JOIN categorias cat ON p.categoria     = cat.id -- Adicionado JOIN com categorias
+  LEFT JOIN categorias cat ON p.categoria     = cat.id
   WHERE lpc.id_romaneio = :id
 ");
 $query_produtos->bindValue(":id", $id);

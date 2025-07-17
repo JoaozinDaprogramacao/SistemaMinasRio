@@ -456,31 +456,29 @@ function calcularTaxaAbanorte() {
 
 
 // ——————— TAXA ADM ———————
+// ——————— TAXA ADM ———————
 function calcularTaxaAdm() {
-  // 1) Lê a taxa digitada (ex.: "5,00" → 5)
-  const taxaStr = document
-    .getElementById('taxa_adm_percent')
-    .value
-    .replace(/\./g, '')   // remove pontos de milhar
-    .replace(',', '.');   // vírgula → ponto
-  const taxaNum = parseFloat(taxaStr) || 0;
+    // 1) Lê a taxa digitada do input
+    const taxaStr = document.getElementById('taxa_adm_percent').value || '0';
 
-  // 2) Lê o preço unitário selecionado (ex.: "5" → 5)
-  const puStr = document
-    .getElementById('preco_unit_taxa_adm')
-    .value
-    .replace(',', '.');   
-  const puNum = parseFloat(puStr) || 0;
+    // 2) Converte o valor para um número, tratando tanto vírgula quanto ponto
+    //    Isso transforma "5,00" ou "5.00" no número 5
+    const taxaNum = parseFloat(taxaStr.replace(',', '.')) || 0;
 
-  // 3) Multiplica direto: 5 × 5 = 25
-  const resultado = taxaNum * puNum;
+    // 3) Lê o preço unitário selecionado (ex.: "5" → 5)
+    const puStr = document.getElementById('preco_unit_taxa_adm').value || '0';
+    const puNum = parseFloat(puStr.replace(',', '.')) || 0;
 
-  // 4) Formata e escreve no campo
-  document.getElementById('valor_taxa_adm').value =
-    resultado.toFixed(2).replace('.', ',');
+    // 4) Multiplica direto
+    const resultado = taxaNum * puNum;
 
-  // 5) Atualiza o total geral
-  if (typeof calculaTotais2 === 'function') calculaTotais2();
+    // 5) Formata e escreve no campo de valor
+    document.getElementById('valor_taxa_adm').value = resultado.toFixed(2).replace('.', ',');
+
+    // 6) Atualiza o total geral
+    if (typeof calculaTotais2 === 'function') {
+        calculaTotais2();
+    }
 }
 
 // === Inicializa com uma linha vazia ===

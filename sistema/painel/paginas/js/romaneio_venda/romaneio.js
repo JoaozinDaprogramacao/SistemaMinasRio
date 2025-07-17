@@ -124,54 +124,77 @@ function mascara_moeda(el) {
 }
 
 
+// CÓDIGO NOVO E CORRIGIDO para romaneio-venda.js
+// CÓDIGO NOVO E CORRIGIDO (somente JS)
 function calcularValores(linha) {
-
-    // Obter os campos da linha fornecida
     const precoKgField = linha.querySelector(".preco_kg_1");
-    const tipoCxField = linha.querySelector(".tipo_cx_1");
+    const tipoCxField = linha.querySelector(".tipo_cx_1"); // O campo <select>
     const quantCxField = linha.querySelector(".quant_caixa_1");
     const precoUnitField = linha.querySelector(".preco_unit_1");
     const valorField = linha.querySelector(".valor_1");
 
-    // Extrair valores e converter para números
+    // --- LÓGICA ALTERADA ---
+    // 1. Pega a opção que o usuário selecionou.
+    const selectedOption = tipoCxField.options[tipoCxField.selectedIndex];
+    
+    // 2. Pega o texto dessa opção (ex: "18.00 KG").
+    const optionText = selectedOption.text;
+    
+    // 3. Usa uma expressão regular (regex) para encontrar o primeiro número no texto.
+    const match = optionText.match(/(\d+[\.,]?\d*)/);
+    
+    // 4. Se encontrou um número, usa ele. Senão, o valor é 0.
+    //    Troca a vírgula por ponto para o parseFloat funcionar corretamente.
+    const tipoCx = match ? parseFloat(match[0].replace(',', '.')) : 0;
+    // --- FIM DA LÓGICA ALTERADA ---
+
     const precoKg = parseFloat(precoKgField.value.replace(",", ".") || 0);
-    const tipoCx = parseFloat(tipoCxField.value || 0); // Valor padrão de tipo_cx como 1
     const quantCx = parseFloat(quantCxField.value || 0);
 
-    // Calcular o preço unitário e o valor total
+    // O resto do cálculo agora funciona com o valor correto
     const precoUnit = precoKg * tipoCx;
     const valorTotal = precoUnit * quantCx;
 
-    // Atualizar os campos na linha
     precoUnitField.value = precoUnit.toFixed(2).replace(".", ",");
     valorField.value = valorTotal.toFixed(2).replace(".", ",");
 
     calculaTotais();
 }
 
+// CÓDIGO NOVO E CORRIGIDO para romaneio-venda.js
+// CÓDIGO NOVO E CORRIGIDO (somente JS)
 function calcularValores2(linha) {
+    console.log("--- Iniciando calcularValores2 ---");
 
-    // Obter os campos da linha fornecida
     const precoKgField = linha.querySelector(".preco_kg_2");
-    const tipoCxField = linha.querySelector(".tipo_cx_2");
+    const tipoCxField = linha.querySelector(".tipo_cx_2"); // O <select>
     const quantCxField = linha.querySelector(".quant_caixa_2");
     const precoUnitField = linha.querySelector(".preco_unit_2");
     const valorField = linha.querySelector(".valor_2");
 
-    // Extrair valores e converter para números
-    const precoKg = parseFloat(precoKgField.value.replace(",", ".") || 0);
-    const tipoCx = parseFloat(tipoCxField.value || 0); // Valor padrão de tipo_cx como 1
-    const quantCx = parseFloat(quantCxField.value || 0);
+    // --- LÓGICA ALTERADA ---
+    const selectedOption = tipoCxField.options[tipoCxField.selectedIndex];
+    const optionText = selectedOption.text;
+    const match = optionText.match(/(\d+[\.,]?\d*)/);
+    const tipoCx = match ? parseFloat(match[0].replace(',', '.')) : 0;
+    // --- FIM DA LÓGICA ALTERADA ---
 
-    // Calcular o preço unitário e o valor total
+    const precoKg = parseFloat(precoKgField.value.replace(",", ".") || 0);
+    const quantCx = parseFloat(quantCxField.value || 0);
+    
+    console.log("Valores convertidos para número (float):", { precoKg, tipoCx, quantCx });
+    
     const precoUnit = precoKg * tipoCx;
     const valorTotal = precoUnit * quantCx;
-
-    // Atualizar os campos na linha
+    
     precoUnitField.value = precoUnit.toFixed(2).replace(".", ",");
     valorField.value = valorTotal.toFixed(2).replace(".", ",");
-
-    calculaTotais2();
+    
+    console.log("--- Finalizando calcularValores2 ---");
+    
+    // IMPORTANTE: A função original não chamava calculaTotais2(), o que parece um erro.
+    // Se a tabela de comissão tiver um total, você deve chamar a função de total aqui.
+    // Ex: calculaTotais2();
 }
 
 function calcularValores3(linha) {

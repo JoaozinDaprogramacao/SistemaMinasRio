@@ -150,7 +150,7 @@ HTML;
 
 	let isEditing = false;
   function editar(id) {
-  console.debug('=== editar() iniciado para ID:', id);
+  console.log('=== editar() iniciado para ID:', id);
 
   // 1) Limpa tudo e prepara o modal
   limparCampos(); // Certifique-se que limparCampos reseta os selects de comissão também
@@ -164,7 +164,7 @@ HTML;
     dataType: 'json',
     data: { id },
     success: function(res) {
-      console.debug('Resposta AJAX buscar_dados:', res);
+      console.log('Resposta AJAX buscar_dados:', res);
       if (!res || !res.romaneio) {
         console.error('Resposta inválida de buscar_dados.php:', res);
         alert('Não foi possível carregar os dados do romaneio. Resposta do servidor inválida.');
@@ -183,7 +183,7 @@ HTML;
       $('#cliente').val(r.cliente || '');
 
       // Desconto à vista
-      console.debug('desc_avista RAW:', r.desc_avista);
+      console.log('desc_avista RAW:', r.desc_avista);
       $('#desc-avista').val(
         r.desc_avista ? (parseFloat(r.desc_avista) || 0).toFixed(2).replace('.', ',') : '0,00'
       );
@@ -195,7 +195,7 @@ HTML;
           addNewLine1(); // Supondo que addNewLine1() cria a linha e a retorna ou podemos selecioná-la
           const $linha = $('#linha-container_1 .linha_1').eq(idx); // Garanta que esta seleção é robusta
 
-          console.debug(`--- Produto ${idx}`, item);
+          console.log(`--- Produto ${idx}`, item);
 
           $linha.find('.quant_caixa_1').val(item.quant || '');
           $linha.find('.produto_1').val(item.variedade || '');
@@ -205,7 +205,7 @@ HTML;
 
           const rawTipo = item.tipo_caixa || '';       // ex: "14.50 G"
           const numTipo = rawTipo.split(' ')[0]; // ex: "14.50"
-          console.debug(`tipo_caixa raw [${idx}]:`, rawTipo, '→ num:', numTipo);
+          console.log(`tipo_caixa raw [${idx}]:`, rawTipo, '→ num:', numTipo);
           $linha.find('.tipo_cx_1').val(numTipo); // O valor do option deve ser "14.50"
 
           $linha.find('.preco_unit_1').val(
@@ -226,7 +226,7 @@ HTML;
 
 
       // ----- Comissões/Deduções fixas -----
-      console.debug('Preenchendo configurações e valores das deduções fixas');
+      console.log('Preenchendo configurações e valores das deduções fixas');
 
       // FUNRURAL
       $('#info_funrural').val(r.funrural_config_info || '');
@@ -274,7 +274,7 @@ HTML;
 
 
       // ----- Descontos Diversos -----
-      console.debug('Preenchendo descontos diversos:', r.descontos_diversos);
+      console.log('Preenchendo descontos diversos:', r.descontos_diversos);
       $('#discount-container').empty(); // Limpa antes de adicionar
       let descontos = [];
       try {
@@ -287,7 +287,7 @@ HTML;
       
       if (descontos && descontos.length > 0) {
           descontos.forEach((d, i) => {
-            console.debug(`– desconto ${i}`, d);
+            console.log(`– desconto ${i}`, d);
             addDiscountLine(); // Supondo que addDiscountLine() adiciona uma nova linha
             const $dlinha = $('#discount-container .linha_3').eq(i); // Garanta esta seleção
             $dlinha.find('.desconto-type').val(d.tipo || '+');
@@ -307,7 +307,7 @@ HTML;
 
       // 4) Exibe o modal
       $('#modalForm').modal('show');
-      console.debug('Modal de edição aberto');
+      console.log('Modal de edição aberto');
     },
     error: function(err) {
       console.error('Erro ao buscar dados do romaneio:', err);
