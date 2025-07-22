@@ -3,7 +3,7 @@ require_once("../../conexao.php");
 
 $id = $_GET['id'];
 
-// Buscar dados do romaneio
+// BUSCAR DADOS (sem alterações aqui)
 $query = $pdo->prepare("SELECT rv.*, c.nome as nome_cliente, p.nome as nome_plano 
     FROM romaneio_venda rv 
     LEFT JOIN clientes c ON rv.atacadista = c.id 
@@ -13,7 +13,6 @@ $query->bindValue(":id", $id);
 $query->execute();
 $romaneio = $query->fetch(PDO::FETCH_ASSOC);
 
-// Buscar produtos
 $query = $pdo->prepare("SELECT lp.*, p.nome as nome_produto, tc.tipo as tipo_caixa 
     FROM linha_produto lp 
     LEFT JOIN produtos p ON lp.variedade = p.id 
@@ -23,7 +22,6 @@ $query->bindValue(":id", $id);
 $query->execute();
 $produtos = $query->fetchAll(PDO::FETCH_ASSOC);
 
-// Buscar comissões
 $query = $pdo->prepare("SELECT lc.*, tc.tipo as tipo_caixa 
     FROM linha_comissao lc 
     LEFT JOIN tipo_caixa tc ON lc.tipo_caixa = tc.id 
@@ -32,7 +30,6 @@ $query->bindValue(":id", $id);
 $query->execute();
 $comissoes = $query->fetchAll(PDO::FETCH_ASSOC);
 
-// Buscar materiais/observações
 $query = $pdo->prepare("SELECT lo.*, m.nome as nome_material 
     FROM linha_observacao lo 
     LEFT JOIN materiais m ON lo.descricao = m.id 
@@ -40,132 +37,100 @@ $query = $pdo->prepare("SELECT lo.*, m.nome as nome_material
 $query->bindValue(":id", $id);
 $query->execute();
 $materiais = $query->fetchAll(PDO::FETCH_ASSOC);
-?>
 
+// Pré-cálculos (sem alterações aqui)
+$total_bruto_banana = array_sum(array_column($produtos, 'valor'));
+$total_comissao = array_sum(array_column($comissoes, 'valor'));
+$total_materiais = array_sum(array_column($materiais, 'valor'));
+$valor_total_final = ($romaneio['total_liquido'] ?? 0) + $total_comissao - $total_materiais;
+?>
 <!DOCTYPE html>
-<html>
+<html lang="pt-BR">
 <head>
     <meta charset="utf-8">
-    <title>Romaneio de Vendas</title>
+    <title>Romaneio de Venda</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            font-family: Arial, sans-serif;
-            font-size: 10px; /* Fonte menor para caber mais conteúdo */
+        /* --- CSS IDÊNTICO AO ROMANEIO_COMPRA --- */
+        * { margin:0; padding:0; box-sizing:border-box; font-family:Arial,sans-serif; font-size:10px; }
+        table { border-collapse:collapse; width:100%; }
+        th, td { border:1px solid #000; padding:4px; vertical-align:middle; }
+
+        /* cabeçalho */
+        .logo-cell { border:none; }
+        .logo-cell img { width:200px; } /* CORREÇÃO: Tamanho do logo ajustado para 200px */
+        .title-cell { text-align:center; font-weight:bold; } /* CORREÇÃO: Removido font-size explícito */
+        .rom-label, .rom-number { text-align:center; color:#fff; background:#D32F2F; font-weight:bold; } /* CORREÇÃO: Cor do vermelho ajustada */
+        .rom-label { border-right:none; }
+        .rom-number { border-left:none; }
+
+        /* info */
+        .info-label { font-weight:bold; width:15%; }
+        .info-value { text-align:center; width:20%; }
+
+        /* tabelas */
+        .tabela-dados th { background:#eee; text-align:left; }
+        .col-quant { width:10%; }
+        .col-variedade { width:30%; }
+        .col-preco { width:15%; }
+        .col-tipo { width:15%; }
+        .col-unit { width:15%; }
+        .col-valor { width:15%; }
+
+        /* CORREÇÃO: Usando as classes de total específicas do romaneio_compra */
+        .total-bruto td,
+        .total-liquido td,
+        .total-comissao td,
+        .total-materiais td,
+        .total-final td { 
+            background:#C5E0B3; 
+            font-weight:bold; 
         }
 
-        .cabecalho {
-            width: 100%;
-            border: 1px solid #000;
-            margin-bottom: 5px;
-        }
-
-        .logo {
-            width: 120px; /* Logo um pouco menor */
-            height: auto;
-            float: left;
-            margin: 5px;
-        }
-
-        .titulo {
-            color: #dc3545;
-            text-align: right;
-            padding: 5px;
-            font-size: 14px;
-            font-weight: bold;
-        }
-
-        .info-romaneio {
-            width: 100%;
-            margin-bottom: 5px;
-        }
-
-        .info-romaneio td {
-            border: 1px solid #000;
-            padding: 2px 4px;
-            height: 20px;
-        }
-
-        .tabela-dados {
-            width: 100%;
-            margin-bottom: 3px;
-        }
-
-        .tabela-dados th, 
-        .tabela-dados td {
-            border: 1px solid #000;
-            padding: 2px 4px;
-            height: 18px; /* Altura fixa para as células */
-        }
-
-        .tabela-dados th {
-            font-weight: normal;
-            text-align: left;
-            background-color: #fff;
-        }
-
-        .total-bruto,
-        .total-comissao,
-        .total-materiais {
-            background-color: #c5e0b3;
-        }
-
-        .desconto-vista {
-            background-color: #ffeb9c;
-        }
-
-        .valor-total {
-            background-color: #c5e0b3;
-            font-weight: bold;
-            text-align: right;
-            padding: 4px;
-        }
-
-        /* Ajuste das larguras das colunas */
-        .col-quant { width: 10%; }
-        .col-variedade { width: 30%; }
-        .col-preco { width: 15%; }
-        .col-tipo { width: 15%; }
-        .col-unit { width: 15%; }
-        .col-valor { width: 15%; }
-
-        /* Assinatura centralizada */
-        .assinatura {
-            margin: 30px auto 0; /* topo 30px, auto nas laterais para centralizar */
-            border-top: 1px solid #000;
-            width: 200px;
-            text-align: center;
-            padding-top: 5px;
-            font-size: 10px;
-        }
-
-        /* Espaçamento entre as seções */
-        .espaco-secao {
-            height: 3px;
+        /* assinatura */
+        .assinatura { 
+            margin:20px auto 0; 
+            border-top:1px solid #000; 
+            width:200px; 
+            text-align:center; 
+            padding-top:5px; 
         }
     </style>
 </head>
 <body>
-    <div class="cabecalho">
-        <img src="<?= $url_sistema ?>img/logo.jpg" class="logo">
-        <div class="titulo">ROMANEIO DE VENDAS</div>
-    </div>
 
-    <table class="info-romaneio">
-        <tr>
-            <td>Rom. Nº <?= str_pad($romaneio['id'], 6, '0', STR_PAD_LEFT) ?></td>
-            <td>DATA: <?= date('d/m/Y', strtotime($romaneio['data'])) ?></td>
-            <td>NOTA FISCAL: <?= $romaneio['nota_fiscal'] ?></td>
-        </tr>
-        <tr>
-            <td>CLIENTE ATACADISTA: <?= $romaneio['nome_cliente'] ?></td>
-            <td>PLANO PGTº: <?= $romaneio['nome_plano'] ?></td>
-            <td>VENCIMENTO: <?= date('d/m/Y', strtotime($romaneio['vencimento'])) ?></td>
-        </tr>
-    </table>
+<table>
+    <tr>
+        <td class="logo-cell" rowspan="3">
+            <img src="<?= $url_sistema ?>img/logo.jpg" alt="Logo">
+        </td>
+        <td class="title-cell" colspan="2">ROMANEIO DE VENDAS</td>
+        <td class="rom-label">Rom nº</td>
+        <td class="rom-number"><?= str_pad($romaneio['id'], 6, '0', STR_PAD_LEFT) ?></td>
+    </tr>
+    <tr>
+        <td class="info-label">DATA:</td>
+        <td class="info-value"><?= date('d/m/Y', strtotime($romaneio['data'])) ?></td>
+        <td class="info-label">PLANO PGTº:</td>
+        <td class="info-value"><?= $romaneio['nome_plano'] ?></td>
+    </tr>
+    <tr>
+        <td class="info-label">VENCIMENTO:</td>
+        <td class="info-value"><?= date('d/m/Y', strtotime($romaneio['vencimento'])) ?></td>
+        <td class="info-label">NOTA FISCAL:</td>
+        <td class="info-value"><?= $romaneio['nota_fiscal'] ?></td>
+    </tr>
+</table>
 
-    <table class="tabela-dados">
+<table>
+    <tr>
+        <td colspan="5" style="font-weight:bold;">
+            CLIENTE ATACADISTA: <?= $romaneio['nome_cliente'] ?>
+        </td>
+    </tr>
+</table>
+
+<table class="tabela-dados">
+    <thead>
         <tr>
             <th class="col-quant">QUANT. CX</th>
             <th class="col-variedade">VARIEDADE</th>
@@ -174,31 +139,36 @@ $materiais = $query->fetchAll(PDO::FETCH_ASSOC);
             <th class="col-unit">PREÇO UNIT.</th>
             <th class="col-valor">VALOR R$</th>
         </tr>
+    </thead>
+    <tbody>
         <?php foreach($produtos as $prod): ?>
         <tr>
-            <td class="col-quant"><?= $prod['quant'] ?></td>
-            <td class="col-variedade"><?= $prod['nome_produto'] ?></td>
-            <td class="col-preco">R$ <?= number_format($prod['preco_kg'], 2, ',', '.') ?></td>
-            <td class="col-tipo"><?= $prod['tipo_caixa'] ?></td>
-            <td class="col-unit">R$ <?= number_format($prod['preco_unit'], 2, ',', '.') ?></td>
-            <td class="col-valor">R$ <?= number_format($prod['valor'], 2, ',', '.') ?></td>
+            <td><?= $prod['quant'] ?></td>
+            <td><?= $prod['nome_produto'] ?></td>
+            <td style="text-align: right;">R$ <?= number_format($prod['preco_kg'], 2, ',', '.') ?></td>
+            <td><?= $prod['tipo_caixa'] ?> KG</td>
+            <td style="text-align: right;">R$ <?= number_format($prod['preco_unit'], 2, ',', '.') ?></td>
+            <td style="text-align: right;">R$ <?= number_format($prod['valor'], 2, ',', '.') ?></td>
         </tr>
         <?php endforeach; ?>
         <tr class="total-bruto">
-            <td class="col-quant" colspan="5">TOTAL BRUTO - BANANA</td>
-            <td class="col-valor">R$ <?= number_format(array_sum(array_column($produtos, 'valor')), 2, ',', '.') ?></td>
+            <td colspan="5">TOTAL BRUTO - BANANA</td>
+            <td style="text-align: right;">R$ <?= number_format($total_bruto_banana, 2, ',', '.') ?></td>
         </tr>
-        <tr class="desconto-vista">
-            <td class="col-quant" colspan="5">DESCONTO RECEBIMENTO À VISTA 5%</td>
-            <td class="col-valor">R$ <?= number_format($romaneio['desconto'], 2, ',', '.') ?></td>
+        <tr>
+            <td colspan="5">DESCONTO RECEBIMENTO À VISTA 5%</td>
+            <td style="text-align: right;">R$ <?= number_format($romaneio['desconto'], 2, ',', '.') ?></td>
         </tr>
         <tr class="total-liquido">
-            <td class="col-quant" colspan="5">TOTAL LÍQUIDO - BANANA</td>
-            <td class="col-valor">R$ <?= number_format($romaneio['total_liquido'], 2, ',', '.') ?></td>
+            <td colspan="5">TOTAL LÍQUIDO - BANANA</td>
+            <td style="text-align: right;">R$ <?= number_format($romaneio['total_liquido'], 2, ',', '.') ?></td>
         </tr>
-    </table>
+    </tbody>
+</table>
 
-    <table class="tabela-dados">
+<?php if (!empty($comissoes)): ?>
+<table class="tabela-dados">
+    <thead>
         <tr>
             <th>DESCRIÇÃO</th>
             <th>QUANT. CX</th>
@@ -207,47 +177,67 @@ $materiais = $query->fetchAll(PDO::FETCH_ASSOC);
             <th>PREÇO UNIT.</th>
             <th>VALOR R$</th>
         </tr>
+    </thead>
+    <tbody>
         <?php foreach($comissoes as $com): ?>
         <tr>
             <td>COMISSÃO</td>
             <td><?= $com['quant_caixa'] ?></td>
-            <td>R$ <?= number_format($com['preco_kg'], 2, ',', '.') ?></td>
-            <td><?= $com['tipo_caixa'] ?></td>
-            <td>R$ <?= number_format($com['preco_unit'], 2, ',', '.') ?></td>
-            <td>R$ <?= number_format($com['valor'], 2, ',', '.') ?></td>
+            <td style="text-align: right;">R$ <?= number_format($com['preco_kg'], 2, ',', '.') ?></td>
+            <td><?= $com['tipo_caixa'] ?> KG</td>
+            <td style="text-align: right;">R$ <?= number_format($com['preco_unit'], 2, ',', '.') ?></td>
+            <td style="text-align: right;">R$ <?= number_format($com['valor'], 2, ',', '.') ?></td>
         </tr>
         <?php endforeach; ?>
         <tr class="total-comissao">
             <td colspan="5">TOTAL COMISSÃO</td>
-            <td>R$ <?= number_format(array_sum(array_column($comissoes, 'valor')), 2, ',', '.') ?></td>
+            <td style="text-align: right;">R$ <?= number_format($total_comissao, 2, ',', '.') ?></td>
         </tr>
-    </table>
+    </tbody>
+</table>
+<?php endif; ?>
 
-    <table class="tabela-dados">
+<?php if (!empty($materiais)): ?>
+<table class="tabela-dados">
+    <thead>
         <tr>
-            <th>OBSERVAÇÕES</th>
-            <th>DESCRIÇÃO</th>
-            <th>QUANT.</th>
-            <th>UNIT.</th>
-            <th>VALOR R$</th>
+            <th style="width: 40%;">OBSERVAÇÕES</th>
+            <th style="width: 25%;">DESCRIÇÃO</th>
+            <th style="width: 10%;">QUANT.</th>
+            <th style="width: 10%;">UNIT. R$</th>
+            <th style="width: 15%;">VALOR R$</th>
         </tr>
+    </thead>
+    <tbody>
         <?php foreach($materiais as $mat): ?>
         <tr>
             <td><?= $mat['observacoes'] ?></td>
             <td><?= $mat['nome_material'] ?></td>
             <td><?= $mat['quant'] ?></td>
-            <td><?= $mat['preco_unit'] ?></td>
-            <td>R$ <?= number_format($mat['valor'], 2, ',', '.') ?></td>
+            <td style="text-align: right;"><?= number_format($mat['preco_unit'], 2, ',', '.') ?></td>
+            <td style="text-align: right;">R$ <?= number_format($mat['valor'], 2, ',', '.') ?></td>
         </tr>
         <?php endforeach; ?>
         <tr class="total-materiais">
-            <td colspan="4">TOTAL MATERIAIS</td>
-            <td>R$ <?= number_format(array_sum(array_column($materiais, 'valor')), 2, ',', '.') ?></td>
+            <td colspan="4">TOTAL MATERIAIS (a deduzir)</td>
+            <td style="text-align: right;">R$ <?= number_format($total_materiais, 2, ',', '.') ?></td>
         </tr>
-    </table>
+    </tbody>
+</table>
+<?php endif; ?>
 
-    <div class="assinatura">
-        ASS. Emitente Resp.
-    </div>
+<table>
+    <tbody>
+        <tr class="total-final">
+            <td style="width: 85%;" colspan="4">VALOR TOTAL A RECEBER</td>
+            <td style="width: 15%; text-align: right;">R$ <?= number_format($valor_total_final, 2, ',', '.') ?></td>
+        </tr>
+    </tbody>
+</table>
+
+<div class="assinatura">
+    ASS. Emitente Resp.
+</div>
+
 </body>
 </html>
