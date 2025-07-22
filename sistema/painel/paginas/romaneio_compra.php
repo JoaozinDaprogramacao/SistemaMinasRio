@@ -114,7 +114,7 @@ if (@$produtos == 'ocultar') {
 						</div>
 						<div class="coluna_romaneio">
 							<label for="nota_fiscal">Nota Fiscal</label>
-							<input type="text" class="nota_fiscal" name="nota_fiscal" placeholder="Número NF">
+							<input type="text" class="nota_fiscal" id="nota_fiscal" name="nota_fiscal" placeholder="Número NF">
 						</div>
 						<div class="coluna_romaneio">
 							<label for="vencimento">Vencimento</label>
