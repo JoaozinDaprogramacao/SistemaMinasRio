@@ -100,7 +100,7 @@ $descontos = json_decode($romaneio['descontos_diversos'] ?? '[]', true) ?: [];
   <table>
     <tr>
       <td class="logo-cell" rowspan="3">
-        <img src="<?= $url_sistema ?>img/logo.jpg" alt="Logo">
+        <img src="<?= $url_sistema ?>/img/foto-painel.png" alt="Logo errada">
       </td>
       <td class="title-cell" colspan="2">ROMANEIO DE COMPRA</td>
       <td class="rom-label">Rom nº</td>
