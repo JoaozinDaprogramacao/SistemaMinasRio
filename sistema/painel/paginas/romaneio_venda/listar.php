@@ -369,7 +369,7 @@ HTML;
   console.debug('=== editar() iniciado para ID:', id);
 
   // 1) Limpa e prepara
-  limparCampos();
+  f();
   $('#titulo_inserir').text(`Editar Romaneio de Venda Nº ${id}`);
   $('#id').val(id);
 

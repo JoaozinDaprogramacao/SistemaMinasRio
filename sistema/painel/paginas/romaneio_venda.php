@@ -160,7 +160,7 @@ function mascara_decimal(el) {
 
 								<div class="col-md-6">
 									<label class="form-label">Nota Fiscal</label>
-									<input type="text" class="form-control form-control-sm" name="nota_fiscal" placeholder="NF">
+									<input type="text" class="form-control form-control-sm" id="nota_fiscal" name="nota_fiscal" placeholder="NF">
 								</div>
 							</div>
 						</div>
@@ -192,7 +192,7 @@ function mascara_decimal(el) {
 
 								<div class="col-md-6">
 									<label class="form-label">Vencimento</label>
-									<input type="date" class="form-control form-control-sm" name="vencimento" value="<?= date('Y-m-d'); ?>">
+									<input type="date" class="form-control form-control-sm" name="vencimento" id="vencimento" value="<?= date('Y-m-d'); ?>">
 								</div>
 
 								<div class="col-md-6">
@@ -1349,59 +1349,71 @@ function carregarDadosRomaneios() {
 
 <script type="text/javascript">
 	function limparCampos() {
-		console.log("jesus");
-		// Desabilitar temporariamente os eventos change
-		$('#fornecedor, #plano_pgto, .produto_1, .tipo_cx_1').off('change');
-		
-		// Limpar campos de data e informações gerais
-		$('.data_atual').val(new Date().toISOString().split('T')[0]);
-		$('#fornecedor').val('');
-		$('#plano_pgto').val('');
-		$('#nota_fiscal').val('');
-		$('#quant_dias').val('0');
-		$('#vencimento').val('');
+    // === NOVAS LINHAS ADICIONADAS AQUI ===
+    // 1. ESCONDE AS MENSAGENS DE FEEDBACK
+    $('#mensagem-sucesso').hide();
+    $('#mensagem-erro').hide();
+    // =====================================
 
-		$('#desc-avista').val('');
-		
-		// Limpar valores e descrições
-		$('#valor_adicional').val('0,00');
-		$('#valor_desconto').val('0,00');
-		$('#descricao_adicional').val('');
-		$('#descricao_desconto').val('');
-		$('#valor_total').val('0,00');
-		$('#valor_liquido').val('0,00');
-		
-		// Limpar romaneios selecionados
-		romaneiosSelecionados = [];
-		$('.romaneio-item').removeClass('selecionado');
-		$('#romaneios_selecionados').val('');
-		
-		// Limpar container de linhas
-		$('#linha-container_1').empty();
-		
-		// Limpar campos das linhas de produto
-		$('.quant_caixa_1').val('');
-		$('.produto_1').val('');
-		$('.preco_kg_1').val('');
-		$('.tipo_cx_1').val('');
-		$('.preco_unit_1').val('');
-		$('.valor_1').val('');
-		
-		// Reativar os eventos change depois de um pequeno delay
-		setTimeout(function() {
-			$('#fornecedor').on('change', function() {
-				buscarDadosCliente($(this).val());
-			});
-			
-			$('#plano_pgto').on('change', calculaTotais);
-			$('.produto_1, .tipo_cx_1').on('change', calculaTotais);
-			
-			// Dispara o trigger manualmente após reativar os eventos
-			calculaTotais();
-		}, 100);
+    // 2. DESABILITA EVENTOS (opcional, mas boa prática)
+    $('#plano_pgto, #cliente_modal, .produto_1, .tipo_cx_1, .desc_2, .material').off('change');
 
-		addNewLine1();
-	}
+    // 3. LIMPA OS CAMPOS DO FORMULÁRIO PRINCIPAL
+    $('.data_atual').val(new Date().toISOString().split('T')[0]);
+    $('#cliente_modal').val('0').trigger('change');
+    $('#plano_pgto').val('0').trigger('change');
+    $('#nota_fiscal').val('');
+    $('#quant_dias').val('');
+    $('#vencimento').val(new Date().toISOString().split('T')[0]);
+    $('#desc-avista').val('');
+
+    // Limpa checkboxes de adicional/desconto e seus campos
+    $('#adicional_ativo, #desconto_ativo').prop('checked', false);
+    $('#descricao_adicional').val('');
+    $('#valor_adicional').val('0,00');
+    $('#descricao_desconto').val('');
+    $('#valor_desconto').val('0,00');
+
+    // 4. LIMPA ROMANEIOS DE COMPRA
+    romaneiosSelecionados = [];
+    $('.romaneio-item').removeClass('selecionado');
+    $('#romaneios_selecionados').val('');
+
+    // 5. LIMPA TODOS OS CONTÊINERES DE LINHAS DINÂMICAS
+    $('#linha-container_1').empty();
+    $('#linha-container_2').empty();
+    $('#linha-container_3').empty();
+
+    // 6. RESETA OS TOTAIS VISUAIS PARA ZERO
+    $('#total_caixa').text('0 CXS');
+    $('#total_kg').text('0 KG');
+    $('#total_bruto').text('R$ 0,00');
+    $('#total-desc').text('R$ 0,00');
+    $('#total-geral').text('0,00');
+    $('#total_comissao').text('0,00');
+    $('#total_materiais').text('0,00');
+    $('#total_carga').text('0,00');
+    $('#total_liquido').text('0,00');
+    $('#valor_liquido').val('0,00');
+
+    // 7. ADICIONA AS PRIMEIRAS LINHAS VAZIAS NOVAMENTE
+    addNewLine1();
+    addNewLine2();
+    addNewLine3();
+
+    // 8. REATIVA OS EVENTOS E ATUALIZA OS CÁLCULOS
+    setTimeout(function() {
+        $('#cliente_modal').on('change', function() {
+            buscarDadosCliente($(this).val());
+        });
+        $('#plano_pgto').on('change', calculaTotais);
+        
+        $(document).on('change', '.produto_1, .tipo_cx_1, .desc_2, .material', calculaTotais);
+
+        calculaTotais();
+    }, 100);
+}
+
 
 	// Adicione antes do submit do form-romaneio
 	function verificarPlanoAVista() {
