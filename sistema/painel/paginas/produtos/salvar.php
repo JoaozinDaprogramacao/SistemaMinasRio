@@ -13,11 +13,11 @@ if($categoria == ""){
 }
 
 //validacao
-$query = $pdo->query("SELECT * from $tabela where nome = '$nome'");
+$query = $pdo->query("SELECT * from $tabela where nome = '$nome' and categoria = '$categoria'");
 $res = $query->fetchAll(PDO::FETCH_ASSOC);
 $id_reg = @$res[0]['id'];
 if(@count($res) > 0 and $id != $id_reg){
-	echo 'Nome já Cadastrado!';
+	echo 'Produto já Cadastrado!';
 	exit();
 }
 
