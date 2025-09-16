@@ -83,7 +83,6 @@ HTML;
 
     <big><a class="btn btn-primary btn-sm" href="#" onclick="mostrar('{$nome_js}', '{$telefone}', '{$endereco_js}', '{$chave_pix}', '{$cargo_nome}', '{$data_admissaoF}', '{$status}', '{$data_demissaoF}', '{$salario_folhaF}', '{$obs_js}', '{$foto}', '{$data_cadF}')" title="Mostrar Dados"><i class="fa fa-info-circle"></i></a></big>
     <big><a class="btn btn-success btn-sm" href="#" onclick="mudarStatus('{$id}', '{$acao}')" title="{$titulo_link}"><i class="fa {$icone}"></i></a></big>
-    <big><a class="btn btn-secondary btn-sm" href="#" onclick="arquivo('{$id}', '{$nome_js}')" title="Inserir / Ver Arquivos"><i class="fa fa-file-o"></i></a></big>
 </td>
 </tr>
 HTML;
