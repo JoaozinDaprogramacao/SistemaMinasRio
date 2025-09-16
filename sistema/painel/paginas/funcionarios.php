@@ -40,99 +40,192 @@ if(@$funcionarios == 'ocultar'){
 </div>
 
 
+
+<script type="text/javascript">var pag = "<?=$pag?>"</script>
+<script src="js/ajax.js"></script>
+
+
+
+
 <input type="hidden" id="ids">
 
 <div class="modal fade" id="modalForm" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
-	<div class="modal-dialog modal-lg">
-		<div class="modal-content">
-			<div class="modal-header bg-primary text-white">
-				<h4 class="modal-title" id="exampleModalLabel"><span id="titulo_inserir"></span></h4>
-				 <button id="btn-fechar" aria-label="Close" class="btn-close" data-bs-dismiss="modal" type="button"><span class="text-white" aria-hidden="true">&times;</span></button>
-			</div>
-			<form id="form">
-			<div class="modal-body">
-				
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h4 class="modal-title" id="exampleModalLabel"><span id="titulo_inserir"></span></h4>
+                <button id="btn-fechar" aria-label="Close" class="btn-close" data-bs-dismiss="modal" type="button"><span class="text-white" aria-hidden="true">&times;</span></button>
+            </div>
+            <form id="form">
+                <div class="modal-body">
 
-					<div class="row">
-						<div class="col-md-6 mb-2">							
-								<label>Nome</label>
-								<input type="text" class="form-control" id="nome" name="nome" placeholder="Seu Nome" required>							
-						</div>
+                    <div class="row">
+                        <div class="col-md-6 mb-2">
+                            <label>Nome</label>
+                            <input type="text" class="form-control" id="nome" name="nome" placeholder="Nome do Funcionário" required>
+                        </div>
+                        <div class="col-md-3 mb-3 col-6">
+                            <label>Telefone</label>
+                            <input type="text" class="form-control" id="telefone" name="telefone" placeholder="Telefone" required>
+                        </div>
+                        <div class="col-md-3 mb-3 col-6">
+                            <label>Chave Pix</label>
+                            <input type="text" class="form-control" id="chave_pix" name="chave_pix" placeholder="Chave Pix">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <label>Endereço</label>
+                            <input type="text" class="form-control" id="endereco" name="endereco" placeholder="Endereço Completo">
+                        </div>
+                    </div>
+                    <hr>
 
-						<div class="col-md-6 mb-2">							
-								<label>Email</label>
-								<input type="email" class="form-control" id="email" name="email" placeholder="Seu Email"  required>							
-						</div>
+                    <div class="row">
+                        <div class="col-md-3 mb-2 col-6">
+                            <label>Cargo</label>
+                            <select class="form-select" name="cargo" id="cargo" required>
+                                <?php
+                                $query = $pdo->query("SELECT * from cargos order by nome asc");
+                                $res = $query->fetchAll(PDO::FETCH_ASSOC);
+                                if (@count($res) > 0) {
+                                    foreach ($res as $item) { ?>
+                                        <option value="<?php echo $item['id'] ?>"><?php echo $item['nome'] ?></option>
+                                <?php }
+                                } ?>
+                            </select>
+                        </div>
+                        <div class="col-md-3 mb-3 col-6">
+                            <label>Data de Admissão</label>
+                            <input type="date" class="form-control" id="data_admissao" name="data_admissao" value="<?php echo date('Y-m-d'); ?>" required>
+                        </div>
+                        <div class="col-md-3 mb-2 col-6">
+                            <label>Situação</label>
+                            <select class="form-select" name="status" id="status" onchange="toggleDemissao()">
+                                <option value="Ativo">Ativo</option>
+                                <option value="Demitido">Demitido</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3 mb-3 col-6" id="demissao-container" style="display: none;">
+                            <label>Data de Demissão</label>
+                            <input type="date" class="form-control" id="data_demissao" name="data_demissao">
+                        </div>
+                    </div>
 
-						
-					</div>
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label>Descrição Salarial (x Sal. Mínimo)</label>
+                            <input type="text" class="form-control" id="descricao_salario" name="descricao_salario" placeholder="Ex: 2.51" onkeyup="mascara_decimal_ponto(this); calcularSalarioFolha();">
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label>Salário Folha (R$)</label>
+                            <input type="text" class="form-control" id="salario_folha" name="salario_folha" placeholder="Cálculo Automático" readonly>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                         <div class="col-md-12">
+                            <label>Observações</label>
+                            <textarea class="form-control" id="obs" name="obs" maxlength="500"></textarea>
+                        </div>
+                    </div>
 
-
-					<div class="row">
-
-						<div class="col-md-3 mb-3 col-6">							
-								<label>Telefone</label>
-								<input type="text" class="form-control" id="telefone" name="telefone" placeholder="Seu Telefone" required>							
-						</div>
-						
-
-						<div class="col-md-3 mb-2 col-6">							
-								<label>Cargo</label>
-								<select class="form-select" name="nivel" id="nivel">
-								  <?php 
-								  	$query = $pdo->query("SELECT * from cargos where nome != 'Administrador' order by id asc");
-									$res = $query->fetchAll(PDO::FETCH_ASSOC);
-									$linhas = @count($res);
-									if($linhas > 0){
-										for($i=0; $i<$linhas; $i++){ ?>
-											<option value="<?php echo $res[$i]['id'] ?>"><?php echo $res[$i]['nome'] ?></option>
-									<?php } } ?>
-								</select>							
-						</div>
-
-						<div class="col-md-2 mb-3 col-6">							
-								<label>Comissão</label>
-								<input type="text" class="form-control" id="comissao" name="comissao" placeholder="Ex 5 ou 5,5" onkeyup="mascara_decimal('comissao')" value="<?php echo $comissao_sistema ?>">							
-						</div>
-
-							<div class="col-md-4 mb-2 ">							
-								<label>Chave Pix</label>
-								<input type="text" class="form-control" id="chave_pix" name="chave_pix" placeholder="Chave Pix" >							
-						</div>
-
-
-						
-					</div>
-
-					<div class="row">
-
-						<div class="col-md-12">							
-								<label>Endereço</label>
-								<input type="text" class="form-control" id="endereco" name="endereco" placeholder="Seu Endereço" >							
-						</div>
-
-						
-					</div>
-
-					
-
-
-					
-
-
-					<input type="hidden" class="form-control" id="id" name="id">					
-
-				<br>
-				<small><div id="mensagem" align="center"></div></small>
-			</div>
-			<div class="modal-footer">       
-				<button type="submit" id="btn_salvar" class="btn btn-primary">Salvar</button>
-			</div>
-			</form>
-		</div>
-	</div>
+                    <input type="hidden" class="form-control" id="id" name="id">
+                    <br>
+                    <small><div id="mensagem" align="center"></div></small>
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" id="btn_salvar" class="btn btn-primary">Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
 </div>
 
+<script type="text/javascript">
+    // Variável global para armazenar o valor do salário mínimo
+    let salarioMinimoAtual = 0;
+
+    /**
+     * Busca o salário mínimo da nossa API interna assim que a página carrega.
+     */
+    function carregarSalarioMinimo() {
+        fetch('buscar_salario.php')
+            .then(response => response.json())
+            .then(data => {
+                if (data && data.valor > 0) {
+                    salarioMinimoAtual = data.valor;
+                    console.log('Salário mínimo carregado: R$', salarioMinimoAtual);
+                } else {
+                    salarioMinimoAtual = 1518.00; // Fallback de segurança
+                }
+            })
+            .catch(error => {
+                console.error('Erro ao buscar salário mínimo:', error);
+                salarioMinimoAtual = 1518.00; // Fallback de segurança
+            });
+    }
+
+    /**
+     * Calcula o salário folha usando a variável global do salário mínimo.
+     */
+    function calcularSalarioFolha() {
+        if (salarioMinimoAtual === 0) return; // Não calcula se o salário não foi carregado
+
+        const inputDescricao = document.getElementById('descricao_salario');
+        const inputSalarioFolha = document.getElementById('salario_folha');
+        const multiplicador = parseFloat(inputDescricao.value) || 0;
+        
+        const salarioCalculado = multiplicador * salarioMinimoAtual;
+
+        // Atualiza o valor e aplica a máscara para formatar a saída (ex: 3810.18)
+        inputSalarioFolha.value = salarioCalculado.toFixed(2);
+    }
+    
+    /**
+     * Máscara para formatar números como decimais com ponto (ex: 251 -> 2.51).
+     */
+    function mascara_decimal_ponto(el) {
+        let valor = el.value.replace(/\D/g, '');
+        if (valor === '') {
+            el.value = '';
+            return;
+        }
+        valor = String(Number(valor));
+        while (valor.length < 3) {
+            valor = '0' + valor;
+        }
+        let parteInteira = valor.slice(0, -2);
+        let centavos = valor.slice(-2);
+        if (parteInteira === '') {
+            parteInteira = '0';
+        }
+        el.value = parteInteira + '.' + centavos;
+    }
+
+    /**
+     * Mostra ou esconde o campo de data de demissão com base na situação.
+     */
+    function toggleDemissao() {
+        var status = document.getElementById('status').value;
+        var container = document.getElementById('demissao-container');
+        container.style.display = (status === 'Demitido') ? 'block' : 'none';
+    }
+
+    // Chama a função para carregar o salário mínimo assim que o documento estiver pronto.
+    document.addEventListener('DOMContentLoaded', carregarSalarioMinimo);
+</script>
+<script type="text/javascript">
+    function toggleDemissao() {
+        var status = document.getElementById('status').value;
+        var container = document.getElementById('demissao-container');
+        if (status === 'Demitido') {
+            container.style.display = 'block';
+        } else {
+            container.style.display = 'none';
+        }
+    }
+</script>
 
 
 
@@ -291,18 +384,6 @@ if(@$funcionarios == 'ocultar'){
 			</div>
 		</div>
 	</div>
-
-
-
-
-
-
-
-
-<script type="text/javascript">var pag = "<?=$pag?>"</script>
-<script src="js/ajax.js"></script>
-
-
 
 
 <script type="text/javascript">
