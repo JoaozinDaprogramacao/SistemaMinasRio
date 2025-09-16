@@ -1,53 +1,42 @@
-<?php 
+<?php
 require_once("verificar.php");
 $pag = 'funcionarios';
 
 //verificar se ele tem a permissão de estar nessa página
-if(@$funcionarios == 'ocultar'){
+if (@$funcionarios == 'ocultar') {
     echo "<script>window.location='index'</script>";
     exit();
 }
- ?>
+?>
 
 <div class="justify-content-between">
  	<div class="left-content mt-2 mb-3">
- <a class="btn ripple btn-primary text-white" onclick="inserir()" type="button"><i class="fe fe-plus me-2"></i> Adicionar <?php echo ucfirst($pag); ?></a>
+ 		<a class="btn ripple btn-primary text-white" onclick="inserir()" type="button"><i class="fe fe-plus me-2"></i> Adicionar <?php echo ucfirst($pag); ?></a>
 
-
-
-<div class="dropdown" style="display: inline-block;">                      
-                        <a href="#" aria-expanded="false" aria-haspopup="true" data-bs-toggle="dropdown" class="btn btn-danger dropdown" id="btn-deletar" style="display:none"><i class="fe fe-trash-2"></i> Deletar</a>
-                        <div  class="dropdown-menu tx-13">
-                        <div style="width: 240px; padding:15px 5px 0 10px;" class="dropdown-item-text">
-                        <p>Excluir Selecionados? <a href="#" onclick="deletarSel()"><span class="text-danger">Sim</span></a></p>
-                        </div>
-                        </div>
-                        </div>
-
-</div>
-
+		<div class="dropdown" style="display: inline-block;">
+            <a href="#" aria-expanded="false" aria-haspopup="true" data-bs-toggle="dropdown" class="btn btn-danger dropdown" id="btn-deletar" style="display:none"><i class="fe fe-trash-2"></i> Deletar</a>
+            <div  class="dropdown-menu tx-13">
+                <div style="width: 240px; padding:15px 5px 0 10px;" class="dropdown-item-text">
+                    <p>Excluir Selecionados? <a href="#" onclick="deletarSel()"><span class="text-danger">Sim</span></a></p>
+                </div>
+            </div>
+ 		</div>
+	</div>
 </div>
 
 
 <div class="row row-sm">
-<div class="col-lg-12">
-<div class="card custom-card">
-<div class="card-body" id="listar">
-
+	<div class="col-lg-12">
+		<div class="card custom-card">
+			<div class="card-body" id="listar">
+				</div>
+		</div>
+	</div>
 </div>
-</div>
-</div>
-</div>
-
-
-
-<script type="text/javascript">var pag = "<?=$pag?>"</script>
-<script src="js/ajax.js"></script>
-
-
 
 
 <input type="hidden" id="ids">
+
 
 <div class="modal fade" id="modalForm" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
@@ -58,7 +47,6 @@ if(@$funcionarios == 'ocultar'){
             </div>
             <form id="form">
                 <div class="modal-body">
-
                     <div class="row">
                         <div class="col-md-6 mb-2">
                             <label>Nome</label>
@@ -80,7 +68,6 @@ if(@$funcionarios == 'ocultar'){
                         </div>
                     </div>
                     <hr>
-
                     <div class="row">
                         <div class="col-md-3 mb-2 col-6">
                             <label>Cargo</label>
@@ -111,7 +98,6 @@ if(@$funcionarios == 'ocultar'){
                             <input type="date" class="form-control" id="data_demissao" name="data_demissao">
                         </div>
                     </div>
-
                     <div class="row">
                         <div class="col-md-4 mb-3">
                             <label>Descrição Salarial (x Sal. Mínimo)</label>
@@ -122,14 +108,12 @@ if(@$funcionarios == 'ocultar'){
                             <input type="text" class="form-control" id="salario_folha" name="salario_folha" placeholder="Cálculo Automático" readonly>
                         </div>
                     </div>
-                    
                     <div class="row">
                          <div class="col-md-12">
                             <label>Observações</label>
                             <textarea class="form-control" id="obs" name="obs" maxlength="500"></textarea>
                         </div>
                     </div>
-
                     <input type="hidden" class="form-control" id="id" name="id">
                     <br>
                     <small><div id="mensagem" align="center"></div></small>
@@ -141,6 +125,88 @@ if(@$funcionarios == 'ocultar'){
         </div>
     </div>
 </div>
+
+
+<div class="modal fade" id="modalDados" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h4 class="modal-title" id="exampleModalLabel"><span id="titulo_dados"></span></h4>
+                <button id="btn-fechar-dados" aria-label="Close" class="btn-close" data-bs-dismiss="modal" type="button"><span class="text-white" aria-hidden="true">&times;</span></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-7">
+                        <div class="table-responsive">
+                            <table class="table table-bordered">
+                                <tr><td class="bg-light w-25">Telefone</td><td><span id="telefone_dados"></span></td></tr>
+                                <tr><td class="bg-light">Endereço</td><td><span id="endereco_dados"></span></td></tr>
+                                <tr><td class="bg-light">Chave Pix</td><td><span id="pix_dados"></span></td></tr>
+                                <tr><td class="bg-light">Cargo</td><td><span id="cargo_dados"></span></td></tr>
+                                <tr><td class="bg-light">Salário Folha</td><td><span id="salario_dados"></span></td></tr>
+                                <tr><td class="bg-light">Status</td><td><span id="status_dados"></span></td></tr>
+                                <tr><td class="bg-light">Admissão</td><td><span id="admissao_dados"></span></td></tr>
+                                <tr><td class="bg-light">Demissão</td><td><span id="demissao_dados"></span></td></tr>
+                                <tr><td class="bg-light">Data Cadastro</td><td><span id="data_cad_dados"></span></td></tr>
+                                <tr><td class="bg-light">Observações</td><td><span id="obs_dados"></span></td></tr>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="col-md-5 d-flex align-items-center justify-content-center">
+                        <img src="" id="foto_dados" width="200px" class="img-fluid rounded">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<div class="modal fade" id="modalArquivos" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+	<div class="modal-dialog">
+		<div class="modal-content">
+			<div class="modal-header bg-primary text-white">
+				<h4 class="modal-title" id="tituloModal">Gestão de Arquivos - <span id="nome-arquivo"> </span></h4>
+				 <button id="btn-fechar-arquivos" aria-label="Close" class="btn-close" data-bs-dismiss="modal" type="button"><span class="text-white" aria-hidden="true">&times;</span></button>
+			</div>
+			<form id="form-arquivos" method="post">
+				<div class="modal-body">
+					<div class="row">
+						<div class="col-md-8">						
+							<div class="form-group"> 
+								<label>Arquivo</label> 
+								<input class="form-control" type="file" name="arquivo_conta" onChange="carregarImgArquivos();" id="arquivo_conta">
+							</div>	
+						</div>
+						<div class="col-md-4">	
+							<div id="divImgArquivos">
+								<img src="images/arquivos/sem-foto.png"  width="60px" id="target-arquivos">									
+							</div>					
+						</div>
+					</div>
+					<div class="row" >
+						<div class="col-md-8">
+							<input type="text" class="form-control" name="nome-arq"  id="nome-arq" placeholder="Nome do Arquivo * " required>
+						</div>
+						<div class="col-md-4">										 
+							<button type="submit" class="btn btn-primary">Inserir</button>
+						</div>
+					</div>
+					<hr>
+					<small><div id="listar-arquivos"></div></small>
+					<br>
+					<small><div align="center" id="mensagem-arquivo"></div></small>
+					<input type="hidden" class="form-control" name="id-arquivo"  id="id-arquivo">
+				</div>
+			</form>
+		</div>
+	</div>
+</div>
+
+
+<script type="text/javascript">var pag = "<?=$pag?>"</script>
+<script src="js/ajax.js"></script>
+
 
 <script type="text/javascript">
     // Variável global para armazenar o valor do salário mínimo
@@ -171,14 +237,10 @@ if(@$funcionarios == 'ocultar'){
      */
     function calcularSalarioFolha() {
         if (salarioMinimoAtual === 0) return; // Não calcula se o salário não foi carregado
-
         const inputDescricao = document.getElementById('descricao_salario');
         const inputSalarioFolha = document.getElementById('salario_folha');
         const multiplicador = parseFloat(inputDescricao.value) || 0;
-        
         const salarioCalculado = multiplicador * salarioMinimoAtual;
-
-        // Atualiza o valor e aplica a máscara para formatar a saída (ex: 3810.18)
         inputSalarioFolha.value = salarioCalculado.toFixed(2);
     }
     
@@ -215,282 +277,94 @@ if(@$funcionarios == 'ocultar'){
     // Chama a função para carregar o salário mínimo assim que o documento estiver pronto.
     document.addEventListener('DOMContentLoaded', carregarSalarioMinimo);
 </script>
+
+
 <script type="text/javascript">
-    function toggleDemissao() {
-        var status = document.getElementById('status').value;
-        var container = document.getElementById('demissao-container');
-        if (status === 'Demitido') {
-            container.style.display = 'block';
-        } else {
-            container.style.display = 'none';
-        }
-    }
+	$("#form-arquivos").submit(function () {
+		event.preventDefault();
+		var formData = new FormData(this);
+
+		$.ajax({
+			url: 'paginas/' + pag + "/arquivos.php",
+			type: 'POST',
+			data: formData,
+			success: function (mensagem) {
+				$('#mensagem-arquivo').text('');
+				$('#mensagem-arquivo').removeClass()
+				if (mensagem.trim() == "Inserido com Sucesso") {
+				//$('#btn-fechar-arquivos').click();
+				$('#nome-arq').val('');
+				$('#arquivo_conta').val('');
+				$('#target-arquivos').attr('src','images/arquivos/sem-foto.png');
+				listarArquivos();
+			} else {
+				$('#mensagem-arquivo').addClass('text-danger')
+				$('#mensagem-arquivo').text(mensagem)
+			}
+		},
+		cache: false,
+		contentType: false,
+		processData: false,
+	});
+	});
 </script>
 
-
-
-
-
-	<!-- Modal Dados -->
-	<div class="modal fade" id="modalDados" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
-		<div class="modal-dialog modal-lg">
-			<div class="modal-content">
-				<div class="modal-header bg-primary text-white">
-					<h4 class="modal-title" id="exampleModalLabel"><span id="titulo_dados"></span></h4>
-					<button id="btn-fechar-dados" aria-label="Close" class="btn-close" data-bs-dismiss="modal" type="button"><span class="text-white" aria-hidden="true">&times;</span></button>
-				</div>
-
-				<div class="modal-body">
-
-
-					<div class="row">
-
-
-						<div class="col-md-6">
-							<div class="tile">
-								<div class="table-responsive">
-									<table id="" class="text-left table table-bordered">
-										<tr>
-											<td class="bg-warning alert-warning">Telefone</td>
-											<td><span id="telefone_dados"></span></td>
-										</tr>
-
-										<tr>
-											<td class="bg-warning alert-warning">Email</td>
-											<td><span id="email_dados"></span></td>
-										</tr>
-
-										<tr>
-											<td class="bg-warning alert-warning w_150">Cargo</td>
-											<td><span id="nivel_dados"></span></td>
-										</tr>
-
-										<tr>
-											<td class="bg-warning alert-warning w_150">Ativo</td>
-											<td><span id="ativo_dados"></span></td>
-										</tr>
-
-										<tr>
-											<td class="bg-warning alert-warning w_150">Data Cadastro</td>
-											<td><span id="data_dados"></span></td>
-										</tr>
-
-										<tr>
-											<td class="bg-warning alert-warning w_150">Chave Pix</td>
-											<td><span id="pix_dados"></span></td>
-										</tr>
-
-										<tr>
-											<td class="bg-warning alert-warning w_150">Comissão</td>
-											<td><span id="comissao_dados"></span>%</td>
-										</tr>
-
-										<tr>
-											<td class="bg-warning alert-warning w_150">Endereço</td>
-											<td><span id="endereco_dados"></span></td>
-										</tr>
-
-
-										 
-
-									</table>
-								</div>
-							</div>
-						</div>
-
-
-
-						<div class="col-md-6">
-							<div class="tile">
-								<div class="table-responsive">
-									<table id="" class="text-left table table-bordered">
-									
-									<tr>
-											<td align="center"><img src="" id="foto_dados" width="200px"></td>
-										</tr>      
-										
-									</table>
-								</div>
-							</div>
-						</div>
-
-					</div>
-
-
-
-
-
-				</div>
-
-			</div>
-		</div>
-	</div>
-
-
-
-
-
-	<!-- Modal Arquivos -->
-	<div class="modal fade" id="modalArquivos" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
-		<div class="modal-dialog">
-			<div class="modal-content">
-				<div class="modal-header bg-primary text-white">
-					<h4 class="modal-title" id="tituloModal">Gestão de Arquivos - <span id="nome-arquivo"> </span></h4>
-					 <button id="btn-fechar-arquivos" aria-label="Close" class="btn-close" data-bs-dismiss="modal" type="button"><span class="text-white" aria-hidden="true">&times;</span></button>
-				</div>
-				<form id="form-arquivos" method="post">
-					<div class="modal-body">
-
-						<div class="row">
-							<div class="col-md-8">						
-								<div class="form-group"> 
-									<label>Arquivo</label> 
-									<input class="form-control" type="file" name="arquivo_conta" onChange="carregarImgArquivos();" id="arquivo_conta">
-								</div>	
-							</div>
-							<div class="col-md-4">	
-								<div id="divImgArquivos">
-									<img src="images/arquivos/sem-foto.png"  width="60px" id="target-arquivos">									
-								</div>					
-							</div>
-
-
-
-
-						</div>
-
-						<div class="row" >
-							<div class="col-md-8">
-								<input type="text" class="form-control" name="nome-arq"  id="nome-arq" placeholder="Nome do Arquivo * " required>
-							</div>
-
-							<div class="col-md-4">										 
-								<button type="submit" class="btn btn-primary">Inserir</button>
-							</div>
-						</div>
-
-						<hr>
-
-						<small><div id="listar-arquivos"></div></small>
-
-						<br>
-						<small><div align="center" id="mensagem-arquivo"></div></small>
-
-						<input type="hidden" class="form-control" name="id-arquivo"  id="id-arquivo">
-
-
-					</div>
-				</form>
-			</div>
-		</div>
-	</div>
-
+<script type="text/javascript">
+	function listarArquivos(){
+		var id = $('#id-arquivo').val();	
+		$.ajax({
+			url: 'paginas/' + pag + "/listar-arquivos.php",
+			method: 'POST',
+			data: {id},
+			dataType: "text",
+			success:function(result){
+				$("#listar-arquivos").html(result);
+			}
+		});
+	}
+</script>
 
 <script type="text/javascript">
-			$("#form-arquivos").submit(function () {
-				event.preventDefault();
-				var formData = new FormData(this);
+	function carregarImgArquivos() {
+		var target = document.getElementById('target-arquivos');
+		var file = document.querySelector("#arquivo_conta").files[0];
+		var arquivo = file['name'];
+		resultado = arquivo.split(".", 2);
 
-				$.ajax({
-					url: 'paginas/' + pag + "/arquivos.php",
-					type: 'POST',
-					data: formData,
-
-					success: function (mensagem) {
-						$('#mensagem-arquivo').text('');
-						$('#mensagem-arquivo').removeClass()
-						if (mensagem.trim() == "Inserido com Sucesso") {                    
-						//$('#btn-fechar-arquivos').click();
-						$('#nome-arq').val('');
-						$('#arquivo_conta').val('');
-						$('#target-arquivos').attr('src','images/arquivos/sem-foto.png');
-						listarArquivos();
-					} else {
-						$('#mensagem-arquivo').addClass('text-danger')
-						$('#mensagem-arquivo').text(mensagem)
-					}
-
-				},
-
-				cache: false,
-				contentType: false,
-				processData: false,
-
-			});
-
-			});
-		</script>
-
-		<script type="text/javascript">
-			function listarArquivos(){
-				var id = $('#id-arquivo').val();	
-				$.ajax({
-					url: 'paginas/' + pag + "/listar-arquivos.php",
-					method: 'POST',
-					data: {id},
-					dataType: "text",
-
-					success:function(result){
-						$("#listar-arquivos").html(result);
-					}
-				});
-			}
-
-		</script>
-
-
-
-
-<script type="text/javascript">
-		function carregarImgArquivos() {
-			var target = document.getElementById('target-arquivos');
-			var file = document.querySelector("#arquivo_conta").files[0];
-
-			var arquivo = file['name'];
-			resultado = arquivo.split(".", 2);
-
-			if(resultado[1] === 'pdf'){
-				$('#target-arquivos').attr('src', "images/pdf.png");
-				return;
-			}
-
-			if(resultado[1] === 'rar' || resultado[1] === 'zip'){
-				$('#target-arquivos').attr('src', "images/rar.png");
-				return;
-			}
-
-			if(resultado[1] === 'doc' || resultado[1] === 'docx' || resultado[1] === 'txt'){
-				$('#target-arquivos').attr('src', "images/word.png");
-				return;
-			}
-
-
-			if(resultado[1] === 'xlsx' || resultado[1] === 'xlsm' || resultado[1] === 'xls'){
-				$('#target-arquivos').attr('src', "images/excel.png");
-				return;
-			}
-
-
-			if(resultado[1] === 'xml'){
-				$('#target-arquivos').attr('src', "images/xml.png");
-				return;
-			}
-
-
-
-			var reader = new FileReader();
-
-			reader.onloadend = function () {
-				target.src = reader.result;
-			};
-
-			if (file) {
-				reader.readAsDataURL(file);
-
-			} else {
-				target.src = "";
-			}
+		if(resultado[1] === 'pdf'){
+			$('#target-arquivos').attr('src', "images/pdf.png");
+			return;
 		}
-	</script>
 
+		if(resultado[1] === 'rar' || resultado[1] === 'zip'){
+			$('#target-arquivos').attr('src', "images/rar.png");
+			return;
+		}
 
+		if(resultado[1] === 'doc' || resultado[1] === 'docx' || resultado[1] === 'txt'){
+			$('#target-arquivos').attr('src', "images/word.png");
+			return;
+		}
+
+		if(resultado[1] === 'xlsx' || resultado[1] === 'xlsm' || resultado[1] === 'xls'){
+			$('#target-arquivos').attr('src', "images/excel.png");
+			return;
+		}
+
+		if(resultado[1] === 'xml'){
+			$('#target-arquivos').attr('src', "images/xml.png");
+			return;
+		}
+
+		var reader = new FileReader();
+		reader.onloadend = function () {
+			target.src = reader.result;
+		};
+
+		if (file) {
+			reader.readAsDataURL(file);
+		} else {
+			target.src = "";
+		}
+	}
+</script>
