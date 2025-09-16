@@ -188,6 +188,139 @@ if (@$funcionarios == 'ocultar') {
     </div>
 </div>
 
+<div class="modal fade" id="modalGratificacao" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h4 class="modal-title" id="exampleModalLabel"><span id="titulo_gratificacao"></span></h4>
+                <button aria-label="Close" class="btn-close" data-bs-dismiss="modal" type="button"><span class="text-white" aria-hidden="true">&times;</span></button>
+            </div>
+            <form id="form-gratificacao">
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label>Valor (R$)</label>
+                            <input type="text" class="form-control" id="valor_grat" name="valor" placeholder="Ex: 150,00" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label>Data</label>
+                            <input type="date" class="form-control" id="data_grat" name="data" value="<?php echo date('Y-m-d'); ?>" required>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <label>Descrição</label>
+                            <textarea class="form-control" id="descricao_grat" name="descricao" placeholder="Ex: Produção da colheita de café..." maxlength="255"></textarea>
+                        </div>
+                    </div>
+                    
+                    <input type="hidden" id="id_funcionario_grat" name="id_funcionario">
+                    <br>
+                    <small><div id="mensagem-gratificacao" align="center"></div></small>
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-primary">Salvar Lançamento</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalAdiantamento" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h4 class="modal-title" id="exampleModalLabel"><span id="titulo_adiantamento"></span></h4>
+                <button aria-label="Close" class="btn-close" data-bs-dismiss="modal" type="button"><span class="text-white" aria-hidden="true">&times;</span></button>
+            </div>
+            <form id="form-adiantamento">
+                <div class="modal-body">
+                    <div class="alert alert-info" role="alert">
+                        <small>Limite recomendado (30%): <strong id="limite_adiantamento">R$ 0,00</strong></small>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label>Valor (R$)</label>
+                            <input type="text" class="form-control" id="valor_adiant" name="valor" placeholder="Ex: 500,00" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                             <label>Data</label>
+                            <input type="date" class="form-control" id="data_adiant" name="data" value="<?php echo date('Y-m-d'); ?>" required>
+                        </div>
+                    </div>
+                     <div class="row">
+                        <div class="col-md-12">
+                            <label>Forma de Pagamento</label>
+                            <select class="form-select" name="forma_pgto" id="forma_pgto_adiant">
+                                <option value="Dinheiro">Dinheiro</option>
+                                <option value="Transferência">Transferência</option>
+                                <option value="PIX">PIX</option>
+                                <option value="Cheque">Cheque</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <input type="hidden" id="id_funcionario_adiant" name="id_funcionario">
+                    <br>
+                    <small><div id="mensagem-adiantamento" align="center"></div></small>
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-primary">Salvar Adiantamento</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+
+<div class="modal fade" id="modalHistorico" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h4 class="modal-title" id="exampleModalLabel">Histórico - <span id="nome-historico"></span></h4>
+                <button aria-label="Close" class="btn-close" data-bs-dismiss="modal" type="button"><span class="text-white" aria-hidden="true">&times;</span></button>
+            </div>
+            <div class="modal-body">
+                <small><div id="listar-historico"></div></small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* --- ESTILOS PARA AUMENTAR FONTE DO MODAL DE HISTÓRICO (VERSÃO AJUSTADA) --- */
+
+/* Alvo: O item da lista dentro do modal específico */
+#modalHistorico .list-group-item {
+    /* Um aumento quase imperceptível, só para dar mais clareza */
+    font-size: 1.05rem; 
+    /* Reduzimos o espaçamento para não ficar muito "esticado" */
+    padding-top: 0.8rem; 
+    padding-bottom: 0.8rem;
+}
+
+/* Alvo: O ícone (fe) dentro do item da lista */
+#modalHistorico .list-group-item .fe {
+    /* Apenas um pouco maior que o texto, para se destacar na medida certa */
+    font-size: 1.15rem; 
+    vertical-align: middle; 
+}
+
+/* Alvo: O texto em negrito (data) - Removido o aumento para não sobrecarregar */
+#modalHistorico .list-group-item strong {
+    /* Não precisa de um tamanho maior, o negrito já faz o trabalho */
+}
+
+/* Alvo: O 'badge' com o valor */
+#modalHistorico .list-group-item .badge {
+    /* Um tamanho legível, mas que não compete com o texto principal */
+    font-size: 0.9rem; 
+    /* Padding menor para um badge mais compacto */
+    padding: 0.45em 0.7em; 
+}
+</style>
+
+
 
 <div class="modal fade" id="modalArquivos" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
     <div class="modal-dialog">
@@ -445,4 +578,167 @@ if (@$funcionarios == 'ocultar') {
         reader.onloadend = function () { target.src = reader.result; };
         reader.readAsDataURL(file);
     }
+</script>
+
+<script type="text/javascript">
+    // MÁSCARAS PARA OS NOVOS CAMPOS DE VALOR
+    $(document).ready(function() {
+        $('#valor_grat').mask('000.000.000,00', {reverse: true});
+        $('#valor_adiant').mask('000.000.000,00', {reverse: true});
+    });
+
+
+    // ======= FUNÇÕES PARA ABRIR OS MODAIS =======
+    
+    function abrirModalGratificacao(id, nome) {
+        // Limpa campos
+        $('#form-gratificacao')[0].reset();
+        $('#id_funcionario_grat').val(id);
+        $('#titulo_gratificacao').text('Lançar Gratificação para ' + nome);
+        
+        var modal = new bootstrap.Modal(document.getElementById('modalGratificacao'));
+        modal.show();
+    }
+    
+    function abrirModalAdiantamento(id, nome, salarioFolha) {
+        // Limpa campos
+        $('#form-adiantamento')[0].reset();
+        $('#id_funcionario_adiant').val(id);
+        $('#titulo_adiantamento').text('Lançar Adiantamento para ' + nome);
+
+        // Calcula e exibe o limite de 30%
+        let limite = parseFloat(salarioFolha) * 0.30;
+        $('#limite_adiantamento').text(limite.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }));
+
+        var modal = new bootstrap.Modal(document.getElementById('modalAdiantamento'));
+        modal.show();
+    }
+
+function abrirModalHistorico(id, nome) {
+    const container = $("#listar-historico");
+    const nomeModal = $('#nome-historico');
+
+    nomeModal.text(nome);
+    container.html('<p>Buscando histórico...</p>'); // Mensagem de carregamento
+
+    var modal = new bootstrap.Modal(document.getElementById('modalHistorico'));
+    modal.show();
+
+    $.ajax({
+        url: 'paginas/' + pag + "/listar-historico.php",
+        method: 'POST',
+        data: { id: id },
+        dataType: "json", // Informa ao jQuery que esperamos uma resposta JSON
+        success: function(historico) {
+            container.empty(); // Limpa a mensagem de carregamento
+
+            if (historico.length === 0) {
+                container.html('<div class="alert alert-light" role="alert">Nenhum lançamento encontrado para este funcionário.</div>');
+                return;
+            }
+
+            // Cria a lista base
+            const listaHtml = $('<ul class="list-group"></ul>');
+
+            // Itera sobre cada item do histórico recebido
+            historico.forEach(item => {
+                const valorFormatado = parseFloat(item.valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                // Adiciona 'T00:00:00' para evitar problemas com fuso horário ao converter a data
+                const dataFormatada = new Date(item.data + 'T00:00:00').toLocaleDateString('pt-BR');
+                
+                let badgeClass, iconClass, valorSinal, textoPrincipal;
+
+                if (item.tipo === 'Gratificação') {
+                    badgeClass = 'bg-success';
+                    iconClass = 'fe-arrow-up-circle';
+                    valorSinal = '+';
+                    textoPrincipal = item.descricao || 'Gratificação'; // Usa a descrição ou um texto padrão
+                } else { // Adiantamento
+                    badgeClass = 'bg-warning text-dark';
+                    iconClass = 'fe-arrow-down-circle';
+                    valorSinal = '-';
+                    textoPrincipal = `Adiantamento via ${item.forma_pgto || 'Não informado'}`;
+                }
+
+                // Monta o HTML do item da lista
+                const itemHtml = `
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <i class="fe ${iconClass} me-2"></i>
+                            <strong>${dataFormatada}</strong> - ${textoPrincipal}
+                        </div>
+                        <span class="badge ${badgeClass} rounded-pill">${valorSinal} ${valorFormatado}</span>
+                    </li>
+                `;
+                
+                listaHtml.append(itemHtml);
+            });
+
+            // Adiciona a lista completa ao container do modal
+            container.append(listaHtml);
+
+        },
+        error: function() {
+            container.html('<div class="alert alert-danger">Ocorreu um erro ao carregar o histórico. Tente novamente.</div>');
+        }
+    });
+}
+
+    // ======= SUBMISSÃO DOS FORMS VIA AJAX =======
+
+    $("#form-gratificacao").submit(function (event) {
+        event.preventDefault();
+        var formData = new FormData(this);
+        const msgDiv = $('#mensagem-gratificacao');
+
+        $.ajax({
+            url: 'paginas/' + pag + "/gratificacao.php",
+            type: 'POST',
+            data: formData,
+            success: function (mensagem) {
+                msgDiv.text('');
+                msgDiv.removeClass();
+                if (mensagem.trim() == "Salvo com Sucesso") {
+                    // Fechar o modal e atualizar a lista principal
+                    var modal = bootstrap.Modal.getInstance(document.getElementById('modalGratificacao'));
+                    modal.hide();
+                    listar(); // Função do ajax.js para atualizar a tabela
+                } else {
+                    msgDiv.addClass('text-danger');
+                    msgDiv.text(mensagem);
+                }
+            },
+            cache: false,
+            contentType: false,
+            processData: false
+        });
+    });
+
+    $("#form-adiantamento").submit(function (event) {
+        event.preventDefault();
+        var formData = new FormData(this);
+        const msgDiv = $('#mensagem-adiantamento');
+
+        $.ajax({
+            url: 'paginas/' + pag + "/adiantamento.php",
+            type: 'POST',
+            data: formData,
+            success: function (mensagem) {
+                msgDiv.text('');
+                msgDiv.removeClass();
+                if (mensagem.trim() == "Salvo com Sucesso") {
+                    var modal = bootstrap.Modal.getInstance(document.getElementById('modalAdiantamento'));
+                    modal.hide();
+                    listar();
+                } else {
+                    msgDiv.addClass('text-danger');
+                    msgDiv.text(mensagem);
+                }
+            },
+            cache: false,
+            contentType: false,
+            processData: false
+        });
+    });
+
 </script>

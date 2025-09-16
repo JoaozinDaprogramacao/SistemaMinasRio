@@ -24,7 +24,7 @@ if ($linhas > 0) {
 HTML;
 
     for ($i = 0; $i < $linhas; $i++) {
-        // Coleta de todos os dados do banco, incluindo os novos
+        // Coleta de todos os dados do banco
         $id = $res[$i]['id'];
         $nome = $res[$i]['nome'];
         $telefone = $res[$i]['telefone'];
@@ -49,10 +49,11 @@ HTML;
         $salario_folhaF = 'R$ ' . number_format($salario_folha, 2, ',', '.');
         
         $classe_status = $status == 'Ativo' ? 'text-success' : 'text-danger';
-        $icone = $status == 'Ativo' ? 'fa-check-square' : 'fa-square-o';
-        $titulo_link = $status == 'Ativo' ? 'Desativar Funcionário' : 'Ativar Funcionário';
-        $acao = $status == 'Ativo' ? 'Demitido' : 'Ativo';
+        $icone_status = $status == 'Ativo' ? 'fa-check-square' : 'fa-square-o';
+        $titulo_status = $status == 'Ativo' ? 'Desativar Funcionário' : 'Ativar Funcionário';
+        $acao_status = $status == 'Ativo' ? 'Demitido' : 'Ativo';
         
+        // Preparando dados para passar ao Javascript
         $nome_js = htmlspecialchars($nome, ENT_QUOTES);
         $endereco_js = htmlspecialchars($endereco, ENT_QUOTES);
         $obs_js = htmlspecialchars($obs, ENT_QUOTES);
@@ -70,19 +71,23 @@ HTML;
 <td class="esc">{$salario_folhaF}</td>
 <td class="esc"><span class="{$classe_status}">{$status}</span></td>
 <td>
-    <big><a class="btn btn-info btn-sm" href="#" onclick="editar('{$id}', '{$nome_js}', '{$telefone}', '{$endereco_js}', '{$chave_pix}', '{$cargo_id}', '{$data_admissao}', '{$status}', '{$data_demissao}', '{$descricao_salario}', '{$obs_js}', '{$foto}')" title="Editar Dados"><i class="fa fa-edit"></i></a></big>
-
+    <a class="btn btn-info btn-sm" href="#" onclick="editar('{$id}', '{$nome_js}', '{$telefone}', '{$endereco_js}', '{$chave_pix}', '{$cargo_id}', '{$data_admissao}', '{$status}', '{$data_demissao}', '{$descricao_salario}', '{$obs_js}', '{$foto}')" title="Editar Dados"><i class="fa fa-edit"></i></a>
+    <a class="btn btn-primary btn-sm" href="#" onclick="mostrar('{$nome_js}', '{$telefone}', '{$endereco_js}', '{$chave_pix}', '{$cargo_nome}', '{$data_admissaoF}', '{$status}', '{$data_demissaoF}', '{$salario_folhaF}', '{$obs_js}', '{$foto}', '{$data_cadF}')" title="Mostrar Dados"><i class="fa fa-info-circle"></i></a>
+    <a class="btn btn-secondary btn-sm" href="#" onclick="arquivo('{$id}', '{$nome_js}')" title="Anexar Arquivos"><i class="fa fa-paperclip"></i></a>
+    
     <div class="dropdown" style="display: inline-block;">
-        <a class="btn btn-danger btn-sm" href="#" data-bs-toggle="dropdown" aria-expanded="false"><i class="fa fa-trash"></i></a>
-        <div class="dropdown-menu tx-13">
-            <div class="dropdown-item-text botao_excluir">
-                <p>Confirmar Exclusão? <a href="#" onclick="excluir('{$id}')"><span class="text-danger">Sim</span></a></p>
-            </div>
-        </div>
+        <button class="btn btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Mais Ações">
+            <i class="fa fa-cogs"></i>
+        </button>
+        <ul class="dropdown-menu">
+            <li><a class="dropdown-item" href="#" onclick="abrirModalGratificacao({$id}, '{$nome_js}')"><i class="fa fa-plus text-success"></i> Lançar Gratificação</a></li>
+            <li><a class="dropdown-item" href="#" onclick="abrirModalAdiantamento({$id}, '{$nome_js}', '{$salario_folha}')"><i class="fa fa-dollar text-warning"></i> Lançar Vale</a></li>
+            <li><a class="dropdown-item" href="#" onclick="abrirModalHistorico({$id}, '{$nome_js}')"><i class="fa fa-list text-info"></i> Ver Histórico</a></li>
+            <li><hr class="dropdown-divider"></li>
+            <li><a class="dropdown-item" href="#" onclick="mudarStatus('{$id}', '{$acao_status}')" title="{$titulo_status}"><i class="fa {$icone_status} text-secondary"></i> Mudar Status</a></li>
+            <li><a class="dropdown-item" href="#" onclick="excluir('{$id}')"><i class="fa fa-trash text-danger"></i> Excluir</a></li>
+        </ul>
     </div>
-
-    <big><a class="btn btn-primary btn-sm" href="#" onclick="mostrar('{$nome_js}', '{$telefone}', '{$endereco_js}', '{$chave_pix}', '{$cargo_nome}', '{$data_admissaoF}', '{$status}', '{$data_demissaoF}', '{$salario_folhaF}', '{$obs_js}', '{$foto}', '{$data_cadF}')" title="Mostrar Dados"><i class="fa fa-info-circle"></i></a></big>
-    <big><a class="btn btn-success btn-sm" href="#" onclick="mudarStatus('{$id}', '{$acao}')" title="{$titulo_link}"><i class="fa {$icone}"></i></a></big>
 </td>
 </tr>
 HTML;
@@ -110,7 +115,7 @@ HTML;
 
 <script type="text/javascript">
     // FUNÇÃO EDITAR CORRIGIDA
-function editar(id, nome, telefone, endereco, chave_pix, cargo_id, data_admissao, status, data_demissao, descricao_salario, obs, foto) {
+    function editar(id, nome, telefone, endereco, chave_pix, cargo_id, data_admissao, status, data_demissao, descricao_salario, obs, foto) {
         
         $('#mensagem').text('');
         $('#titulo_inserir').text('Editar Registro');
@@ -153,33 +158,25 @@ function editar(id, nome, telefone, endereco, chave_pix, cargo_id, data_admissao
         $('#modalDados').modal('show');
     }
 
-function limparCampos() {
-    $('#id').val('');
-    $('#nome').val('');
-    $('#telefone').val('');
-    $('#endereco').val('');
-    $('#chave_pix').val('');
-    $('#data_admissao').val('<?php echo date('Y-m-d'); ?>');
-    $('#data_demissao').val('');
-    $('#descricao_salario').val('');
-    $('#salario_folha').val('');
-    $('#obs').val('');
-    $('#ids').val('');
-    $('#btn-deletar').hide();
-
-    // --- ADICIONE AS LINHAS ABAIXO ---
-
-    // 1. Reseta o seletor de status para o padrão "Ativo"
-    $('#status').val('Ativo');
-    
-    // 2. Garante que o campo de data de demissão fique oculto
-    toggleDemissao();
-
-    // 3. Chama a função global para resetar a imagem de preview e o campo de arquivo
-    if (window.resetPreviewFoto) {
-        window.resetPreviewFoto();
+    function limparCampos() {
+        $('#id').val('');
+        $('#nome').val('');
+        $('#telefone').val('');
+        $('#endereco').val('');
+        $('#chave_pix').val('');
+        $('#data_admissao').val('<?php echo date('Y-m-d'); ?>');
+        $('#data_demissao').val('');
+        $('#descricao_salario').val('');
+        $('#salario_folha').val('');
+        $('#obs').val('');
+        $('#ids').val('');
+        $('#btn-deletar').hide();
+        $('#status').val('Ativo');
+        toggleDemissao();
+        if (window.resetPreviewFoto) {
+            window.resetPreviewFoto();
+        }
     }
-}
     
     function mudarStatus(id, novo_status) {
         $.ajax({
