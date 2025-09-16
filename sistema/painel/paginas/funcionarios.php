@@ -10,33 +10,31 @@ if (@$funcionarios == 'ocultar') {
 ?>
 
 <div class="justify-content-between">
- 	<div class="left-content mt-2 mb-3">
- 		<a class="btn ripple btn-primary text-white" onclick="inserir()" type="button"><i class="fe fe-plus me-2"></i> Adicionar <?php echo ucfirst($pag); ?></a>
+    <div class="left-content mt-2 mb-3">
+        <a class="btn ripple btn-primary text-white" onclick="inserir()" type="button"><i class="fe fe-plus me-2"></i> Adicionar <?php echo ucfirst($pag); ?></a>
 
-		<div class="dropdown" style="display: inline-block;">
+        <div class="dropdown" style="display: inline-block;">
             <a href="#" aria-expanded="false" aria-haspopup="true" data-bs-toggle="dropdown" class="btn btn-danger dropdown" id="btn-deletar" style="display:none"><i class="fe fe-trash-2"></i> Deletar</a>
             <div  class="dropdown-menu tx-13">
                 <div style="width: 240px; padding:15px 5px 0 10px;" class="dropdown-item-text">
                     <p>Excluir Selecionados? <a href="#" onclick="deletarSel()"><span class="text-danger">Sim</span></a></p>
                 </div>
             </div>
- 		</div>
-	</div>
+        </div>
+    </div>
 </div>
 
 
 <div class="row row-sm">
-	<div class="col-lg-12">
-		<div class="card custom-card">
-			<div class="card-body" id="listar">
-				</div>
-		</div>
-	</div>
+    <div class="col-lg-12">
+        <div class="card custom-card">
+            <div class="card-body" id="listar">
+            </div>
+        </div>
+    </div>
 </div>
 
-
 <input type="hidden" id="ids">
-
 
 <div class="modal fade" id="modalForm" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
@@ -45,7 +43,8 @@ if (@$funcionarios == 'ocultar') {
                 <h4 class="modal-title" id="exampleModalLabel"><span id="titulo_inserir"></span></h4>
                 <button id="btn-fechar" aria-label="Close" class="btn-close" data-bs-dismiss="modal" type="button"><span class="text-white" aria-hidden="true">&times;</span></button>
             </div>
-            <form id="form">
+
+            <form id="form" enctype="multipart/form-data">
                 <div class="modal-body">
                     <div class="row">
                         <div class="col-md-6 mb-2">
@@ -61,13 +60,16 @@ if (@$funcionarios == 'ocultar') {
                             <input type="text" class="form-control" id="chave_pix" name="chave_pix" placeholder="Chave Pix">
                         </div>
                     </div>
+
                     <div class="row">
                         <div class="col-md-12">
                             <label>Endereço</label>
                             <input type="text" class="form-control" id="endereco" name="endereco" placeholder="Endereço Completo">
                         </div>
                     </div>
+
                     <hr>
+
                     <div class="row">
                         <div class="col-md-3 mb-2 col-6">
                             <label>Cargo</label>
@@ -82,10 +84,12 @@ if (@$funcionarios == 'ocultar') {
                                 } ?>
                             </select>
                         </div>
+
                         <div class="col-md-3 mb-3 col-6">
                             <label>Data de Admissão</label>
                             <input type="date" class="form-control" id="data_admissao" name="data_admissao" value="<?php echo date('Y-m-d'); ?>" required>
                         </div>
+
                         <div class="col-md-3 mb-2 col-6">
                             <label>Situação</label>
                             <select class="form-select" name="status" id="status" onchange="toggleDemissao()">
@@ -93,11 +97,33 @@ if (@$funcionarios == 'ocultar') {
                                 <option value="Demitido">Demitido</option>
                             </select>
                         </div>
+
                         <div class="col-md-3 mb-3 col-6" id="demissao-container" style="display: none;">
                             <label>Data de Demissão</label>
                             <input type="date" class="form-control" id="data_demissao" name="data_demissao">
                         </div>
                     </div>
+
+                    <div class="row align-items-center">
+                        <div class="col-md-8 mb-3">
+                            <label>Foto (3x4)</label>
+                            <input
+                                type="file"
+                                class="form-control"
+                                id="foto"
+                                name="foto"
+                                accept="image/*"
+                            >
+                            <small class="text-muted">Formatos: JPG, PNG, WEBP. A prévia corta em 3×4 (cover).</small>
+                        </div>
+                        <div class="col-md-4 mb-3 d-flex justify-content-center">
+                            <div class="preview-3x4-box border rounded position-relative overflow-hidden">
+                                <img id="preview-foto" src="images/arquivos/sem-foto.png" alt="Preview 3x4" class="preview-3x4-img">
+                                <div class="preview-3x4-watermark">3x4</div>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="row">
                         <div class="col-md-4 mb-3">
                             <label>Descrição Salarial (x Sal. Mínimo)</label>
@@ -108,16 +134,19 @@ if (@$funcionarios == 'ocultar') {
                             <input type="text" class="form-control" id="salario_folha" name="salario_folha" placeholder="Cálculo Automático" readonly>
                         </div>
                     </div>
+
                     <div class="row">
                          <div class="col-md-12">
                             <label>Observações</label>
                             <textarea class="form-control" id="obs" name="obs" maxlength="500"></textarea>
                         </div>
                     </div>
+
                     <input type="hidden" class="form-control" id="id" name="id">
                     <br>
                     <small><div id="mensagem" align="center"></div></small>
                 </div>
+
                 <div class="modal-footer">
                     <button type="submit" id="btn_salvar" class="btn btn-primary">Salvar</button>
                 </div>
@@ -125,8 +154,6 @@ if (@$funcionarios == 'ocultar') {
         </div>
     </div>
 </div>
-
-
 <div class="modal fade" id="modalDados" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
@@ -163,80 +190,98 @@ if (@$funcionarios == 'ocultar') {
 
 
 <div class="modal fade" id="modalArquivos" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
-	<div class="modal-dialog">
-		<div class="modal-content">
-			<div class="modal-header bg-primary text-white">
-				<h4 class="modal-title" id="tituloModal">Gestão de Arquivos - <span id="nome-arquivo"> </span></h4>
-				 <button id="btn-fechar-arquivos" aria-label="Close" class="btn-close" data-bs-dismiss="modal" type="button"><span class="text-white" aria-hidden="true">&times;</span></button>
-			</div>
-			<form id="form-arquivos" method="post">
-				<div class="modal-body">
-					<div class="row">
-						<div class="col-md-8">						
-							<div class="form-group"> 
-								<label>Arquivo</label> 
-								<input class="form-control" type="file" name="arquivo_conta" onChange="carregarImgArquivos();" id="arquivo_conta">
-							</div>	
-						</div>
-						<div class="col-md-4">	
-							<div id="divImgArquivos">
-								<img src="images/arquivos/sem-foto.png"  width="60px" id="target-arquivos">									
-							</div>					
-						</div>
-					</div>
-					<div class="row" >
-						<div class="col-md-8">
-							<input type="text" class="form-control" name="nome-arq"  id="nome-arq" placeholder="Nome do Arquivo * " required>
-						</div>
-						<div class="col-md-4">										 
-							<button type="submit" class="btn btn-primary">Inserir</button>
-						</div>
-					</div>
-					<hr>
-					<small><div id="listar-arquivos"></div></small>
-					<br>
-					<small><div align="center" id="mensagem-arquivo"></div></small>
-					<input type="hidden" class="form-control" name="id-arquivo"  id="id-arquivo">
-				</div>
-			</form>
-		</div>
-	</div>
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h4 class="modal-title" id="tituloModal">Gestão de Arquivos - <span id="nome-arquivo"> </span></h4>
+                 <button id="btn-fechar-arquivos" aria-label="Close" class="btn-close" data-bs-dismiss="modal" type="button"><span class="text-white" aria-hidden="true">&times;</span></button>
+            </div>
+            <form id="form-arquivos" method="post">
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <div class="form-group">
+                                <label>Arquivo</label>
+                                <input class="form-control" type="file" name="arquivo_conta" onChange="carregarImgArquivos();" id="arquivo_conta">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div id="divImgArquivos">
+                                <img src="images/arquivos/sem-foto.png"  width="60px" id="target-arquivos">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row" >
+                        <div class="col-md-8">
+                            <input type="text" class="form-control" name="nome-arq"  id="nome-arq" placeholder="Nome do Arquivo * " required>
+                        </div>
+                        <div class="col-md-4">
+                            <button type="submit" class="btn btn-primary">Inserir</button>
+                        </div>
+                    </div>
+                    <hr>
+                    <small><div id="listar-arquivos"></div></small>
+                    <br>
+                    <small><div align="center" id="mensagem-arquivo"></div></small>
+                    <input type="hidden" class="form-control" name="id-arquivo"  id="id-arquivo">
+                </div>
+            </form>
+        </div>
+    </div>
 </div>
 
+<style>
+  .preview-3x4-box {
+    width: 180px;
+    aspect-ratio: 3 / 4;
+    background: #f8f9fa;
+    display: inline-block;
+  }
+  .preview-3x4-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover; /* corta para preencher mantendo 3x4 */
+    display: block;
+  }
+  .preview-3x4-watermark{
+    position:absolute;
+    bottom:6px;
+    right:8px;
+    font-size:12px;
+    color:#6c757d;
+    background: rgba(255,255,255,.7);
+    padding: 2px 6px;
+    border-radius: 4px;
+  }
+</style>
 
 <script type="text/javascript">var pag = "<?=$pag?>"</script>
 <script src="js/ajax.js"></script>
 
-
 <script type="text/javascript">
-    // Variável global para armazenar o valor do salário mínimo
+    // ======= SALÁRIO MÍNIMO / CÁLCULOS =======
     let salarioMinimoAtual = 0;
 
-    /**
-     * Busca o salário mínimo da nossa API interna assim que a página carrega.
-     */
     function carregarSalarioMinimo() {
-        fetch('buscar_salario.php')
+        fetch('apis/buscar_salario.php')
             .then(response => response.json())
             .then(data => {
                 if (data && data.valor > 0) {
                     salarioMinimoAtual = data.valor;
-                    console.log('Salário mínimo carregado: R$', salarioMinimoAtual);
+                    console.log('[FUNCIONARIOS] salário mínimo carregado:', salarioMinimoAtual);
                 } else {
-                    salarioMinimoAtual = 1518.00; // Fallback de segurança
+                    salarioMinimoAtual = 1518.00;
+                    console.warn('[FUNCIONARIOS] usando fallback do salário mínimo:', salarioMinimoAtual);
                 }
             })
             .catch(error => {
-                console.error('Erro ao buscar salário mínimo:', error);
-                salarioMinimoAtual = 1518.00; // Fallback de segurança
+                console.error('[FUNCIONARIOS] Erro ao buscar salário mínimo:', error);
+                salarioMinimoAtual = 1518.00;
             });
     }
 
-    /**
-     * Calcula o salário folha usando a variável global do salário mínimo.
-     */
     function calcularSalarioFolha() {
-        if (salarioMinimoAtual === 0) return; // Não calcula se o salário não foi carregado
+        if (salarioMinimoAtual === 0) return;
         const inputDescricao = document.getElementById('descricao_salario');
         const inputSalarioFolha = document.getElementById('salario_folha');
         const multiplicador = parseFloat(inputDescricao.value) || 0;
@@ -244,9 +289,6 @@ if (@$funcionarios == 'ocultar') {
         inputSalarioFolha.value = salarioCalculado.toFixed(2);
     }
     
-    /**
-     * Máscara para formatar números como decimais com ponto (ex: 251 -> 2.51).
-     */
     function mascara_decimal_ponto(el) {
         let valor = el.value.replace(/\D/g, '');
         if (valor === '') {
@@ -254,117 +296,155 @@ if (@$funcionarios == 'ocultar') {
             return;
         }
         valor = String(Number(valor));
-        while (valor.length < 3) {
-            valor = '0' + valor;
-        }
+        while (valor.length < 3) valor = '0' + valor;
         let parteInteira = valor.slice(0, -2);
         let centavos = valor.slice(-2);
-        if (parteInteira === '') {
-            parteInteira = '0';
-        }
+        if (parteInteira === '') parteInteira = '0';
         el.value = parteInteira + '.' + centavos;
     }
 
-    /**
-     * Mostra ou esconde o campo de data de demissão com base na situação.
-     */
     function toggleDemissao() {
         var status = document.getElementById('status').value;
         var container = document.getElementById('demissao-container');
         container.style.display = (status === 'Demitido') ? 'block' : 'none';
     }
 
-    // Chama a função para carregar o salário mínimo assim que o documento estiver pronto.
-    document.addEventListener('DOMContentLoaded', carregarSalarioMinimo);
+    // ======= PREVIEW 3x4 (SEM INLINE) =======
+    (function(){
+        let lastObjectURL = null;
+
+        function resetPreviewFoto(){
+            const img = document.getElementById('preview-foto');
+            if (!img) return;
+            if (lastObjectURL) {
+                URL.revokeObjectURL(lastObjectURL);
+                lastObjectURL = null;
+            }
+            img.src = 'images/arquivos/sem-foto.png';
+            const input = document.getElementById('foto');
+            if (input) input.value = ''; // Limpa o valor do input de arquivo
+            console.log('[FUNCIONARIOS] reset preview/input');
+        }
+
+        function aplicarPreview(ev){
+            // ev.target é o input que disparou o evento
+            const input = ev.target;
+            
+            // Garantias de que o código só roda para o input certo
+            if (!(input instanceof HTMLInputElement) || input.id !== 'foto' || input.type !== 'file') {
+                return;
+            }
+
+            const file = input.files?.[0];
+            const img = document.getElementById('preview-foto');
+            if (!img) return;
+
+            // Se não houver arquivo ou não for imagem, reseta
+            if (!file || !file.type.startsWith('image/')) {
+                resetPreviewFoto();
+                return;
+            }
+            
+            // Limpa a URL de objeto antiga para evitar vazamento de memória
+            if (lastObjectURL) {
+                URL.revokeObjectURL(lastObjectURL);
+            }
+
+            // Cria uma nova URL de objeto para o arquivo selecionado
+            lastObjectURL = URL.createObjectURL(file);
+            console.log("Nova Object URL criada: " + lastObjectURL);
+
+            // Define o src da imagem de preview
+            img.src = lastObjectURL;
+            console.log('[FUNCIONARIOS] Preview atualizado:', file.name);
+        }
+
+        // Executa quando o HTML da página estiver pronto
+        document.addEventListener('DOMContentLoaded', function(){
+            carregarSalarioMinimo();
+
+            // Adiciona o listener para resetar o preview quando o modal for aberto
+            const modal = document.getElementById('modalForm');
+            if (modal) {
+                modal.addEventListener('show.bs.modal', resetPreviewFoto);
+            }
+
+            // *** CORREÇÃO APLICADA AQUI ***
+            // Pega o input de foto e anexa o evento 'change' diretamente a ele.
+            const inputFoto = document.getElementById('foto');
+            if (inputFoto) {
+                inputFoto.addEventListener('change', aplicarPreview);
+            } else {
+                console.error('[ERRO] Input de foto com id="foto" não foi encontrado.');
+            }
+        });
+
+        // Expor a função de reset globalmente (opcional, mas pode ser útil)
+        window.resetPreviewFoto = resetPreviewFoto;
+    })();
 </script>
 
-
 <script type="text/javascript">
-	$("#form-arquivos").submit(function () {
-		event.preventDefault();
-		var formData = new FormData(this);
+    $("#form-arquivos").submit(function () {
+        event.preventDefault();
+        var formData = new FormData(this);
 
-		$.ajax({
-			url: 'paginas/' + pag + "/arquivos.php",
-			type: 'POST',
-			data: formData,
-			success: function (mensagem) {
-				$('#mensagem-arquivo').text('');
-				$('#mensagem-arquivo').removeClass()
-				if (mensagem.trim() == "Inserido com Sucesso") {
-				//$('#btn-fechar-arquivos').click();
-				$('#nome-arq').val('');
-				$('#arquivo_conta').val('');
-				$('#target-arquivos').attr('src','images/arquivos/sem-foto.png');
-				listarArquivos();
-			} else {
-				$('#mensagem-arquivo').addClass('text-danger')
-				$('#mensagem-arquivo').text(mensagem)
-			}
-		},
-		cache: false,
-		contentType: false,
-		processData: false,
-	});
-	});
+        $.ajax({
+            url: 'paginas/' + pag + "/arquivos.php",
+            type: 'POST',
+            data: formData,
+            success: function (mensagem) {
+                $('#mensagem-arquivo').text('');
+                $('#mensagem-arquivo').removeClass()
+                if (mensagem.trim() == "Inserido com Sucesso") {
+                    $('#nome-arq').val('');
+                    $('#arquivo_conta').val('');
+                    $('#target-arquivos').attr('src','images/arquivos/sem-foto.png');
+                    listarArquivos();
+                } else {
+                    $('#mensagem-arquivo').addClass('text-danger')
+                    $('#mensagem-arquivo').text(mensagem)
+                }
+            },
+            cache: false,
+            contentType: false,
+            processData: false,
+        });
+    });
 </script>
 
 <script type="text/javascript">
-	function listarArquivos(){
-		var id = $('#id-arquivo').val();	
-		$.ajax({
-			url: 'paginas/' + pag + "/listar-arquivos.php",
-			method: 'POST',
-			data: {id},
-			dataType: "text",
-			success:function(result){
-				$("#listar-arquivos").html(result);
-			}
-		});
-	}
+    function listarArquivos(){
+        var id = $('#id-arquivo').val();    
+        $.ajax({
+            url: 'paginas/' + pag + "/listar-arquivos.php",
+            method: 'POST',
+            data: {id},
+            dataType: "text",
+            success:function(result){
+                $("#listar-arquivos").html(result);
+            }
+        });
+    }
 </script>
 
 <script type="text/javascript">
-	function carregarImgArquivos() {
-		var target = document.getElementById('target-arquivos');
-		var file = document.querySelector("#arquivo_conta").files[0];
-		var arquivo = file['name'];
-		resultado = arquivo.split(".", 2);
+    function carregarImgArquivos() {
+        var target = document.getElementById('target-arquivos');
+        var file = document.querySelector("#arquivo_conta").files[0];
+        if (!file) { target.src = "images/arquivos/sem-foto.png"; return; }
 
-		if(resultado[1] === 'pdf'){
-			$('#target-arquivos').attr('src', "images/pdf.png");
-			return;
-		}
+        var arquivo = file['name'];
+        var resultado = arquivo.split(".", 2);
 
-		if(resultado[1] === 'rar' || resultado[1] === 'zip'){
-			$('#target-arquivos').attr('src', "images/rar.png");
-			return;
-		}
+        if(resultado[1] === 'pdf'){ $('#target-arquivos').attr('src', "images/pdf.png"); return; }
+        if(resultado[1] === 'rar' || resultado[1] === 'zip'){ $('#target-arquivos').attr('src', "images/rar.png"); return; }
+        if(resultado[1] === 'doc' || resultado[1] === 'docx' || resultado[1] === 'txt'){ $('#target-arquivos').attr('src', "images/word.png"); return; }
+        if(resultado[1] === 'xlsx' || resultado[1] === 'xlsm' || resultado[1] === 'xls'){ $('#target-arquivos').attr('src', "images/excel.png"); return; }
+        if(resultado[1] === 'xml'){ $('#target-arquivos').attr('src', "images/xml.png"); return; }
 
-		if(resultado[1] === 'doc' || resultado[1] === 'docx' || resultado[1] === 'txt'){
-			$('#target-arquivos').attr('src', "images/word.png");
-			return;
-		}
-
-		if(resultado[1] === 'xlsx' || resultado[1] === 'xlsm' || resultado[1] === 'xls'){
-			$('#target-arquivos').attr('src', "images/excel.png");
-			return;
-		}
-
-		if(resultado[1] === 'xml'){
-			$('#target-arquivos').attr('src', "images/xml.png");
-			return;
-		}
-
-		var reader = new FileReader();
-		reader.onloadend = function () {
-			target.src = reader.result;
-		};
-
-		if (file) {
-			reader.readAsDataURL(file);
-		} else {
-			target.src = "";
-		}
-	}
+        var reader = new FileReader();
+        reader.onloadend = function () { target.src = reader.result; };
+        reader.readAsDataURL(file);
+    }
 </script>

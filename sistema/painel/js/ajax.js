@@ -24,13 +24,10 @@ function inserir() {
     limparCampos();
 }
 
-// Variável global para armazenar o valor do salário mínimo
-let salarioMinimoAtual = 0;
-
 // Função para buscar e armazenar o salário mínimo
 function carregarSalarioMinimo() {
     // Faz uma requisição para a nossa API interna
-    fetch('buscar_salario.php')
+    fetch('apis/buscar_salario.php')
         .then(response => response.json())
         .then(data => {
             if (data && data.valor > 0) {
