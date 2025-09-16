@@ -153,20 +153,33 @@ function editar(id, nome, telefone, endereco, chave_pix, cargo_id, data_admissao
         $('#modalDados').modal('show');
     }
 
-    function limparCampos() {
-        $('#id').val('');
-        $('#nome').val('');
-        $('#telefone').val('');
-        $('#endereco').val('');
-        $('#chave_pix').val('');
-        $('#data_admissao').val('<?php echo date('Y-m-d'); ?>');
-        $('#data_demissao').val('');
-        $('#descricao_salario').val('');
-        $('#salario_folha').val('');
-        $('#obs').val('');
-        $('#ids').val('');
-        $('#btn-deletar').hide();
+function limparCampos() {
+    $('#id').val('');
+    $('#nome').val('');
+    $('#telefone').val('');
+    $('#endereco').val('');
+    $('#chave_pix').val('');
+    $('#data_admissao').val('<?php echo date('Y-m-d'); ?>');
+    $('#data_demissao').val('');
+    $('#descricao_salario').val('');
+    $('#salario_folha').val('');
+    $('#obs').val('');
+    $('#ids').val('');
+    $('#btn-deletar').hide();
+
+    // --- ADICIONE AS LINHAS ABAIXO ---
+
+    // 1. Reseta o seletor de status para o padrão "Ativo"
+    $('#status').val('Ativo');
+    
+    // 2. Garante que o campo de data de demissão fique oculto
+    toggleDemissao();
+
+    // 3. Chama a função global para resetar a imagem de preview e o campo de arquivo
+    if (window.resetPreviewFoto) {
+        window.resetPreviewFoto();
     }
+}
     
     function mudarStatus(id, novo_status) {
         $.ajax({
