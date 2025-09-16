@@ -118,7 +118,7 @@ if (@$funcionarios == 'ocultar') {
                         </div>
                         <div class="col-md-4 mb-3 d-flex justify-content-center">
                             <div class="preview-3x4-box border rounded position-relative overflow-hidden">
-                                <img id="preview-foto" src="images/arquivos/sem-foto.png" alt="Preview 3x4" class="preview-3x4-img">
+                                <img id="preview-foto" src="images/funcionarios/sem-foto.jpg" alt="Preview 3x4" class="preview-3x4-img">
                                 <div class="preview-3x4-watermark">3x4</div>
                             </div>
                         </div>
@@ -365,9 +365,7 @@ if (@$funcionarios == 'ocultar') {
 
             // Adiciona o listener para resetar o preview quando o modal for aberto
             const modal = document.getElementById('modalForm');
-            if (modal) {
-                modal.addEventListener('show.bs.modal', resetPreviewFoto);
-            }
+
 
             // *** CORREÇÃO APLICADA AQUI ***
             // Pega o input de foto e anexa o evento 'change' diretamente a ele.
