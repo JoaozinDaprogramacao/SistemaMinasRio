@@ -274,7 +274,7 @@ if (@$funcionarios == 'ocultar') {
 
 
 <div class="modal fade" id="modalHistorico" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
         <div class="modal-content">
             <div class="modal-header bg-primary text-white">
                 <h4 class="modal-title" id="exampleModalLabel">Histórico - <span id="nome-historico"></span></h4>
@@ -293,11 +293,20 @@ if (@$funcionarios == 'ocultar') {
                             <input type="date" class="form-control" id="data_fim_hist" name="data_fim">
                         </div>
                         <div class="col-md-3">
-                            <label for="tipo_hist" class="form-label">Tipo:</label>
+                            <label for="tipo_hist" class="form-label">Tipo de Evento:</label>
                             <select class="form-select" id="tipo_hist" name="tipo">
-                                <option value="Todos" selected>Todos</option>
-                                <option value="Gratificação">Gratificação</option>
-                                <option value="Adiantamento">Adiantamento</option>
+                                <option value="Todos" selected>Todos os Tipos</option>
+                                <optgroup label="Financeiro">
+                                    <option value="Gratificação">Gratificação</option>
+                                    <option value="Adiantamento">Adiantamento</option>
+                                </optgroup>
+                                <optgroup label="Administrativo">
+                                    <option value="CONTRATACAO">Contratação</option>
+                                    <option value="PROMOCAO">Promoção</option>
+                                    <option value="ALTERACAO_SALARIAL">Alteração Salarial</option>
+                                    <option value="REATIVACAO">Reativação</option>
+                                    <option value="DEMISSAO">Demissão</option>
+                                </optgroup>
                             </select>
                         </div>
                         <div class="col-md-3">
@@ -314,16 +323,88 @@ if (@$funcionarios == 'ocultar') {
                         </div>
                     </div>
                 </form>
+
                 <hr>
                 
+                <ul class="nav nav-tabs" id="historicoTab" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="timeline-tab" data-bs-toggle="tab" data-bs-target="#historico-timeline" type="button" role="tab" aria-controls="timeline" aria-selected="true">
+                            <i class="fa fa-history me-1"></i>Linha do Tempo
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="financeiro-tab" data-bs-toggle="tab" data-bs-target="#historico-financeiro" type="button" role="tab" aria-controls="financeiro" aria-selected="false">
+                            <i class="fa fa-dollar me-1"></i>Financeiro
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="admin-tab" data-bs-toggle="tab" data-bs-target="#historico-admin" type="button" role="tab" aria-controls="admin" aria-selected="false">
+                            <i class="fa fa-briefcase me-1"></i>Administrativo
+                        </button>
+                    </li>
+                </ul>
+
+                <div class="tab-content pt-3" id="historicoTabContent">
+                    <div class="tab-pane fade show active" id="historico-timeline" role="tabpanel" aria-labelledby="timeline-tab"></div>
+                    <div class="tab-pane fade" id="historico-financeiro" role="tabpanel" aria-labelledby="financeiro-tab"></div>
+                    <div class="tab-pane fade" id="historico-admin" role="tabpanel" aria-labelledby="admin-tab"></div>
+                </div>
                 <input type="hidden" id="id_funcionario_hist">
-                <small><div id="listar-historico"></div></small>
             </div>
         </div>
     </div>
 </div>
 
 <style>
+
+    /* CSS para a Timeline do Histórico */
+.timeline {
+    margin-left: 15px; /* ADICIONADO: Adiciona um respiro à esquerda para a bolinha não cortar */
+    position: relative;
+    padding: 0;
+    list-style: none;
+}
+
+.timeline-item {
+    position: relative;
+    padding-left: 30px; 
+    padding-bottom: 25px; 
+    border-left: 2px solid #e9ecef;
+}
+
+.timeline-item:last-child {
+    border-left: 2px solid transparent;
+    padding-bottom: 0;
+}
+
+.timeline-item::before {
+    content: '';
+    position: absolute;
+    left: -9px;
+    top: 4px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background-color: #adb5bd; /* Cor padrão do ponto */
+    border: 2px solid #fff;
+}
+
+/* Cores dos pontos da timeline baseadas no tipo de evento */
+.timeline-item-success::before { background-color: #198754; } /* Verde */
+.timeline-item-warning::before { background-color: #ffc107; } /* Amarelo */
+.timeline-item-danger::before  { background-color: #dc3545; } /* Vermelho */
+.timeline-item-info::before    { background-color: #0dcaf0; } /* Azul Claro */
+.timeline-item-primary::before { background-color: #0d6efd; } /* Azul */
+.timeline-item-secondary::before { background-color: #6c757d; } /* Cinza */
+
+.timeline-content .badge {
+    font-size: 0.9em;
+}
+
+.timeline-content small {
+    display: block;
+    color: #6c757d;
+}
 /* --- ESTILOS PARA AUMENTAR FONTE DO MODAL DE HISTÓRICO (VERSÃO AJUSTADA) --- */
 
 /* Alvo: O item da lista dentro do modal específico */
@@ -655,36 +736,132 @@ if (@$funcionarios == 'ocultar') {
     modal.show();
 }
 
-	function renderizarHistorico(historico) {
-    const container = $("#listar-historico");
-    container.empty(); // Limpa resultados anteriores
+function renderizarHistorico(historico) {
+    // Aponta para os containers das abas
+    const timelineContainer = $("#historico-timeline");
+    const financeiroContainer = $("#historico-financeiro");
+    const adminContainer = $("#historico-admin");
+
+    // Limpa o conteúdo anterior de todas as abas
+    timelineContainer.empty();
+    financeiroContainer.empty();
+    adminContainer.empty();
 
     if (!historico || historico.length === 0) {
-        container.html('<div class="alert alert-light" role="alert">Nenhum lançamento encontrado para os filtros selecionados.</div>');
+        const msgVazio = '<div class="alert alert-light" role="alert">Nenhum registro encontrado para os filtros selecionados.</div>';
+        timelineContainer.html(msgVazio);
+        financeiroContainer.html(msgVazio);
+        adminContainer.html(msgVazio);
         return;
     }
 
-    const listaHtml = $('<ul class="list-group"></ul>');
+    // Cria as listas para cada aba
+    const timelineList = $('<ul class="timeline"></ul>');
+    const financeiroList = $('<ul class="timeline"></ul>');
+    const adminList = $('<ul class="timeline"></ul>');
+
     historico.forEach(item => {
-        const valorFormatado = parseFloat(item.valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-        const dataFormatada = new Date(item.data + 'T00:00:00').toLocaleDateString('pt-BR');
+        const dataFormatada = new Date(item.data).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
         
-        let badgeClass = item.tipo === 'Gratificação' ? 'bg-success' : 'bg-warning text-dark';
-        let iconClass = item.tipo === 'Gratificação' ? 'fe-arrow-up-circle' : 'fe-arrow-down-circle';
-        let valorSinal = item.tipo === 'Gratificação' ? '+' : '-';
-        let textoPrincipal = item.tipo === 'Gratificação' 
-            ? (item.descricao || 'Gratificação') 
-            : `Adiantamento via ${item.forma_pgto || 'Não informado'}`;
+        let timelineClass = '', iconClass = '', textoPrincipal = '', valorHtml = '';
+        let categoria = ''; // Para saber em qual aba adicional inserir
+
+        switch (item.tipo) {
+            case 'Gratificação':
+                const valorGrat = parseFloat(item.valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                timelineClass = 'timeline-item-success';
+                iconClass = 'fa fa-arrow-up';
+                textoPrincipal = item.descricao || 'Gratificação Recebida';
+                valorHtml = `<span class="badge bg-success rounded-pill">+ ${valorGrat}</span>`;
+                categoria = 'financeiro';
+                break;
+
+            case 'Adiantamento':
+                const valorAdiant = parseFloat(item.valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                timelineClass = 'timeline-item-warning';
+                iconClass = 'fa fa-arrow-down';
+                textoPrincipal = `Adiantamento via ${item.forma_pgto || 'Não informado'}`;
+                valorHtml = `<span class="badge bg-warning text-dark rounded-pill">- ${valorAdiant}</span>`;
+                categoria = 'financeiro';
+                break;
+
+            case 'PROMOCAO':
+                timelineClass = 'timeline-item-info';
+                iconClass = 'fa fa-trophy';
+                textoPrincipal = item.descricao;
+                categoria = 'admin';
+                break;
+
+            case 'ALTERACAO_SALARIAL':
+                timelineClass = 'timeline-item-secondary';
+                iconClass = 'fa fa-dollar';
+                textoPrincipal = item.descricao;
+                categoria = 'admin';
+                break;
+            
+            case 'CONTRATACAO':
+                timelineClass = 'timeline-item-primary';
+                iconClass = 'fa fa-user-plus';
+                textoPrincipal = item.descricao;
+                categoria = 'admin';
+                break;
+            
+            case 'DEMISSAO':
+                timelineClass = 'timeline-item-danger';
+                iconClass = 'fa fa-user-times';
+                textoPrincipal = item.descricao;
+                categoria = 'admin';
+                break;
+
+            case 'REATIVACAO':
+                timelineClass = 'timeline-item-info';
+                iconClass = 'fa fa-undo';
+                textoPrincipal = item.descricao;
+                categoria = 'admin';
+                break;
+
+            default:
+                timelineClass = 'timeline-item-secondary';
+                iconClass = 'fa fa-info-circle';
+                textoPrincipal = item.descricao || 'Evento não reconhecido';
+        }
 
         const itemHtml = `
-            <li class="list-group-item d-flex justify-content-between align-items-center">
-                <div><i class="fe ${iconClass} me-2"></i><strong>${dataFormatada}</strong> - ${textoPrincipal}</div>
-                <span class="badge ${badgeClass} rounded-pill">${valorSinal} ${valorFormatado}</span>
+            <li class="timeline-item ${timelineClass}">
+                <div class="d-flex justify-content-between align-items-center timeline-content">
+                    <div>
+                        <strong><i class="${iconClass} me-2"></i>${textoPrincipal}</strong>
+                        <small>${dataFormatada}</small>
+                    </div>
+                    ${valorHtml}
+                </div>
             </li>`;
-        listaHtml.append(itemHtml);
+        
+        // Adiciona o item à timeline principal
+        timelineList.append(itemHtml);
+
+        // Adiciona o item à sua respectiva aba de categoria
+        if (categoria === 'financeiro') {
+            financeiroList.append(itemHtml);
+        } else if (categoria === 'admin') {
+            adminList.append(itemHtml);
+        }
     });
 
-    container.append(listaHtml);
+    // Insere as listas preenchidas nas suas respectivas abas
+    timelineContainer.append(timelineList);
+    
+    if (financeiroList.children().length > 0) {
+        financeiroContainer.append(financeiroList);
+    } else {
+        financeiroContainer.html('<div class="alert alert-light" role="alert">Nenhum evento financeiro encontrado.</div>');
+    }
+
+    if (adminList.children().length > 0) {
+        adminContainer.append(adminList);
+    } else {
+        adminContainer.html('<div class="alert alert-light" role="alert">Nenhum evento administrativo encontrado.</div>');
+    }
 }
 
 function aplicarFiltroHistorico() {
