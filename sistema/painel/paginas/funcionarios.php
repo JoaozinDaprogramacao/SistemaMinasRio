@@ -155,7 +155,7 @@ if (@$funcionarios == 'ocultar') {
     </div>
 </div>
 <div class="modal fade" id="modalDados" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
+    <div class="modal-dialog modal-xl">
         <div class="modal-content">
             <div class="modal-header bg-primary text-white">
                 <h4 class="modal-title" id="exampleModalLabel"><span id="titulo_dados"></span></h4>
@@ -281,6 +281,42 @@ if (@$funcionarios == 'ocultar') {
                 <button aria-label="Close" class="btn-close" data-bs-dismiss="modal" type="button"><span class="text-white" aria-hidden="true">&times;</span></button>
             </div>
             <div class="modal-body">
+                
+                <form id="form-filtros-historico" class="mb-4">
+                    <div class="row g-3 align-items-end">
+                        <div class="col-md-3">
+                            <label for="data_inicio_hist" class="form-label">De:</label>
+                            <input type="date" class="form-control" id="data_inicio_hist" name="data_inicio">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="data_fim_hist" class="form-label">Até:</label>
+                            <input type="date" class="form-control" id="data_fim_hist" name="data_fim">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="tipo_hist" class="form-label">Tipo:</label>
+                            <select class="form-select" id="tipo_hist" name="tipo">
+                                <option value="Todos" selected>Todos</option>
+                                <option value="Gratificação">Gratificação</option>
+                                <option value="Adiantamento">Adiantamento</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="valor_min_hist" class="form-label">Valor Mínimo (R$):</label>
+                            <input type="text" class="form-control" id="valor_min_hist" name="valor_min" placeholder="Ex: 100,00">
+                        </div>
+                    </div>
+                    <div class="row mt-3">
+                        <div class="col-12 text-end">
+                            <button type="button" class="btn btn-light border" onclick="limparFiltrosHistorico()">Limpar</button>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fa fa-filter me-1"></i>Filtrar
+                            </button>
+                        </div>
+                    </div>
+                </form>
+                <hr>
+                
+                <input type="hidden" id="id_funcionario_hist">
                 <small><div id="listar-historico"></div></small>
             </div>
         </div>
@@ -614,74 +650,91 @@ if (@$funcionarios == 'ocultar') {
         modal.show();
     }
 
-function abrirModalHistorico(id, nome) {
+	function renderizarHistorico(historico) {
     const container = $("#listar-historico");
-    const nomeModal = $('#nome-historico');
+    container.empty(); // Limpa resultados anteriores
 
-    nomeModal.text(nome);
+    if (!historico || historico.length === 0) {
+        container.html('<div class="alert alert-light" role="alert">Nenhum lançamento encontrado para os filtros selecionados.</div>');
+        return;
+    }
+
+    const listaHtml = $('<ul class="list-group"></ul>');
+    historico.forEach(item => {
+        const valorFormatado = parseFloat(item.valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+        const dataFormatada = new Date(item.data + 'T00:00:00').toLocaleDateString('pt-BR');
+        
+        let badgeClass = item.tipo === 'Gratificação' ? 'bg-success' : 'bg-warning text-dark';
+        let iconClass = item.tipo === 'Gratificação' ? 'fe-arrow-up-circle' : 'fe-arrow-down-circle';
+        let valorSinal = item.tipo === 'Gratificação' ? '+' : '-';
+        let textoPrincipal = item.tipo === 'Gratificação' 
+            ? (item.descricao || 'Gratificação') 
+            : `Adiantamento via ${item.forma_pgto || 'Não informado'}`;
+
+        const itemHtml = `
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+                <div><i class="fe ${iconClass} me-2"></i><strong>${dataFormatada}</strong> - ${textoPrincipal}</div>
+                <span class="badge ${badgeClass} rounded-pill">${valorSinal} ${valorFormatado}</span>
+            </li>`;
+        listaHtml.append(itemHtml);
+    });
+
+    container.append(listaHtml);
+}
+
+function aplicarFiltroHistorico() {
+    const container = $("#listar-historico");
     container.html('<p>Buscando histórico...</p>'); // Mensagem de carregamento
 
-    var modal = new bootstrap.Modal(document.getElementById('modalHistorico'));
-    modal.show();
+    let valorMin = $('#valor_min_hist').val().replace(/\./g, '').replace(',', '.');
+
+    const filtroData = {
+        id: $('#id_funcionario_hist').val(),
+        data_inicio: $('#data_inicio_hist').val(),
+        data_fim: $('#data_fim_hist').val(),
+        tipo: $('#tipo_hist').val(),
+        valor_min: valorMin
+    };
 
     $.ajax({
         url: 'paginas/' + pag + "/listar-historico.php",
         method: 'POST',
-        data: { id: id },
-        dataType: "json", // Informa ao jQuery que esperamos uma resposta JSON
+        data: filtroData,
+        dataType: "json",
         success: function(historico) {
-            container.empty(); // Limpa a mensagem de carregamento
-
-            if (historico.length === 0) {
-                container.html('<div class="alert alert-light" role="alert">Nenhum lançamento encontrado para este funcionário.</div>');
-                return;
-            }
-
-            // Cria a lista base
-            const listaHtml = $('<ul class="list-group"></ul>');
-
-            // Itera sobre cada item do histórico recebido
-            historico.forEach(item => {
-                const valorFormatado = parseFloat(item.valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-                // Adiciona 'T00:00:00' para evitar problemas com fuso horário ao converter a data
-                const dataFormatada = new Date(item.data + 'T00:00:00').toLocaleDateString('pt-BR');
-                
-                let badgeClass, iconClass, valorSinal, textoPrincipal;
-
-                if (item.tipo === 'Gratificação') {
-                    badgeClass = 'bg-success';
-                    iconClass = 'fe-arrow-up-circle';
-                    valorSinal = '+';
-                    textoPrincipal = item.descricao || 'Gratificação'; // Usa a descrição ou um texto padrão
-                } else { // Adiantamento
-                    badgeClass = 'bg-warning text-dark';
-                    iconClass = 'fe-arrow-down-circle';
-                    valorSinal = '-';
-                    textoPrincipal = `Adiantamento via ${item.forma_pgto || 'Não informado'}`;
-                }
-
-                // Monta o HTML do item da lista
-                const itemHtml = `
-                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                        <div>
-                            <i class="fe ${iconClass} me-2"></i>
-                            <strong>${dataFormatada}</strong> - ${textoPrincipal}
-                        </div>
-                        <span class="badge ${badgeClass} rounded-pill">${valorSinal} ${valorFormatado}</span>
-                    </li>
-                `;
-                
-                listaHtml.append(itemHtml);
-            });
-
-            // Adiciona a lista completa ao container do modal
-            container.append(listaHtml);
-
+            renderizarHistorico(historico);
         },
         error: function() {
             container.html('<div class="alert alert-danger">Ocorreu um erro ao carregar o histórico. Tente novamente.</div>');
         }
     });
+}
+
+function limparFiltrosHistorico() {
+    $('#form-filtros-historico')[0].reset();
+    aplicarFiltroHistorico();
+}
+
+// Evento de SUBMIT do formulário de filtros
+$("#form-filtros-historico").submit(function (event) {
+    event.preventDefault(); // Impede o recarregamento da página
+    aplicarFiltroHistorico();
+});
+
+function abrirModalHistorico(id, nome) {
+    // 1. Prepara o modal
+    $('#nome-historico').text(nome);
+    $('#id_funcionario_hist').val(id);
+    
+    // 2. Limpa os filtros de uma sessão anterior
+    $('#form-filtros-historico')[0].reset();
+
+    // 3. Mostra o modal
+    var modal = new bootstrap.Modal(document.getElementById('modalHistorico'));
+    modal.show();
+
+    // 4. Busca os dados iniciais (sem filtros)
+    aplicarFiltroHistorico();
 }
 
     // ======= SUBMISSÃO DOS FORMS VIA AJAX =======
