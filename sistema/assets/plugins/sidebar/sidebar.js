@@ -12,8 +12,8 @@
   // ================================
 
   var Sidebar = function (element, options) {
-    this.$element      = $(element)
-    this.options       = $.extend({}, Sidebar.DEFAULTS, options)
+    this.$element       = $(element)
+    this.options        = $.extend({}, Sidebar.DEFAULTS, options)
     this.transitioning = null
 
     if (this.options.parent) this.$parent = $(this.options.parent)
@@ -129,14 +129,20 @@
   });
 
    $(document).on('click', '.sidebar-remove', function(event) {
-	   event.preventDefault();
+        event.preventDefault();
 		$('.sidebar').removeClass('sidebar-open');
 	});
 
 
-	// ______________ PerfectScrollbar
-	const ps1 = new PerfectScrollbar('.sidebar-right', {
-		useBothWheelAxes:true,
-		suppressScrollX:true,
-	});
+	// ______________ PerfectScrollbar (CORRIGIDO)
+	// Adicionada a verificação para garantir que o elemento '.sidebar-right'
+	// exista na página antes de tentar inicializar o plugin.
+	const sidebarRightElement = document.querySelector('.sidebar-right');
+	if (sidebarRightElement) {
+		const ps1 = new PerfectScrollbar(sidebarRightElement, {
+			useBothWheelAxes: true,
+			suppressScrollX: true,
+		});
+	}
+
 }(jQuery);

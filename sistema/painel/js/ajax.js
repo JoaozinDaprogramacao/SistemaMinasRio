@@ -24,9 +24,81 @@ function inserir() {
     limparCampos();
 }
 
+// Função para buscar e armazenar o salário mínimo
+function carregarSalarioMinimo() {
+    // Faz uma requisição para a nossa API interna
+    fetch('apis/buscar_salario.php')
+        .then(response => response.json())
+        .then(data => {
+            if (data && data.valor > 0) {
+                salarioMinimoAtual = data.valor;
+                console.log('Salário mínimo carregado: R$', salarioMinimoAtual);
+            } else {
+                // Usa um valor de fallback se a API falhar
+                salarioMinimoAtual = 1518.00; 
+            }
+        })
+        .catch(error => {
+            console.error('Erro ao buscar salário mínimo:', error);
+            // Usa um valor de fallback em caso de erro de rede
+            salarioMinimoAtual = 1518.00;
+        });
+}
+
+// Função de cálculo que agora usa a variável atualizada
+function calcularSalarioFolha() {
+    if (salarioMinimoAtual === 0) {
+        // Se o salário ainda não carregou, não faz o cálculo
+        return; 
+    }
+
+    const inputDescricao = document.getElementById('descricao_salario');
+    const inputSalarioFolha = document.getElementById('salario_folha');
+    const multiplicador = parseFloat(inputDescricao.value.replace(',', '.')) || 0;
+    
+    const salarioCalculado = multiplicador * salarioMinimoAtual;
+
+    inputSalarioFolha.value = salarioCalculado.toFixed(2).replace('.', '.'); // Garante o ponto
+}
 
 
+// Chame esta função assim que a página carregar
+document.addEventListener('DOMContentLoaded', function() {
+    carregarSalarioMinimo();
+});
 
+function mascara_decimal_ponto(el) {
+    // 1. Pega o valor e remove tudo que não for dígito
+    let valor = el.value.replace(/\D/g, '');
+
+    // Se o campo estiver vazio, não faz nada
+    if (valor === '') {
+        el.value = '';
+        return;
+    }
+
+    // 2. Converte para número e depois para string para remover
+    //    zeros à esquerda desnecessários (ex: "00251" vira "251")
+    valor = String(Number(valor));
+
+    // 3. Adiciona zeros à esquerda novamente, se necessário, para
+    //    garantir que temos casas decimais (ex: "5" vira "005" => 0.05)
+    while (valor.length < 3) {
+        valor = '0' + valor;
+    }
+
+    // 4. Separa a parte inteira dos decimais
+    let parteInteira = valor.slice(0, -2);
+    let centavos = valor.slice(-2);
+    
+    // Garante que a parte inteira seja '0' se não houver nada
+    if (parteInteira === '') {
+        parteInteira = '0';
+    }
+
+    // 5. Monta o valor final e atualiza o campo
+    el.value = parteInteira + '.' + centavos;
+}   
 
 
 $("#form").submit(function () {
