@@ -636,19 +636,24 @@ if (@$funcionarios == 'ocultar') {
         modal.show();
     }
     
-    function abrirModalAdiantamento(id, nome, salarioFolha) {
-        // Limpa campos
-        $('#form-adiantamento')[0].reset();
-        $('#id_funcionario_adiant').val(id);
-        $('#titulo_adiantamento').text('Lançar Adiantamento para ' + nome);
+	function abrirModalAdiantamento(id, nome, salarioFolha) {
+    // Limpa campos
+    $('#form-adiantamento')[0].reset();
+    $('#valor_adiant').removeClass('is-invalid'); // Garante que o campo comece sem o alerta
+    $('#id_funcionario_adiant').val(id);
+    $('#titulo_adiantamento').text('Lançar Adiantamento para ' + nome);
 
-        // Calcula e exibe o limite de 30%
-        let limite = parseFloat(salarioFolha) * 0.30;
-        $('#limite_adiantamento').text(limite.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }));
+    // Calcula e exibe o limite de 30%
+    let limite = parseFloat(salarioFolha) * 0.30;
+    $('#limite_adiantamento').text(limite.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }));
 
-        var modal = new bootstrap.Modal(document.getElementById('modalAdiantamento'));
-        modal.show();
-    }
+    // --- NOVA LINHA ADICIONADA AQUI ---
+    // Armazena o valor numérico do limite diretamente no campo para fácil acesso
+    $('#valor_adiant').data('limite', limite); 
+
+    var modal = new bootstrap.Modal(document.getElementById('modalAdiantamento'));
+    modal.show();
+}
 
 	function renderizarHistorico(historico) {
     const container = $("#listar-historico");
@@ -719,6 +724,32 @@ function limparFiltrosHistorico() {
 $("#form-filtros-historico").submit(function (event) {
     event.preventDefault(); // Impede o recarregamento da página
     aplicarFiltroHistorico();
+});
+
+$('#valor_adiant').on('keyup', function() {
+    // Pega o limite que armazenamos no campo usando .data()
+    const limite = $(this).data('limite');
+    if (limite === undefined) return; // Se não houver limite definido, não faz nada
+
+    // Pega o valor digitado e o converte para um número
+    // (remove pontos de milhar e substitui a vírgula por ponto decimal)
+    let valorDigitadoStr = $(this).val().replace(/\./g, '').replace(',', '.');
+    const valorDigitado = parseFloat(valorDigitadoStr);
+
+    // Se o valor não for um número válido, não faz nada
+    if (isNaN(valorDigitado)) {
+        $(this).removeClass('is-invalid');
+        return;
+    }
+
+    // Compara o valor digitado com o limite
+    if (valorDigitado > limite) {
+        // Se ultrapassou, adiciona a classe do Bootstrap que deixa o campo vermelho
+        $(this).addClass('is-invalid');
+    } else {
+        // Se estiver dentro do limite, remove a classe
+        $(this).removeClass('is-invalid');
+    }
 });
 
 function abrirModalHistorico(id, nome) {
