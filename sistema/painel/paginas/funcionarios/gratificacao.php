@@ -61,7 +61,7 @@ try {
         vencimento = :data,
         data_lanc = curDate(), 
         forma_pgto = 0, /* <-- LINHA ADICIONADA PARA RESOLVER O ERRO */
-        frequencia = '1',
+        frequencia = '0',
         subtotal = :valor, 
         usuario_lanc = :id_usuario,
         pago = 'Não', 
