@@ -190,5 +190,5 @@ if ($valor == $valor_antigo) {
     $pdo->query("UPDATE bancos SET saldo = saldo - $subtotal WHERE id = '$banco'");
 }
 
-echo 'Baixado com Sucesso ' . $descricao_banco;
+echo 'Baixado com Sucesso' ;
 ?>
