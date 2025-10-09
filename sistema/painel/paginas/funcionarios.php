@@ -251,12 +251,18 @@ if (@$funcionarios == 'ocultar') {
                      <div class="row">
                         <div class="col-md-12">
                             <label>Forma de Pagamento</label>
-                            <select class="form-select" name="forma_pgto" id="forma_pgto_adiant">
-                                <option value="Dinheiro">Dinheiro</option>
-                                <option value="Transferência">Transferência</option>
-                                <option value="PIX">PIX</option>
-                                <option value="Cheque">Cheque</option>
-                            </select>
+                           <select class="sel2 form-control" name="forma_pagamento" id="forma_pagamento" style="width:100%">
+								<option value="0">Escolher Forma</option>
+								<?php
+								$query = $pdo->query("SELECT * from formas_pgto order by id asc");
+								$res = $query->fetchAll(PDO::FETCH_ASSOC);
+								$linhas = @count($res);
+								if ($linhas > 0) {
+									for ($i = 0; $i < $linhas; $i++) { ?>
+										<option value="<?php echo $res[$i]['id'] ?>"><?php echo $res[$i]['nome'] ?></option>
+								<?php }
+								} ?>
+							</select>
                         </div>
                     </div>
 
