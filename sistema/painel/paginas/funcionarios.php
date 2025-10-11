@@ -104,26 +104,6 @@ if (@$funcionarios == 'ocultar') {
                         </div>
                     </div>
 
-                    <div class="row align-items-center">
-                        <div class="col-md-8 mb-3">
-                            <label>Foto (3x4)</label>
-                            <input
-                                type="file"
-                                class="form-control"
-                                id="foto"
-                                name="foto"
-                                accept="image/*"
-                            >
-                            <small class="text-muted">Formatos: JPG, PNG, WEBP. A prévia corta em 3×4 (cover).</small>
-                        </div>
-                        <div class="col-md-4 mb-3 d-flex justify-content-center">
-                            <div class="preview-3x4-box border rounded position-relative overflow-hidden">
-                                <img id="preview-foto" src="images/funcionarios/sem-foto.jpg" alt="Preview 3x4" class="preview-3x4-img">
-                                <div class="preview-3x4-watermark">3x4</div>
-                            </div>
-                        </div>
-                    </div>
-
                     <div class="row">
                         <div class="col-md-4 mb-3">
                             <label>Descrição Salarial (x Sal. Mínimo)</label>
@@ -178,9 +158,6 @@ if (@$funcionarios == 'ocultar') {
                                 <tr><td class="bg-light">Observações</td><td><span id="obs_dados"></span></td></tr>
                             </table>
                         </div>
-                    </div>
-                    <div class="col-md-5 d-flex align-items-center justify-content-center">
-                        <img src="" id="foto_dados" width="200px" class="img-fluid rounded">
                     </div>
                 </div>
             </div>
@@ -246,23 +223,6 @@ if (@$funcionarios == 'ocultar') {
                         <div class="col-md-6 mb-3">
                              <label>Data</label>
                             <input type="date" class="form-control" id="data_adiant" name="data" value="<?php echo date('Y-m-d'); ?>" required>
-                        </div>
-                    </div>
-                     <div class="row">
-                        <div class="col-md-12">
-                            <label>Forma de Pagamento</label>
-                           <select class="sel2 form-control" name="forma_pagamento" id="forma_pagamento" style="width:100%">
-								<option value="0">Escolher Forma</option>
-								<?php
-								$query = $pdo->query("SELECT * from formas_pgto order by id asc");
-								$res = $query->fetchAll(PDO::FETCH_ASSOC);
-								$linhas = @count($res);
-								if ($linhas > 0) {
-									for ($i = 0; $i < $linhas; $i++) { ?>
-										<option value="<?php echo $res[$i]['id'] ?>"><?php echo $res[$i]['nome'] ?></option>
-								<?php }
-								} ?>
-							</select>
                         </div>
                     </div>
 
@@ -461,11 +421,6 @@ if (@$funcionarios == 'ocultar') {
                                 <input class="form-control" type="file" name="arquivo_conta" onChange="carregarImgArquivos();" id="arquivo_conta">
                             </div>
                         </div>
-                        <div class="col-md-4">
-                            <div id="divImgArquivos">
-                                <img src="images/arquivos/sem-foto.png"  width="60px" id="target-arquivos">
-                            </div>
-                        </div>
                     </div>
                     <div class="row" >
                         <div class="col-md-8">
@@ -564,78 +519,6 @@ if (@$funcionarios == 'ocultar') {
         var container = document.getElementById('demissao-container');
         container.style.display = (status === 'Demitido') ? 'block' : 'none';
     }
-
-    // ======= PREVIEW 3x4 (SEM INLINE) =======
-    (function(){
-        let lastObjectURL = null;
-
-        function resetPreviewFoto(){
-            const img = document.getElementById('preview-foto');
-            if (!img) return;
-            if (lastObjectURL) {
-                URL.revokeObjectURL(lastObjectURL);
-                lastObjectURL = null;
-            }
-            img.src = 'images/arquivos/sem-foto.png';
-            const input = document.getElementById('foto');
-            if (input) input.value = ''; // Limpa o valor do input de arquivo
-            console.log('[FUNCIONARIOS] reset preview/input');
-        }
-
-        function aplicarPreview(ev){
-            // ev.target é o input que disparou o evento
-            const input = ev.target;
-            
-            // Garantias de que o código só roda para o input certo
-            if (!(input instanceof HTMLInputElement) || input.id !== 'foto' || input.type !== 'file') {
-                return;
-            }
-
-            const file = input.files?.[0];
-            const img = document.getElementById('preview-foto');
-            if (!img) return;
-
-            // Se não houver arquivo ou não for imagem, reseta
-            if (!file || !file.type.startsWith('image/')) {
-                resetPreviewFoto();
-                return;
-            }
-            
-            // Limpa a URL de objeto antiga para evitar vazamento de memória
-            if (lastObjectURL) {
-                URL.revokeObjectURL(lastObjectURL);
-            }
-
-            // Cria uma nova URL de objeto para o arquivo selecionado
-            lastObjectURL = URL.createObjectURL(file);
-            console.log("Nova Object URL criada: " + lastObjectURL);
-
-            // Define o src da imagem de preview
-            img.src = lastObjectURL;
-            console.log('[FUNCIONARIOS] Preview atualizado:', file.name);
-        }
-
-        // Executa quando o HTML da página estiver pronto
-        document.addEventListener('DOMContentLoaded', function(){
-            carregarSalarioMinimo();
-
-            // Adiciona o listener para resetar o preview quando o modal for aberto
-            const modal = document.getElementById('modalForm');
-
-
-            // *** CORREÇÃO APLICADA AQUI ***
-            // Pega o input de foto e anexa o evento 'change' diretamente a ele.
-            const inputFoto = document.getElementById('foto');
-            if (inputFoto) {
-                inputFoto.addEventListener('change', aplicarPreview);
-            } else {
-                console.error('[ERRO] Input de foto com id="foto" não foi encontrado.');
-            }
-        });
-
-        // Expor a função de reset globalmente (opcional, mas pode ser útil)
-        window.resetPreviewFoto = resetPreviewFoto;
-    })();
 </script>
 
 <script type="text/javascript">
@@ -653,7 +536,6 @@ if (@$funcionarios == 'ocultar') {
                 if (mensagem.trim() == "Inserido com Sucesso") {
                     $('#nome-arq').val('');
                     $('#arquivo_conta').val('');
-                    $('#target-arquivos').attr('src','images/arquivos/sem-foto.png');
                     listarArquivos();
                 } else {
                     $('#mensagem-arquivo').addClass('text-danger')
@@ -682,26 +564,6 @@ if (@$funcionarios == 'ocultar') {
     }
 </script>
 
-<script type="text/javascript">
-    function carregarImgArquivos() {
-        var target = document.getElementById('target-arquivos');
-        var file = document.querySelector("#arquivo_conta").files[0];
-        if (!file) { target.src = "images/arquivos/sem-foto.png"; return; }
-
-        var arquivo = file['name'];
-        var resultado = arquivo.split(".", 2);
-
-        if(resultado[1] === 'pdf'){ $('#target-arquivos').attr('src', "images/pdf.png"); return; }
-        if(resultado[1] === 'rar' || resultado[1] === 'zip'){ $('#target-arquivos').attr('src', "images/rar.png"); return; }
-        if(resultado[1] === 'doc' || resultado[1] === 'docx' || resultado[1] === 'txt'){ $('#target-arquivos').attr('src', "images/word.png"); return; }
-        if(resultado[1] === 'xlsx' || resultado[1] === 'xlsm' || resultado[1] === 'xls'){ $('#target-arquivos').attr('src', "images/excel.png"); return; }
-        if(resultado[1] === 'xml'){ $('#target-arquivos').attr('src', "images/xml.png"); return; }
-
-        var reader = new FileReader();
-        reader.onloadend = function () { target.src = reader.result; };
-        reader.readAsDataURL(file);
-    }
-</script>
 
 <script type="text/javascript">
     // MÁSCARAS PARA OS NOVOS CAMPOS DE VALOR

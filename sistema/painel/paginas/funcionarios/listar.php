@@ -69,7 +69,6 @@ HTML;
 
         // Demais variáveis para os botões
         $telefone = $res[$i]['telefone'];
-        $foto = $res[$i]['foto'];
         $endereco = $res[$i]['endereco'];
         $data_cad = $res[$i]['data_cad'];
         $chave_pix = $res[$i]['chave_pix'];
@@ -103,8 +102,8 @@ HTML;
 <td class="esc text-danger">{$total_adiant_mesF}</td>
 <td class="esc"><span class="{$classe_status}">{$status}</span></td>
 <td>
-    <a class="btn btn-info btn-sm" href="#" onclick="editar('{$id}', '{$nome_js}', '{$telefone}', '{$endereco_js}', '{$chave_pix}', '{$cargo_id}', '{$data_admissao}', '{$status}', '{$data_demissao}', '{$descricao_salario}', '{$obs_js}', '{$foto}')" title="Editar Dados"><i class="fa fa-edit"></i></a>
-    <a class="btn btn-primary btn-sm" href="#" onclick="mostrar('{$nome_js}', '{$telefone}', '{$endereco_js}', '{$chave_pix}', '{$cargo_nome}', '{$data_admissaoF}', '{$status}', '{$data_demissaoF}', '{$salario_folhaF}', '{$obs_js}', '{$foto}', '{$data_cadF}')" title="Mostrar Dados"><i class="fa fa-info-circle"></i></a>
+    <a class="btn btn-info btn-sm" href="#" onclick="editar('{$id}', '{$nome_js}', '{$telefone}', '{$endereco_js}', '{$chave_pix}', '{$cargo_id}', '{$data_admissao}', '{$status}', '{$data_demissao}', '{$descricao_salario}', '{$obs_js}')" title="Editar Dados"><i class="fa fa-edit"></i></a>
+    <a class="btn btn-primary btn-sm" href="#" onclick="mostrar('{$nome_js}', '{$telefone}', '{$endereco_js}', '{$chave_pix}', '{$cargo_nome}', '{$data_admissaoF}', '{$status}', '{$data_demissaoF}', '{$salario_folhaF}', '{$obs_js}', '{$data_cadF}')" title="Mostrar Dados"><i class="fa fa-info-circle"></i></a>
     <a class="btn btn-dark btn-sm" href="#" onclick="arquivo('{$id}', '{$nome_js}')" title="Anexar Arquivos"><i class="fa fa-paperclip"></i></a>
     <a class="btn btn-success btn-sm" href="#" onclick="abrirModalGratificacao({$id}, '{$nome_js}')" title="Lançar Gratificação"><i class="fa fa-plus"></i></a>
     <a class="btn btn-warning btn-sm" href="#" onclick="abrirModalAdiantamento({$id}, '{$nome_js}', '{$salario_folha}')" title="Lançar Vale (Adiantamento)"><i class="fa fa-dollar"></i></a>
@@ -159,7 +158,7 @@ HTML;
 </script>
 
 <script type="text/javascript">
-    function editar(id, nome, telefone, endereco, chave_pix, cargo_id, data_admissao, status, data_demissao, descricao_salario, obs, foto) {
+    function editar(id, nome, telefone, endereco, chave_pix, cargo_id, data_admissao, status, data_demissao, descricao_salario, obs) {
         
         $('#mensagem').text('');
         $('#titulo_inserir').text('Editar Registro');
@@ -176,8 +175,6 @@ HTML;
         $('#descricao_salario').val(descricao_salario);
         $('#obs').val(obs);
 
-        $('#preview-foto').attr('src', 'images/funcionarios/' + foto);
-
         toggleDemissao();
         mascara_decimal_ponto(document.getElementById('descricao_salario'));
         calcularSalarioFolha();
@@ -185,7 +182,7 @@ HTML;
         $('#modalForm').modal('show');
     }
 
-    function mostrar(nome, telefone, endereco, chave_pix, cargo, data_admissao, status, data_demissao, salario_folha, obs, foto, data_cad) {
+    function mostrar(nome, telefone, endereco, chave_pix, cargo, data_admissao, status, data_demissao, salario_folha, obs, data_cad) {
         $('#titulo_dados').text(nome);
         $('#telefone_dados').text(telefone);
         $('#endereco_dados').text(endereco);
@@ -197,7 +194,6 @@ HTML;
         $('#salario_dados').text(salario_folha);
         $('#obs_dados').text(obs);
         $('#data_cad_dados').text(data_cad);
-        $('#foto_dados').attr("src", "images/funcionarios/" + foto);
         $('#modalDados').modal('show');
     }
 
@@ -216,9 +212,6 @@ HTML;
         $('#btn-deletar').hide();
         $('#status').val('Ativo');
         toggleDemissao();
-        if (window.resetPreviewFoto) {
-            window.resetPreviewFoto();
-        }
     }
     
     function mudarStatus(id, novo_status) {
