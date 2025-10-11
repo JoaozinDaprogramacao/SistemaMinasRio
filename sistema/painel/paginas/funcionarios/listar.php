@@ -2,12 +2,36 @@
 $tabela = 'funcionarios';
 require_once("../../../conexao.php");
 
-// Query atualizada para buscar o nome do cargo junto com os dados do funcionário
-$query = $pdo->query("SELECT f.*, c.nome as nome_cargo FROM {$tabela} f LEFT JOIN cargos c ON f.cargo = c.id ORDER BY f.id DESC");
+// QUERY ATUALIZADA COM SUB-QUERIES PARA OS RESUMOS DO MÊS
+$query_str = "
+    SELECT 
+        f.*, 
+        c.nome as nome_cargo,
+        COALESCE((
+            SELECT SUM(valor) 
+            FROM gratificacoes 
+            WHERE id_funcionario = f.id 
+            AND MONTH(data) = MONTH(CURDATE()) 
+            AND YEAR(data) = YEAR(CURDATE())
+        ), 0) as total_gratificacoes_mes,
+        COALESCE((
+            SELECT SUM(valor) 
+            FROM adiantamentos 
+            WHERE id_funcionario = f.id 
+            AND MONTH(data) = MONTH(CURDATE()) 
+            AND YEAR(data) = YEAR(CURDATE())
+        ), 0) as total_adiantamentos_mes
+    FROM {$tabela} f 
+    LEFT JOIN cargos c ON f.cargo = c.id 
+    ORDER BY f.nome ASC
+";
+
+$query = $pdo->query($query_str);
 $res = $query->fetchAll(PDO::FETCH_ASSOC);
 $linhas = @count($res);
 
 if ($linhas > 0) {
+    // Cabeçalho da tabela com as colunas de dados. A coluna de controle responsivo será adicionada via JS.
     echo <<<HTML
     <table class="table table-bordered text-nowrap border-bottom dt-responsive" id="tabela">
     <thead> 
@@ -16,6 +40,8 @@ if ($linhas > 0) {
     <th>Nome</th> 
     <th class="esc">Cargo</th> 
     <th class="esc">Salário Folha</th>
+    <th class="esc text-success">Gratificações (Mês)</th>
+    <th class="esc text-danger">Vales (Mês)</th>
     <th class="esc">Status</th>
     <th>Ações</th>
     </tr> 
@@ -24,40 +50,43 @@ if ($linhas > 0) {
 HTML;
 
     for ($i = 0; $i < $linhas; $i++) {
-        // Coleta de todos os dados do banco
+        // Coleta dos dados principais
         $id = $res[$i]['id'];
         $nome = $res[$i]['nome'];
+        $cargo_nome = $res[$i]['nome_cargo'];
+        $status = $res[$i]['status'];
+        $salario_folha = $res[$i]['salario_folha'];
+        
+        // COLETA DOS NOVOS DADOS DE RESUMO
+        $total_grat_mes = $res[$i]['total_gratificacoes_mes'];
+        $total_adiant_mes = $res[$i]['total_adiantamentos_mes'];
+
+        // Formatação
+        $salario_folhaF = 'R$ ' . number_format($salario_folha, 2, ',', '.');
+        $total_grat_mesF = 'R$ ' . number_format($total_grat_mes, 2, ',', '.');
+        $total_adiant_mesF = 'R$ ' . number_format($total_adiant_mes, 2, ',', '.');
+        $classe_status = $status == 'Ativo' ? 'text-success' : 'text-danger';
+
+        // Demais variáveis para os botões
         $telefone = $res[$i]['telefone'];
-        $foto = $res[$i]['foto'];
         $endereco = $res[$i]['endereco'];
         $data_cad = $res[$i]['data_cad'];
         $chave_pix = $res[$i]['chave_pix'];
-        
         $cargo_id = $res[$i]['cargo'];
-        $cargo_nome = $res[$i]['nome_cargo'];
         $data_admissao = $res[$i]['data_admissao'];
-        $status = $res[$i]['status'];
         $data_demissao = $res[$i]['data_demissao'];
         $descricao_salario = $res[$i]['descricao_salario'];
-        $salario_folha = $res[$i]['salario_folha'];
         $obs = $res[$i]['obs'];
-        
-        // Formatação de dados para exibição
         $data_cadF = implode('/', array_reverse(@explode('-', $data_cad)));
         $data_admissaoF = implode('/', array_reverse(@explode('-', $data_admissao)));
         $data_demissaoF = $data_demissao ? implode('/', array_reverse(@explode('-', $data_demissao))) : 'N/A';
-        $salario_folhaF = 'R$ ' . number_format($salario_folha, 2, ',', '.');
-        
-        $classe_status = $status == 'Ativo' ? 'text-success' : 'text-danger';
         $icone_status = $status == 'Ativo' ? 'fa-check-square' : 'fa-square-o';
-        $titulo_status = $status == 'Ativo' ? 'Desativar Funcionário' : 'Ativar Funcionário';
+        $titulo_status = $status == 'Ativo' ? 'Demitir Funcionário' : 'Reativar Funcionário';
         $acao_status = $status == 'Ativo' ? 'Demitido' : 'Ativo';
-        
-        // Preparando dados para passar ao Javascript
         $nome_js = htmlspecialchars($nome, ENT_QUOTES);
         $endereco_js = htmlspecialchars($endereco, ENT_QUOTES);
         $obs_js = htmlspecialchars($obs, ENT_QUOTES);
-
+        
         echo <<<HTML
 <tr>
 <td align="center">
@@ -69,25 +98,18 @@ HTML;
 <td>{$nome}</td>
 <td class="esc">{$cargo_nome}</td>
 <td class="esc">{$salario_folhaF}</td>
+<td class="esc text-success">{$total_grat_mesF}</td>
+<td class="esc text-danger">{$total_adiant_mesF}</td>
 <td class="esc"><span class="{$classe_status}">{$status}</span></td>
 <td>
-    <a class="btn btn-info btn-sm" href="#" onclick="editar('{$id}', '{$nome_js}', '{$telefone}', '{$endereco_js}', '{$chave_pix}', '{$cargo_id}', '{$data_admissao}', '{$status}', '{$data_demissao}', '{$descricao_salario}', '{$obs_js}', '{$foto}')" title="Editar Dados"><i class="fa fa-edit"></i></a>
-    <a class="btn btn-primary btn-sm" href="#" onclick="mostrar('{$nome_js}', '{$telefone}', '{$endereco_js}', '{$chave_pix}', '{$cargo_nome}', '{$data_admissaoF}', '{$status}', '{$data_demissaoF}', '{$salario_folhaF}', '{$obs_js}', '{$foto}', '{$data_cadF}')" title="Mostrar Dados"><i class="fa fa-info-circle"></i></a>
-    <a class="btn btn-secondary btn-sm" href="#" onclick="arquivo('{$id}', '{$nome_js}')" title="Anexar Arquivos"><i class="fa fa-paperclip"></i></a>
-    
-    <div class="dropdown" style="display: inline-block;">
-        <button class="btn btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Mais Ações">
-            <i class="fa fa-cogs"></i>
-        </button>
-        <ul class="dropdown-menu">
-            <li><a class="dropdown-item" href="#" onclick="abrirModalGratificacao({$id}, '{$nome_js}')"><i class="fa fa-plus text-success"></i> Lançar Gratificação</a></li>
-            <li><a class="dropdown-item" href="#" onclick="abrirModalAdiantamento({$id}, '{$nome_js}', '{$salario_folha}')"><i class="fa fa-dollar text-warning"></i> Lançar Vale</a></li>
-            <li><a class="dropdown-item" href="#" onclick="abrirModalHistorico({$id}, '{$nome_js}')"><i class="fa fa-list text-info"></i> Ver Histórico</a></li>
-            <li><hr class="dropdown-divider"></li>
-            <li><a class="dropdown-item" href="#" onclick="mudarStatus('{$id}', '{$acao_status}')" title="{$titulo_status}"><i class="fa {$icone_status} text-secondary"></i> Mudar Status</a></li>
-            <li><a class="dropdown-item" href="#" onclick="excluir('{$id}')"><i class="fa fa-trash text-danger"></i> Excluir</a></li>
-        </ul>
-    </div>
+    <a class="btn btn-info btn-sm" href="#" onclick="editar('{$id}', '{$nome_js}', '{$telefone}', '{$endereco_js}', '{$chave_pix}', '{$cargo_id}', '{$data_admissao}', '{$status}', '{$data_demissao}', '{$descricao_salario}', '{$obs_js}')" title="Editar Dados"><i class="fa fa-edit"></i></a>
+    <a class="btn btn-primary btn-sm" href="#" onclick="mostrar('{$nome_js}', '{$telefone}', '{$endereco_js}', '{$chave_pix}', '{$cargo_nome}', '{$data_admissaoF}', '{$status}', '{$data_demissaoF}', '{$salario_folhaF}', '{$obs_js}', '{$data_cadF}')" title="Mostrar Dados"><i class="fa fa-info-circle"></i></a>
+    <a class="btn btn-dark btn-sm" href="#" onclick="arquivo('{$id}', '{$nome_js}')" title="Anexar Arquivos"><i class="fa fa-paperclip"></i></a>
+    <a class="btn btn-success btn-sm" href="#" onclick="abrirModalGratificacao({$id}, '{$nome_js}')" title="Lançar Gratificação"><i class="fa fa-plus"></i></a>
+    <a class="btn btn-warning btn-sm" href="#" onclick="abrirModalAdiantamento({$id}, '{$nome_js}', '{$salario_folha}')" title="Lançar Vale (Adiantamento)"><i class="fa fa-dollar"></i></a>
+    <a class="btn btn-info btn-sm" href="#" onclick="abrirModalHistorico({$id}, '{$nome_js}')" title="Ver Histórico"><i class="fa fa-list"></i></a>
+    <a class="btn btn-secondary btn-sm" href="#" onclick="mudarStatus('{$id}', '{$acao_status}')" title="{$titulo_status}"><i class="fa {$icone_status}"></i></a>
+    <a class="btn btn-danger btn-sm" href="#" onclick="excluir('{$id}')" title="Excluir Registro"><i class="fa fa-trash"></i></a>
 </td>
 </tr>
 HTML;
@@ -106,16 +128,37 @@ HTML;
 <script type="text/javascript">
     $(document).ready(function() {
         $('#tabela').DataTable({
+            // Nova configuração para o modo responsivo
+            responsive: {
+                details: {
+                    type: 'column', // Cria uma coluna dedicada para o botão '+'
+                    target: 0       // Posiciona essa nova coluna no início (índice 0)
+                }
+            },
+            
+            // Configuração para definir quais colunas podem ser ordenadas
+            columnDefs: [
+                {
+                    // Define a classe para a nova coluna de controle (para estilização se necessário)
+                    className: 'control',
+                    orderable: false,
+                    targets: 0
+                },
+                { 
+                    orderable: false, // Desativa a ordenação para as colunas "Selecionar" e "Ações"
+                    targets: [1, 8]   // Índices atualizados: Selecionar agora é 1 e Ações agora é 8
+                }
+            ],
+            
+            // Outras configurações
             "language": {},
-            "ordering": false,
             "stateSave": true
         });
     });
 </script>
 
 <script type="text/javascript">
-    // FUNÇÃO EDITAR CORRIGIDA
-    function editar(id, nome, telefone, endereco, chave_pix, cargo_id, data_admissao, status, data_demissao, descricao_salario, obs, foto) {
+    function editar(id, nome, telefone, endereco, chave_pix, cargo_id, data_admissao, status, data_demissao, descricao_salario, obs) {
         
         $('#mensagem').text('');
         $('#titulo_inserir').text('Editar Registro');
@@ -132,9 +175,6 @@ HTML;
         $('#descricao_salario').val(descricao_salario);
         $('#obs').val(obs);
 
-        // ATUALIZA A IMAGEM DE PREVIEW
-        $('#preview-foto').attr('src', 'images/funcionarios/' + foto);
-
         toggleDemissao();
         mascara_decimal_ponto(document.getElementById('descricao_salario'));
         calcularSalarioFolha();
@@ -142,7 +182,7 @@ HTML;
         $('#modalForm').modal('show');
     }
 
-    function mostrar(nome, telefone, endereco, chave_pix, cargo, data_admissao, status, data_demissao, salario_folha, obs, foto, data_cad) {
+    function mostrar(nome, telefone, endereco, chave_pix, cargo, data_admissao, status, data_demissao, salario_folha, obs, data_cad) {
         $('#titulo_dados').text(nome);
         $('#telefone_dados').text(telefone);
         $('#endereco_dados').text(endereco);
@@ -154,7 +194,6 @@ HTML;
         $('#salario_dados').text(salario_folha);
         $('#obs_dados').text(obs);
         $('#data_cad_dados').text(data_cad);
-        $('#foto_dados').attr("src", "images/funcionarios/" + foto);
         $('#modalDados').modal('show');
     }
 
@@ -173,9 +212,6 @@ HTML;
         $('#btn-deletar').hide();
         $('#status').val('Ativo');
         toggleDemissao();
-        if (window.resetPreviewFoto) {
-            window.resetPreviewFoto();
-        }
     }
     
     function mudarStatus(id, novo_status) {
