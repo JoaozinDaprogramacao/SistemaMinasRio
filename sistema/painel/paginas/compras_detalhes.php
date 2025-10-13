@@ -7,54 +7,23 @@ if (@$vendas == 'ocultar') {
 	exit();
 }
 
-// ========================================================== //
-// ===== TRECHO 1: LÓGICA PHP PARA VERIFICAR MODO EDIÇÃO ==== //
-// ========================================================== //
-// ADICIONE ESTE BLOCO INTEIRO NO TOPO DO SEU ARQUIVO
-
-$id_venda_edicao = 0;
-$cliente_edicao = '';
-$desconto_edicao = '';
-$tipo_desconto_edicao = 'reais'; // Padrão
-$frete_edicao = '';
-$valor_pago_edicao = '';
-$forma_pgto_edicao = '';
-$data_edicao = date('Y-m-d'); // Data atual por padrão
-
-// VERIFICA SE ESTÁ EM MODO DE EDIÇÃO A PARTIR DA SESSÃO
-if (@$_SESSION['modo_edicao_venda'] === true && isset($_SESSION['dados_edicao_venda'])) {
-	$dados = $_SESSION['dados_edicao_venda'];
-
-	$id_venda_edicao = $dados['id'];
-	$cliente_edicao = $dados['cliente_id'];
-	$desconto_edicao = $dados['desconto'];
-	$tipo_desconto_edicao = $dados['tipo_desconto'] == '%' ? '%' : 'reais';
-	$frete_edicao = $dados['frete'];
-	$valor_pago_edicao = $dados['valor_pago'];
-	$forma_pgto_edicao = $dados['forma_pagamento_id'];
-	$data_edicao = date('Y-m-d', strtotime($dados['data_venda']));
-
-	// Limpa a sessão para não recarregar em modo de edição ao dar F5
-	unset($_SESSION['modo_edicao_venda']);
-	unset($_SESSION['dados_edicao_venda']);
-}
-// ========================================================== //
-// ==================== FIM DO TRECHO 1 ===================== //
-// ========================================================== //
 ?>
-
-
 <div style="width:78%; float:left;">
 	<div class="row" style="font-family: 'PT Sans', sans-serif;">
 		<?php
+		// Consulta para buscar todos os produtos diretamente
 		$query = $pdo->query("SELECT * from materiais");
 		$res = $query->fetchAll(PDO::FETCH_ASSOC);
 		$linhas = @count($res);
+
 		if ($linhas > 0) {
 			for ($i = 0; $i < $linhas; $i++) {
 				$id = $res[$i]['id'];
 				$nome = $res[$i]['nome'];
+
 		?>
+
+				<!-- Listar produto -->
 				<div class="widget" style="width:24%">
 					<a href="#" onclick="addVenda(<?php echo $id; ?>, '<?php echo addslashes($nome); ?>')">
 						<div class="r3_counter_box" style="min-height: 60px; padding:10px">
@@ -66,80 +35,101 @@ if (@$_SESSION['modo_edicao_venda'] === true && isset($_SESSION['dados_edicao_ve
 						</div>
 					</a>
 				</div>
+
 		<?php }
 		} else {
 			echo 'Nenhum produto disponível!';
 		} ?>
 	</div>
-</div>
 
 
 </div>
 
-<div style="width:22%; float:left; padding-top:10px; padding-left: 5px; background: #fef5ed ">
+<div style="width:22%;  float:left; padding-top:10px; padding-left: 5px; background: #fef5ed ">
 	<div class="row" style="padding-left:8px; padding-right: 4px">
 		<div class="col-md-10" style="padding:2px;">
 			<div class="form-group">
-				<div id="listar_clientes"></div>
+
+				<div id="listar_clientes">
+
+				</div>
 			</div>
 		</div>
+
 		<div class="col-md-2" style="">
 			<button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalCliente"> <i class="fa fa-plus"></i> </button>
 		</div>
 	</div>
 
-	<div id="listar_vendas" style="margin-top: -10px"></div>
+	<div id="listar_vendas" style="margin-top: -10px">
+
+	</div>
 
 	<form id="form_venda">
-
-		<input type="hidden" name="id_venda_edicao" id="id_venda_edicao" value="<?php echo $id_venda_edicao; ?>">
 
 		<div class="row" style="margin-top: 10px">
 			<div class="col-md-7">
 				<div class="form-group">
+
 					<select class="form-select" name="saida" id="saida" style="width:100%;" required>
 						<option value="">Forma de Pgto</option>
 						<?php
 						$query = $pdo->query("SELECT * FROM formas_pgto order by id asc");
 						$res = $query->fetchAll(PDO::FETCH_ASSOC);
 						for ($i = 0; $i < @count($res); $i++) {
+							foreach ($res[$i] as $key => $value) {
+							}
+
 						?>
 							<option value="<?php echo $res[$i]['id'] ?>"><?php echo $res[$i]['nome'] ?></option>
+
 						<?php } ?>
+
 					</select>
 				</div>
 			</div>
+
 			<div class="col-md-5">
 				<div class="form-group">
-					<input type="text" class="form-control" id="valor_pago" name="valor_pago" placeholder="Valor Pago" onkeyup="FormaPg()" value="<?php echo $valor_pago_edicao; ?>">
+					<input type="text" class="form-control" id="valor_pago" name="valor_pago" placeholder="Valor Pago" onkeyup="FormaPg()">
 				</div>
 			</div>
 		</div>
 
+
 		<div class="row" style="margin-top: -10px">
 			<div class="col-md-7 ">
 				<label>Desconto <a id="desc_reais" class="desconto_link_ativo" href="#" onclick="tipoDesc('reais')">R$</a> / <a id="desc_p" class="desconto_link_inativo" href="#" onclick="tipoDesc('%')">%</a></label>
-				<input style="margin-top: -5px" type="number" class="form-control" id="desconto" name="desconto" placeholder="R$" onkeyup="listarVendas()" value="<?php echo $desconto_edicao; ?>">
+				<input style="margin-top: -5px" type="number" class="form-control" id="desconto" name="desconto" placeholder="R$" onkeyup="listarVendas()">
 			</div>
+
 			<div class="col-md-5 ">
 				<label>Troco Para</label>
 				<input style="margin-top: -5px" type="number" class="form-control" id="troco" name="troco" placeholder="R$" onkeyup="listarVendas()">
 			</div>
 		</div>
 
+
 		<div class="row" style="margin-top: -5px">
 			<div class="col-md-7 ">
 				<label>Data Pagamento</label>
-				<input style="margin-top: -5px" type="date" class="form-control" id="data2" name="data2" value="<?php echo $data_edicao; ?>">
+				<input style="margin-top: -5px" type="date" class="form-control" id="data2" name="data2">
+
 			</div>
+
 			<div class="col-md-5 ">
 				<label>Frete</label>
-				<input style="margin-top: -5px" type="text" class="form-control" id="frete" name="frete" placeholder="Frete se Houver" onkeyup="listarVendas()" value="<?php echo $frete_edicao; ?>">
+				<input style="margin-top: -5px" type="text" class="form-control" id="frete" name="frete" placeholder="Frete se Houver" onkeyup="listarVendas()">
 			</div>
+
 		</div>
+
+
 
 		<div id="div_pgto2">
 			<span><b>Total Restante: <span class="text-danger">R$ <span id="total_restante"></span></span></b></span>
+
+
 			<div class="row" style="">
 				<div class="col-md-6" style="padding-right: 1px">
 					<label>Data Pagamento 2</label>
@@ -148,7 +138,7 @@ if (@$_SESSION['modo_edicao_venda'] === true && isset($_SESSION['dados_edicao_ve
 				<div class="col-md-6" style="padding-left: 1px">
 					<label>Pgto Restante</label>
 					<select class="form-select" name="forma_pgto2" id="forma_pgto2" style="width:100%; font-size: 12px !important;">
-						<option value="" disabled selected>Forma de Pgto</option>
+						<option value="" disabled selected>Forma de Pgtoa</option>
 						<?php
 						$query = $pdo->query("SELECT * FROM formas_pgto order by id asc");
 						$res = $query->fetchAll(PDO::FETCH_ASSOC);
@@ -158,15 +148,20 @@ if (@$_SESSION['modo_edicao_venda'] === true && isset($_SESSION['dados_edicao_ve
 						<?php } ?>
 					</select>
 				</div>
+
+
 			</div>
+
 		</div>
 
+
+
 		<div class="row">
+
 			<div class="col-md-12" style="margin-top: 10px" align="right">
 				<button id="btn_limpar" onclick="limparVenda()" type="button" class="btn btn-secondary">Limpar Venda</button>
-				<button id="btn_venda" type="submit" class="btn btn-success">
-					<?php echo ($id_venda_edicao > 0) ? 'Salvar Edição' : 'Fechar Venda'; ?>
-				</button>
+
+				<button id="btn_venda" type="submit" class="btn btn-success">Fechar Venda</button>
 				<img id="img_loading" src="../img/loading.gif" width="40px" style="display:none">
 			</div>
 		</div>
@@ -175,12 +170,20 @@ if (@$_SESSION['modo_edicao_venda'] === true && isset($_SESSION['dados_edicao_ve
 		<small>
 			<div id="mensagem" align="center"></div>
 		</small>
+
 		<input type="hidden" name="cliente" id="cliente_input">
+
 		<input type="hidden" name="tipo_desconto" id="tipo_desconto" value="reais">
+
 		<input type="hidden" name="subtotal_venda" id="subtotal_venda">
+
 		<input type="hidden" name="ids_itens" id="ids_itens">
+
 		<input type="hidden" name="valor_restante" id="valor_restante">
+
 	</form>
+
+
 </div>
 
 
@@ -401,39 +404,14 @@ if (@$_SESSION['modo_edicao_venda'] === true && isset($_SESSION['dados_edicao_ve
 
 
 <script type="text/javascript">
-	function trocarCliente() {
-		$('#cliente_input').val($('#cliente').val());
-	}
 	var pag = "<?= $pag ?>"
-	// Adicione este bloco para sincronizar o select com o input hidden
-	$('#listar_clientes').on('change', '#cliente', function() {
-		// Pega o valor (ID do cliente) do <select> que acabou de ser alterado
-		var clienteIdSelecionado = $(this).val();
-
-		// Atualiza o valor do campo oculto
-		$('#cliente_input').val(clienteIdSelecionado);
-
-		// DEBUG: Linha adicionada para vermos a mágica acontecer
-		console.log('%c[DEBUG PASSO 1] O <select> mudou! ID selecionado: ' + clienteIdSelecionado, 'color: green; font-weight: bold;');
-		console.log('%c[DEBUG PASSO 1] Valor do campo oculto #cliente_input agora é: "' + $('#cliente_input').val() + '"', 'color: blue;');
-	});
 </script>
 <script src="js/ajax.js"></script>
 
 <script type="text/javascript">
 	$(document).ready(function() {
-		var id_venda_edicao = '<?php echo $id_venda_edicao; ?>';
-		var cliente_id_edicao = '<?php echo $cliente_edicao; ?>'; // Esta é a variável importante
-
-		// ========================================================== //
-		// ===== ADICIONE ESTA LINHA PARA O DIAGNÓSTICO 1 ===== //
-		// ========================================================== //
-		console.log('%c[DIAGNÓSTICO 1] Página carregada. O ID do cliente para edição é: "' + cliente_id_edicao + '"', 'background: #222; color: #bada55; font-size: 14px;');
-		// ========================================================== //
-
-		var forma_pgto_edicao = '<?php echo $forma_pgto_edicao; ?>';
-		// ----- CONFIGURAÇÃO INICIAL -----
 		$('#div_pgto2').hide();
+		listarVendas()
 
 		$('.sel2').select2({
 			dropdownParent: $('#modalForm')
@@ -442,151 +420,103 @@ if (@$_SESSION['modo_edicao_venda'] === true && isset($_SESSION['dados_edicao_ve
 		$(document).on('select2:open', () => {
 			document.querySelector('.select2-search__field').focus();
 		});
-
-		// ----- LÓGICA DE EDIÇÃO vs NOVA VENDA -----
-		var id_venda_edicao = '<?php echo $id_venda_edicao; ?>';
-		var cliente_id_edicao = '<?php echo $cliente_edicao; ?>';
-		var forma_pgto_edicao = '<?php echo $forma_pgto_edicao; ?>';
-		var tipo_desconto_edicao = '<?php echo $tipo_desconto_edicao; ?>';
-
-		if (id_venda_edicao > 0) {
-			// ============ MODO EDIÇÃO ============
-
-			// 1. Preenche os selects e define o tipo de desconto
-			if (forma_pgto_edicao !== '') {
-				$('#saida').val(forma_pgto_edicao);
-			}
-			if (tipo_desconto_edicao === '%') {
-				tipoDesc('%');
-			} else {
-				tipoDesc('reais');
-			}
-
-			// 2. Carrega a lista de clientes JÁ com o cliente correto selecionado
-			listarClientes(cliente_id_edicao);
-
-			// 3. Carrega os itens da venda e recalcula os totais
-			listarVendas();
-
-			// 4. Exibe a notificação para o usuário
-			Swal.fire({
-				title: 'Modo de Edição',
-				text: 'Venda #' + id_venda_edicao + ' carregada. Faça suas alterações e clique em "Salvar Edição".',
-				icon: 'info',
-				timer: 4000,
-				showConfirmButton: true
-			});
-
-		} else {
-			// ============ MODO NOVA VENDA (comportamento padrão) ============
-
-			// Carrega a lista de clientes vazia e a lista de vendas (que estará vazia)
-			listarClientes();
-			listarVendas();
-		}
+		listarClientes();
 	});
 </script>
 
 <script type="text/javascript">
 	$("#form_venda").submit(function(event) {
-		// ========================================================== //
-		// ===== ADICIONE ESTA LINHA PARA O DIAGNÓSTICO 3 ===== //
-		// ========================================================== //
-		var valorFinalCliente = $('#cliente_input').val();
-		console.log('%c[DIAGNÓSTICO 3] Formulário enviado! O valor final no campo oculto #cliente_input é: "' + valorFinalCliente + '"', 'background: #dc3545; color: #fff; font-size: 16px;');
-		// ========================================================== //
+    // Previne o comportamento padrão do formulário
+    event.preventDefault();
 
-		// Previne o comportamento padrão do formulário
-		event.preventDefault();
+    // Oculta os botões e exibe o indicador de carregamento
+    $("#btn_venda").hide();
+    $("#btn_limpar").hide();
+    $("#img_loading").show();
 
-		// Oculta os botões e exibe o indicador de carregamento
-		$("#btn_venda").hide();
-		$("#btn_limpar").hide();
-		$("#img_loading").show();
+    // Verifica se a data e o cliente são válidos
+    var data = $("#data2").val();
+    var cliente = $("#cliente").val();
+    var data_atual = "<?= $data_atual ?>";
 
-		// Verifica se a data e o cliente são válidos
-		var data = $("#data2").val();
-		var cliente = $("#cliente").val();
-		var data_atual = "<?= $data_atual ?>";
+    if (data > data_atual && cliente == "") {
+        alert('Você precisa selecionar um cliente para essa venda!');
+        $("#img_loading").hide();
+        $("#btn_venda").show();
+        return;
+    }
 
-		if (data > data_atual && cliente == "") {
-			alert('Você precisa selecionar um cliente para essa venda!');
-			$("#img_loading").hide();
-			$("#btn_venda").show();
-			return;
-		}
+    // Cria um objeto FormData com os dados do formulário
+    var formData = new FormData(this);
 
-		// Cria um objeto FormData com os dados do formulário
-		var formData = new FormData(this);
+    // Envia a requisição AJAX
+    $.ajax({
+        url: 'paginas/' + pag + "/salvar.php",
+        type: 'POST',
+        data: formData,
+        cache: false,
+        contentType: false,
+        processData: false,
 
-		// Envia a requisição AJAX
-		$.ajax({
-			url: 'paginas/' + pag + "/salvar.php",
-			type: 'POST',
-			data: formData,
-			cache: false,
-			contentType: false,
-			processData: false,
+        success: function(mensagem) {
+            // Processa a resposta do servidor
+            var msg = mensagem.split("-");
 
-			success: function(mensagem) {
-				// Processa a resposta do servidor
-				var msg = mensagem.split("-");
+            $('#mensagem').text('');
+            $('#mensagem').removeClass();
 
-				$('#mensagem').text('');
-				$('#mensagem').removeClass();
+            if (msg[0].trim() == "Salvo com Sucesso") {
+                $("#img_loading").hide();
 
-				if (msg[0].trim() == "Salvo com Sucesso") {
-					$("#img_loading").hide();
+                // Limpa os campos do formulário
+                $('#desconto').val('');
+                $('#troco').val('');
+                $('#cliente').val('').change();
+                $('#cliente_input').val('');
+                $('#data').val('<?= $data_atual ?>');
 
-					// Limpa os campos do formulário
-					$('#desconto').val('');
-					$('#troco').val('');
-					$('#cliente').val('').change();
-					$('#cliente_input').val('');
-					$('#data').val('<?= $data_atual ?>');
+                // Atualiza as listas de vendas e produtos
+                listar();
+                listarVendas();
 
-					// Atualiza as listas de vendas e produtos
-					listar();
-					listarVendas();
+                // Verifica se a impressão automática está habilitada
+                var imp_auto = "<?= $impressao_automatica ?>";
+                if (imp_auto == 'Sim') {
+                    window.open('rel/comprovante.php?id=' + msg[1]);
+                } else {
+                    alert('Venda Efetuada!');
+                    $('#div_pgto2').hide();
+                }
+            } else {
+                // Exibe mensagem de erro
+                alert(msg[0]);
+                $("#btn_venda").show();
+                $("#img_loading").hide();
+                $("#btn_limpar").show();
+            }
 
-					// Verifica se a impressão automática está habilitada
-					var imp_auto = "<?= $impressao_automatica ?>";
-					if (imp_auto == 'Sim') {
-						window.open('rel/comprovante.php?id=' + msg[1]);
-					} else {
-						alert('Venda Efetuada!');
-						$('#div_pgto2').hide();
-					}
-				} else {
-					// Exibe mensagem de erro
-					alert(msg[0]);
-					$("#btn_venda").show();
-					$("#img_loading").hide();
-					$("#btn_limpar").show();
-				}
+            // Restaura os botões
+            $("#btn_venda").show();
+            $("#btn_limpar").show();
+        },
 
-				// Restaura os botões
-				$("#btn_venda").show();
-				$("#btn_limpar").show();
-			},
+        error: function(xhr, status, error) {
+            // Trata erros de requisição AJAX
+            $("#img_loading").hide();
+            $("#btn_venda").show();
+            $("#btn_limpar").show();
 
-			error: function(xhr, status, error) {
-				// Trata erros de requisição AJAX
-				$("#img_loading").hide();
-				$("#btn_venda").show();
-				$("#btn_limpar").show();
+            // Exibe detalhes do erro no console
+            console.error("Erro na requisição AJAX:");
+            console.error("Status: " + status);
+            console.error("Erro: " + error);
+            console.error("Resposta do servidor: " + xhr.responseText);
 
-				// Exibe detalhes do erro no console
-				console.error("Erro na requisição AJAX:");
-				console.error("Status: " + status);
-				console.error("Erro: " + error);
-				console.error("Resposta do servidor: " + xhr.responseText);
-
-				// Exibe uma mensagem de erro para o usuário
-				alert("Ocorreu um erro ao processar a requisição. Por favor, tente novamente.\nDetalhes: " + error);
-			}
-		});
-	});
+            // Exibe uma mensagem de erro para o usuário
+            alert("Ocorreu um erro ao processar a requisição. Por favor, tente novamente.\nDetalhes: " + error);
+        }
+    });
+});
 
 	function buscar() {
 		var busca = $('#txt_buscar').val();
@@ -731,38 +661,18 @@ if (@$_SESSION['modo_edicao_venda'] === true && isset($_SESSION['dados_edicao_ve
 
 	});
 
+
 	function listarClientes(valor) {
-		// A variável 'pag' deve estar definida globalmente no seu script
-		var pag = "<?= $pag ?>";
-
-		console.log('[DEBUG] Chamando listarClientes(). ID para pré-selecionar: "' + valor + '"');
-
 		$.ajax({
 			url: 'paginas/' + pag + "/listar_clientes.php",
 			method: 'POST',
 			data: {
-				valor: valor
-			}, // Passa o ID do cliente para ser marcado como 'selected' no PHP
-			dataType: "html",
-			success: function(result) {
-				// 1. Injete o HTML do <select> na div
-				$("#listar_clientes").html(result);
-
-				// 2. Inicialize o Select2 no novo <select> que acabamos de criar
-				$('#cliente').select2();
-
-				// 3. LEIA o valor que está de fato selecionado no <select> após a carga
-				var clienteSelecionado = $('#cliente').val();
-
-				// 4. ATUALIZE O CAMPO OCULTO IMEDIATAMENTE!
-				// Esta é a correção definitiva.
-				$('#cliente_input').val(clienteSelecionado);
-
-				// Log de confirmação final
-				console.log('%c[PÓS-AJAX] O campo oculto #cliente_input foi FORÇADO para o valor: "' + $('#cliente_input').val() + '"', 'color: purple; font-weight: bold;');
+				valor
 			},
-			error: function() {
-				console.error("Falha ao carregar a lista de clientes via AJAX.");
+			dataType: "html",
+
+			success: function(result) {
+				$("#listar_clientes").html(result);
 			}
 		});
 	}
@@ -793,7 +703,7 @@ if (@$_SESSION['modo_edicao_venda'] === true && isset($_SESSION['dados_edicao_ve
 		var subtotal_venda = $('#subtotal_venda').val();
 
 		console.log("Valor pago: " + valor_pago);
-		console.log("Subtotal: " + subtotal_venda);
+	console.log("Subtotal: "+ subtotal_venda);
 
 		if (parseFloat(valor_pago) < parseFloat(subtotal_venda)) {
 			$('#div_pgto2').show();
