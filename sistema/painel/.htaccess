@@ -1,52 +1,83 @@
+# ATIVA O MOTOR DE REESCRITA DE URLS
 RewriteEngine On
+
+# CONDIÇÕES PARA APLICAR AS REGRAS ABAIXO
+# 1. A URL solicitada não é um arquivo físico existente (-f)
 RewriteCond %{REQUEST_FILENAME} !-f
+# 2. A URL solicitada não é um diretório existente (-d)
 RewriteCond %{REQUEST_FILENAME} !-d
 
+# ==========================================================
+# REGRAS DO SISTEMA E CORE
+# ==========================================================
+RewriteRule ^index(.*)$ index.php [L]
+RewriteRule ^home(.*)$ index.php?pagina=home [L]
+
+# ==========================================================
+# CADASTROS PRINCIPAIS (PESSOAS E EMPRESAS)
+# ==========================================================
 RewriteRule ^usuarios(.*)$ index.php?pagina=usuarios [L]
+RewriteRule ^clientes(.*)$ index.php?pagina=clientes [L]
+RewriteRule ^funcionarios(.*)$ index.php?pagina=funcionarios [L]
+RewriteRule ^fornecedores(.*)$ index.php?pagina=fornecedores [L]
+
+# ==========================================================
+# CADASTROS AUXILIARES E CONFIGURAÇÕES
+# ==========================================================
 RewriteRule ^grupo_acessos(.*)$ index.php?pagina=grupo_acessos [L]
 RewriteRule ^acessos(.*)$ index.php?pagina=acessos [L]
+RewriteRule ^cargos(.*)$ index.php?pagina=cargos [L]
+RewriteRule ^tarefas(.*)$ index.php?pagina=tarefas [L]
 
-RewriteRule ^index(.*)$ index.php [L]
+# ==========================================================
+# MÓDULO FINANCEIRO
+# ==========================================================
 RewriteRule ^bancos(.*)$ index.php?pagina=bancos [L]
 RewriteRule ^detalhes_bancos(.*)$ index.php?pagina=detalhes_bancos [L]
 RewriteRule ^receber(.*)$ index.php?pagina=receber [L]
 RewriteRule ^pagar(.*)$ index.php?pagina=pagar [L]
+RewriteRule ^caixas(.*)$ index.php?pagina=caixas [L]
 RewriteRule ^formas_pgto(.*)$ index.php?pagina=formas_pgto [L]
 RewriteRule ^planos_pgto(.*)$ index.php?pagina=planos_pgto [L]
-RewriteRule ^descricao_banco(.*)$ index.php?pagina=descricao_banco [L]
-RewriteRule ^descricao_romaneio(.*)$ index.php?pagina=descricao_romaneio [L]
 RewriteRule ^frequencias(.*)$ index.php?pagina=frequencias [L]
-RewriteRule ^funcionarios(.*)$ index.php?pagina=funcionarios [L]
-RewriteRule ^fornecedores(.*)$ index.php?pagina=fornecedores [L]
-RewriteRule ^cargos(.*)$ index.php?pagina=cargos [L]
-RewriteRule ^clientes(.*)$ index.php?pagina=clientes [L]
-RewriteRule ^home(.*)$ index.php?pagina=home [L]
-RewriteRule ^caixas(.*)$ index.php?pagina=caixas [L]
-RewriteRule ^tarefas(.*)$ index.php?pagina=tarefas [L]
+RewriteRule ^descricao_banco(.*)$ index.php?pagina=descricao_banco [L]
 
+# ==========================================================
+# MÓDULO DE MATERIAIS, PRODUTOS E ESTOQUE
+# ==========================================================
+RewriteRule ^materiais(.*)$ index.php?pagina=materiais [L]
+RewriteRule ^detalhes_materiais(.*)$ index.php?pagina=detalhes_materiais [L]
+RewriteRule ^produtos(.*)$ index.php?pagina=produtos [L]
+RewriteRule ^categorias(.*)$ index.php?pagina=categorias [L]
+RewriteRule ^unidade_medida(.*)$ index.php?pagina=unidade_medida [L]
+RewriteRule ^tipo_caixa(.*)$ index.php?pagina=tipo_caixa [L]
+RewriteRule ^estoque(.*)$ index.php?pagina=estoque [L]
+RewriteRule ^entradas(.*)$ index.php?pagina=entradas [L]
+RewriteRule ^saidas(.*)$ index.php?pagina=saidas [L]
 
+# ==========================================================
+# MÓDULO DE VENDAS E COMPRAS
+# ==========================================================
+# Regras específicas devem vir ANTES das genéricas
+RewriteRule ^vendas_detalhes(.*)$ index.php?pagina=vendas_detalhes [L]
+RewriteRule ^compras_detalhes(.*)$ index.php?pagina=compras_detalhes [L]
+RewriteRule ^lista_vendas(.*)$ index.php?pagina=lista_vendas [L]
+
+RewriteRule ^vendas(.*)$ index.php?pagina=vendas [L]
+RewriteRule ^compras(.*)$ index.php?pagina=compras [L]
+RewriteRule ^orcamento(.*)$ index.php?pagina=orcamento [L]
+
+# ==========================================================
+# MÓDULO DE ROMANEIOS
+# ==========================================================
 RewriteRule ^romaneio_venda(.*)$ index.php?pagina=romaneio_venda [L]
 RewriteRule ^romaneio_compra(.*)$ index.php?pagina=romaneio_compra [L]
 RewriteRule ^romaneio_baldeio(.*)$ index.php?pagina=romaneio_baldeio [L]
+RewriteRule ^descricao_romaneio(.*)$ index.php?pagina=descricao_romaneio [L]
 
-
-RewriteRule ^produtos(.*)$ index.php?pagina=produtos [L]
-RewriteRule ^tipo_caixa(.*)$ index.php?pagina=tipo_caixa [L]
-RewriteRule ^categorias(.*)$ index.php?pagina=categorias [L]
-RewriteRule ^unidade_medida(.*)$ index.php?pagina=unidade_medida [L]
-
-RewriteRule ^materiais(.*)$ index.php?pagina=materiais [L]
-RewriteRule ^detalhes_materiais(.*)$ index.php?pagina=detalhes_materiais [L]
-RewriteRule ^vendas(.*)$ index.php?pagina=vendas [L]
-RewriteRule ^compras(.*)$ index.php?pagina=compras [L]
-
-RewriteRule ^entradas(.*)$ index.php?pagina=entradas [L]
-RewriteRule ^saidas(.*)$ index.php?pagina=saidas [L]
-RewriteRule ^lista_vendas(.*)$ index.php?pagina=lista_vendas [L]
-RewriteRule ^orcamento(.*)$ index.php?pagina=orcamento [L]
-RewriteRule ^estoque(.*)$ index.php?pagina=estoque [L]
+# ==========================================================
+# MÓDULO DE COMISSÕES E RELATÓRIOS
+# ==========================================================
 RewriteRule ^comissoes(.*)$ index.php?pagina=comissoes [L]
 RewriteRule ^minhas_comissoes(.*)$ index.php?pagina=minhas_comissoes [L]
-
-
 RewriteRule ^dre(.*)$ index.php?pagina=dre [L]
