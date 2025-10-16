@@ -7,21 +7,16 @@ if (@$vendas == 'ocultar') {
 	exit();
 }
 
-// ========================================================== //
-// ===== TRECHO 1: LÓGICA PHP PARA VERIFICAR MODO EDIÇÃO ==== //
-// ========================================================== //
-// ADICIONE ESTE BLOCO INTEIRO NO TOPO DO SEU ARQUIVO
-
+// Lógica PHP para verificar modo de edição (sem alterações)
 $id_venda_edicao = 0;
 $cliente_edicao = '';
 $desconto_edicao = '';
-$tipo_desconto_edicao = 'reais'; // Padrão
+$tipo_desconto_edicao = 'reais';
 $frete_edicao = '';
 $valor_pago_edicao = '';
 $forma_pgto_edicao = '';
-$data_edicao = date('Y-m-d'); // Data atual por padrão
+$data_edicao = date('Y-m-d');
 
-// VERIFICA SE ESTÁ EM MODO DE EDIÇÃO A PARTIR DA SESSÃO
 if (@$_SESSION['modo_edicao_venda'] === true && isset($_SESSION['dados_edicao_venda'])) {
 	$dados = $_SESSION['dados_edicao_venda'];
 
@@ -34,156 +29,234 @@ if (@$_SESSION['modo_edicao_venda'] === true && isset($_SESSION['dados_edicao_ve
 	$forma_pgto_edicao = $dados['forma_pagamento_id'];
 	$data_edicao = date('Y-m-d', strtotime($dados['data_venda']));
 
-	// Limpa a sessão para não recarregar em modo de edição ao dar F5
 	unset($_SESSION['modo_edicao_venda']);
 	unset($_SESSION['dados_edicao_venda']);
 }
-// ========================================================== //
-// ==================== FIM DO TRECHO 1 ===================== //
-// ========================================================== //
 ?>
 
+<style>
+	/* --- ESTILOS PADRÃO (MOBILE) --- */
+	.pdv-container {
+		display: flex;
+		flex-direction: column;
+		/* Empilha os blocos verticalmente no mobile */
+		gap: 20px;
+	}
 
-<div style="width:78%; float:left;">
-	<div class="row" style="font-family: 'PT Sans', sans-serif;">
-		<?php
-		$query = $pdo->query("SELECT * from materiais");
-		$res = $query->fetchAll(PDO::FETCH_ASSOC);
-		$linhas = @count($res);
-		if ($linhas > 0) {
-			for ($i = 0; $i < $linhas; $i++) {
-				$id = $res[$i]['id'];
-				$nome = $res[$i]['nome'];
-		?>
-				<div class="widget" style="width:24%">
-					<a href="#" onclick="addVenda(<?php echo $id; ?>, '<?php echo addslashes($nome); ?>')">
-						<div class="r3_counter_box" style="min-height: 60px; padding:10px">
-							<div class="stats">
-								<h5 style="font-size:13px; margin-bottom:3px; margin-top:6px; color:#000">
-									<strong><?php echo $nome ?></strong>
-								</h5>
-							</div>
-						</div>
-					</a>
-				</div>
-		<?php }
-		} else {
-			echo 'Nenhum produto disponível!';
-		} ?>
-	</div>
-</div>
+	.pdv-sidebar {
+		margin-top: 15px;
+		order: 1;
+		/* Sidebar (carrinho) vem PRIMEIRO no mobile */
+		width: 100%;
+		background: #fef5ed;
+		padding: 15px;
+		border-radius: 8px;
+		border: 1px solid #eee;
+	}
+
+	.pdv-sidebar .form-group,
+	.pdv-sidebar .form-label {
+		margin-bottom: 8px;
+	}
+
+	.pdv-produtos-grid {
+		order: 2;
+		/* Grid de produtos vem DEPOIS no mobile */
+		width: 100%;
+		display: flex;
+		flex-wrap: wrap;
+		/* Permite que os itens quebrem a linha */
+		gap: 10px;
+		/* Espaçamento entre os produtos */
+		margin-bottom: 10px;
+	}
+
+	.produto-item {
+		/* 2 colunas no mobile: 50% da largura menos metade do espaçamento */
+		flex-basis: calc(50% - 5px);
+		text-decoration: none;
+	}
+
+	.produto-item .r3_counter_box {
+		min-height: 70px;
+		padding: 10px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		text-align: center;
+		border: 1px solid #ddd;
+		border-radius: 5px;
+		background: #fff;
+		transition: all 0.2s ease-in-out;
+		height: 100%;
+		/* Garante que todos os cards tenham a mesma altura */
+	}
+
+	.produto-item:hover .r3_counter_box {
+		border-color: #0d6efd;
+		transform: translateY(-2px);
+		box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+	}
+
+	.produto-item h5 {
+		font-size: 13px;
+		color: #333;
+		margin: 0;
+	}
+
+	/* Links de desconto */
+	.desconto_link_ativo {
+		font-weight: bold;
+		color: #0d6efd;
+		text-decoration: none;
+	}
+
+	.desconto_link_inativo {
+		color: #6c757d;
+		text-decoration: underline;
+	}
+
+	/* --- ESTILOS PARA TELAS MAIORES (TABLET/DESKTOP) --- */
+	@media (min-width: 992px) {
+		.pdv-container {
+			flex-direction: row;
+			align-items: flex-start;
+		}
+
+		.pdv-sidebar {
+			order: 2;
+			flex: 0 0 24%;
+			position: sticky;
+			top: 15px;
+			margin-top: 15px;
+			/* <<<<<<< ADICIONE ESTA LINHA AQUI TAMBÉM <<<<<<< */
+		}
+
+		.pdv-produtos-grid {
+			order: 1;
+			flex: 1;
+			margin-top: 15px;
+			/* Margem que já tínhamos adicionado */
+		}
+
+		.produto-item {
+			/* 4 colunas no desktop */
+			flex-basis: calc(25% - 8px);
+		}
+	}
+</style>
 
 
-</div>
+<div class="pdv-container">
 
-<div style="width:22%; float:left; padding-top:10px; padding-left: 5px; background: #fef5ed ">
-	<div class="row" style="padding-left:8px; padding-right: 4px">
-		<div class="col-md-10" style="padding:2px;">
-			<div class="form-group">
-				<div id="listar_clientes"></div>
-			</div>
-		</div>
-		<div class="col-md-2" style="">
-			<button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalCliente"> <i class="fa fa-plus"></i> </button>
-		</div>
-	</div>
-
-	<div id="listar_vendas" style="margin-top: -10px"></div>
-
-	<form id="form_venda">
-
-		<input type="hidden" name="id_venda_edicao" id="id_venda_edicao" value="<?php echo $id_venda_edicao; ?>">
-
-		<div class="row" style="margin-top: 10px">
-			<div class="col-md-7">
-				<div class="form-group">
-					<select class="form-select" name="saida" id="saida" style="width:100%;" required>
-						<option value="">Forma de Pgto</option>
-						<?php
-						$query = $pdo->query("SELECT * FROM formas_pgto order by id asc");
-						$res = $query->fetchAll(PDO::FETCH_ASSOC);
-						for ($i = 0; $i < @count($res); $i++) {
-						?>
-							<option value="<?php echo $res[$i]['id'] ?>"><?php echo $res[$i]['nome'] ?></option>
-						<?php } ?>
-					</select>
-				</div>
-			</div>
-			<div class="col-md-5">
-				<div class="form-group">
-					<input type="text" class="form-control" id="valor_pago" name="valor_pago" placeholder="Valor Pago" onkeyup="FormaPg()" value="<?php echo $valor_pago_edicao; ?>">
-				</div>
-			</div>
-		</div>
-
-		<div class="row" style="margin-top: -10px">
-			<div class="col-md-7 ">
-				<label>Desconto <a id="desc_reais" class="desconto_link_ativo" href="#" onclick="tipoDesc('reais')">R$</a> / <a id="desc_p" class="desconto_link_inativo" href="#" onclick="tipoDesc('%')">%</a></label>
-				<input style="margin-top: -5px" type="number" class="form-control" id="desconto" name="desconto" placeholder="R$" onkeyup="listarVendas()" value="<?php echo $desconto_edicao; ?>">
-			</div>
-			<div class="col-md-5 ">
-				<label>Troco Para</label>
-				<input style="margin-top: -5px" type="number" class="form-control" id="troco" name="troco" placeholder="R$" onkeyup="listarVendas()">
-			</div>
-		</div>
-
-		<div class="row" style="margin-top: -5px">
-			<div class="col-md-7 ">
-				<label>Data Pagamento</label>
-				<input style="margin-top: -5px" type="date" class="form-control" id="data2" name="data2" value="<?php echo $data_edicao; ?>">
-			</div>
-			<div class="col-md-5 ">
-				<label>Frete</label>
-				<input style="margin-top: -5px" type="text" class="form-control" id="frete" name="frete" placeholder="Frete se Houver" onkeyup="listarVendas()" value="<?php echo $frete_edicao; ?>">
-			</div>
-		</div>
-
-		<div id="div_pgto2">
-			<span><b>Total Restante: <span class="text-danger">R$ <span id="total_restante"></span></span></b></span>
-			<div class="row" style="">
-				<div class="col-md-6" style="padding-right: 1px">
-					<label>Data Pagamento 2</label>
-					<input style="font-size: 12px !important;" type="date" class="form-control" id="data_restante" name="data_restante">
-				</div>
-				<div class="col-md-6" style="padding-left: 1px">
-					<label>Pgto Restante</label>
-					<select class="form-select" name="forma_pgto2" id="forma_pgto2" style="width:100%; font-size: 12px !important;">
-						<option value="" disabled selected>Forma de Pgto</option>
-						<?php
-						$query = $pdo->query("SELECT * FROM formas_pgto order by id asc");
-						$res = $query->fetchAll(PDO::FETCH_ASSOC);
-						for ($i = 0; $i < @count($res); $i++) {
-						?>
-							<option value="<?php echo $res[$i]['id'] ?>"><?php echo $res[$i]['nome'] ?> </option>
-						<?php } ?>
-					</select>
-				</div>
-			</div>
-		</div>
-
+	<div class="pdv-sidebar">
 		<div class="row">
-			<div class="col-md-12" style="margin-top: 10px" align="right">
-				<button id="btn_limpar" onclick="limparVenda()" type="button" class="btn btn-secondary">Limpar Venda</button>
+			<div class="col-10" style="padding-right: 5px;">
+				<div class="form-group">
+					<div id="listar_clientes"></div>
+				</div>
+			</div>
+			<div class="col-2" style="padding-left: 0;">
+				<button type="button" class="btn btn-primary w-100" data-bs-toggle="modal" data-bs-target="#modalCliente"><i class="fa fa-plus"></i></button>
+			</div>
+		</div>
+
+		<div id="listar_vendas" style="margin-top: 5px"></div>
+
+		<form id="form_venda">
+			<input type="hidden" name="id_venda_edicao" id="id_venda_edicao" value="<?php echo $id_venda_edicao; ?>">
+
+			<div class="row" style="margin-top: 10px">
+				<div class="col-md-7 col-7">
+					<div class="form-group">
+						<select class="form-select" name="saida" id="saida" required>
+							<option value="">Forma Pgto</option>
+							<?php
+							$query_pgto = $pdo->query("SELECT * FROM formas_pgto order by id asc");
+							$res_pgto = $query_pgto->fetchAll(PDO::FETCH_ASSOC);
+							foreach ($res_pgto as $pgto) {
+								echo "<option value='{$pgto['id']}'>{$pgto['nome']}</option>";
+							}
+							?>
+						</select>
+					</div>
+				</div>
+				<div class="col-md-5 col-5">
+					<div class="form-group">
+						<input type="text" class="form-control" id="valor_pago" name="valor_pago" placeholder="Valor Pago" onkeyup="FormaPg()" value="<?php echo $valor_pago_edicao; ?>">
+					</div>
+				</div>
+			</div>
+
+			<div class="row mt-2">
+				<div class="col-md-7 col-7">
+					<label class="form-label small">Desconto <a id="desc_reais" class="desconto_link_ativo" href="#" onclick="tipoDesc('reais')">R$</a> / <a id="desc_p" class="desconto_link_inativo" href="#" onclick="tipoDesc('%')">%</a></label>
+					<input type="number" class="form-control" id="desconto" name="desconto" placeholder="R$" onkeyup="listarVendas()" value="<?php echo $desconto_edicao; ?>">
+				</div>
+				<div class="col-md-5 col-5">
+					<label class="form-label small">Troco Para</label>
+					<input type="number" class="form-control" id="troco" name="troco" placeholder="R$" onkeyup="listarVendas()">
+				</div>
+			</div>
+
+			<div class="row mt-2">
+				<div class="col-md-7 col-7">
+					<label class="form-label small">Data Pgto</label>
+					<input type="date" class="form-control" id="data2" name="data2" value="<?php echo $data_edicao; ?>">
+				</div>
+				<div class="col-md-5 col-5">
+					<label class="form-label small">Frete</label>
+					<input type="text" class="form-control" id="frete" name="frete" placeholder="R$" onkeyup="listarVendas()" value="<?php echo $frete_edicao; ?>">
+				</div>
+			</div>
+
+			<div id="div_pgto2" class="mt-2">
+			</div>
+
+			<div class="d-grid gap-2 mt-3">
 				<button id="btn_venda" type="submit" class="btn btn-success">
 					<?php echo ($id_venda_edicao > 0) ? 'Salvar Edição' : 'Fechar Venda'; ?>
 				</button>
-				<img id="img_loading" src="../img/loading.gif" width="40px" style="display:none">
+				<button id="btn_limpar" onclick="limparVenda()" type="button" class="btn btn-secondary">Limpar Venda</button>
+				<div class="text-center">
+					<img id="img_loading" src="../img/loading.gif" width="40px" style="display:none">
+				</div>
 			</div>
-		</div>
 
-		<br>
-		<small>
-			<div id="mensagem" align="center"></div>
-		</small>
-		<input type="hidden" name="cliente" id="cliente_input">
-		<input type="hidden" name="tipo_desconto" id="tipo_desconto" value="reais">
-		<input type="hidden" name="subtotal_venda" id="subtotal_venda">
-		<input type="hidden" name="ids_itens" id="ids_itens">
-		<input type="hidden" name="valor_restante" id="valor_restante">
-	</form>
+			<div id="mensagem" class="text-center mt-2 small"></div>
+			<input type="hidden" name="cliente" id="cliente_input">
+			<input type="hidden" name="tipo_desconto" id="tipo_desconto" value="reais">
+			<input type="hidden" name="subtotal_venda" id="subtotal_venda">
+			<input type="hidden" name="ids_itens" id="ids_itens">
+			<input type="hidden" name="valor_restante" id="valor_restante">
+		</form>
+	</div>
+
+	<div class="pdv-produtos-grid">
+		<?php
+		$query_mat = $pdo->query("SELECT * from materiais order by nome asc");
+		$res_mat = $query_mat->fetchAll(PDO::FETCH_ASSOC);
+		if (count($res_mat) > 0) {
+			foreach ($res_mat as $mat) {
+				$id_prod = $mat['id'];
+				$nome_prod = $mat['nome'];
+		?>
+				<a href="#" class="produto-item" onclick="addVenda(<?php echo $id_prod; ?>, '<?php echo addslashes($nome_prod); ?>')">
+					<div class="r3_counter_box">
+						<div class="stats">
+							<h5><strong><?php echo $nome_prod ?></strong></h5>
+						</div>
+					</div>
+				</a>
+		<?php
+			}
+		} else {
+			echo '<p class="text-muted w-100 text-center">Nenhum produto cadastrado.</p>';
+		}
+		?>
+	</div>
+
 </div>
-
-
 
 
 

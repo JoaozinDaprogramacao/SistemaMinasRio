@@ -1,23 +1,21 @@
 <?php
 $tabela = 'itens_venda';
 require_once("../../../conexao.php");
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
+// ini_set('display_errors', 1); // Descomente para depurar se necessário
+// ini_set('display_startup_errors', 1);
+// error_reporting(E_ALL);
 @session_start();
 $id_usuario = $_SESSION['id'];
 
-// Captura e formata os valores do POST
+// --- Lógica PHP para cálculo de totais (sem alterações) ---
 $desconto = floatval(str_replace(',', '.', $_POST['desconto'] ?? '0'));
 $troco = floatval(str_replace(',', '.', $_POST['troco'] ?? '0'));
 $tipo_desconto = $_POST['tipo_desconto'] ?? '';
 $frete = floatval(str_replace(',', '.', $_POST['frete'] ?? '0'));
 
-// Inicializa o subtotal dos itens
 $subtotal_itens = 0;
 $ids_itens = [];
 
-// Busca os itens temporários do usuário e calcula o subtotal
 $query = $pdo->prepare("SELECT * FROM $tabela WHERE funcionario = :id_usuario AND id_venda = 0 ORDER BY id ASC");
 $query->execute([':id_usuario' => $id_usuario]);
 $res = $query->fetchAll(PDO::FETCH_ASSOC);
@@ -26,31 +24,19 @@ $linhas = @count($res);
 if ($linhas > 0) {
     foreach ($res as $item) {
         $subtotal_itens += $item['total'];
-        $ids_itens[] = $item['id']; // Coleta os IDs dos itens
+        $ids_itens[] = $item['id'];
     }
 }
 
-// Calcula o valor do desconto
-$valor_desconto = 0;
-if ($tipo_desconto == '%') {
-    $valor_desconto = $subtotal_itens * ($desconto / 100);
-} else {
-    $valor_desconto = $desconto;
-}
-
-// Calcula o total final da venda
+$valor_desconto = ($tipo_desconto == '%') ? ($subtotal_itens * ($desconto / 100)) : $desconto;
 $total_final = $subtotal_itens - $valor_desconto + $frete;
-$total_troco = 0;
-
-if ($troco > 0 && $troco > $total_final) {
-    $total_troco = $troco - $total_final;
-}
+$total_troco = ($troco > 0 && $troco > $total_final) ? ($troco - $total_final) : 0;
 ?>
 
 <style>
     .lista-vendas-container {
         overflow-y: auto;
-        max-height: 250px; /* Aumentei um pouco a altura */
+        max-height: 250px;
         width: 100%;
         scrollbar-width: thin;
         scrollbar-color: #888 #f1f1f1;
@@ -59,103 +45,101 @@ if ($troco > 0 && $troco > $total_final) {
         padding-top: 5px;
     }
 
+    /* --- ESTILOS PADRÃO (MOBILE) --- */
     .item-venda {
         display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 10px 5px;
+        flex-direction: column; /* Empilha os elementos verticalmente */
+        gap: 12px; /* Espaço entre as seções */
+        padding: 12px 8px;
         border-bottom: 1px solid #f0f0f0;
     }
     .item-venda:last-child {
         border-bottom: none;
     }
 
-    .item-detalhes {
+    .item-header {
         display: flex;
-        flex-direction: column;
-        gap: 8px; /* Espaço entre o nome e os controles */
+        justify-content: space-between;
+        align-items: flex-start;
     }
 
     .nome-produto {
         font-size: 14px;
-        font-weight: 500;
+        font-weight: 600; /* Mais destaque no mobile */
         color: #333;
+        padding-right: 10px; /* Evita que o texto encoste no botão de remover */
+    }
+    
+    .item-body {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
     }
 
     .controles-produto {
         display: flex;
         align-items: center;
-        gap: 8px; /* Espaço entre os controles */
+        gap: 10px;
     }
     
-    .controle-qtd a {
-        color: #555;
-        text-decoration: none;
-    }
-
-    .controle-qtd big {
-        font-size: 1.2em;
-    }
+    .controle-qtd a { color: #555; text-decoration: none; }
+    .controle-qtd big { font-size: 1.3em; } /* Botões de +/- mais fáceis de tocar */
     
-    .controle-qtd .text-danger:hover {
-        color: #d9534f;
-    }
-    .controle-qtd .text-success:hover {
-        color: #5cb85c;
-    }
+    .controle-preco label { font-size: 11px; color: #666; }
+    .input-preco-produto { width: 85px; height: 30px; font-size: 13px; padding: 5px; }
 
-    .controle-preco label {
-        font-size: 11px;
-        color: #666;
-    }
-
-    .input-preco-produto {
-        width: 90px;
-        height: 28px;
-        font-size: 13px;
-        padding: 5px;
-    }
-
-    .item-acoes {
-        display: flex;
-        align-items: center;
-        gap: 15px;
-    }
-    
     .preco-total-item {
         font-size: 14px;
         font-weight: bold;
         color: #2c2c2c;
-        min-width: 70px;
-        text-align: right;
     }
 
     .btn-remover-item {
         color: #7d1107;
         text-decoration: none;
-        font-size: 1.1em;
+        font-size: 1.3em; /* Ícone maior para facilitar o toque */
+        padding: 0 5px; /* Área de toque maior */
     }
-    .btn-remover-item:hover {
-        color: #a9180b;
-    }
+    .btn-remover-item:hover { color: #a9180b; }
 
-    /* Estilo do Rodapé */
-    .rodape-venda {
-        margin-top: 15px;
-        padding-top: 10px;
-        font-size: 14px;
-        border-top: 1px solid #ccc;
-    }
-    .rodape-linha {
-        display: flex;
-        justify-content: space-between;
-        padding: 2px 5px;
-    }
-    .rodape-linha span:last-child {
-        font-weight: bold;
+    /* Estilo do Rodapé (já era responsivo) */
+    .rodape-venda { margin-top: 15px; padding-top: 10px; font-size: 14px; border-top: 1px solid #ccc; }
+    .rodape-linha { display: flex; justify-content: space-between; padding: 3px 5px; }
+    .rodape-linha span:last-child { font-weight: bold; }
+
+    /* --- ESTILOS PARA TELAS MAIORES (TABLET/DESKTOP) --- */
+    @media (min-width: 768px) {
+        .item-venda {
+            flex-direction: row; /* Volta ao layout horizontal */
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 5px;
+        }
+
+        /* Reorganiza os elementos para ficarem lado a lado */
+        .item-header {
+            flex-grow: 1; /* Faz o nome do produto ocupar o espaço disponível */
+        }
+
+        .item-body {
+            justify-content: flex-end; /* Alinha os controles à direita */
+            gap: 20px; /* Aumenta o espaço entre os elementos */
+        }
+        
+        /* Troca a ordem visual para uma leitura mais natural no desktop */
+        .item-body {
+            order: 3;
+        }
+        .item-header .btn-remover-item {
+            order: 4;
+            padding-left: 15px;
+        }
+        
+        .nome-produto {
+            font-weight: 500; /* Peso da fonte normal para desktop */
+        }
     }
 </style>
-
 
 <div class="lista-vendas-container">
 <?php
@@ -178,12 +162,18 @@ if ($linhas > 0) {
         $totalF = number_format($total, 2, ',', '.');
 ?>
         <div class="item-venda">
-            <div class="item-detalhes">
+            <div class="item-header">
                 <div class="nome-produto"><?php echo $nome_produto; ?></div>
+                <a href="#" onclick="confirmarExclusao(<?php echo $id; ?>)" class="btn-remover-item" title="Remover Item">
+                    <i class="fa fa-times"></i>
+                </a>
+            </div>
+
+            <div class="item-body">
                 <div class="controles-produto">
                     <div class="controle-qtd">
                         <a href="#" onclick="diminuir(<?php echo $id; ?>, <?php echo $quantidade; ?>)"><big><i class="fa fa-minus-circle text-danger"></i></big></a>
-                        <span style="margin: 0 5px;"><?php echo $quantidadeF; ?></span>
+                        <span style="margin: 0 8px; font-size: 14px;"><?php echo $quantidadeF; ?></span>
                         <a href="#" onclick="aumentar(<?php echo $id; ?>, <?php echo $quantidade; ?>)"><big><i class="fa fa-plus-circle text-success"></i></big></a>
                     </div>
                     <div class="controle-preco">
@@ -195,13 +185,7 @@ if ($linhas > 0) {
                                value="<?php echo $valorF; ?>">
                     </div>
                 </div>
-            </div>
-
-            <div class="item-acoes">
                 <span class="preco-total-item">R$ <?php echo $totalF; ?></span>
-                <a href="#" onclick="confirmarExclusao(<?php echo $id; ?>)" class="btn-remover-item" title="Remover Item">
-                    <i class="fa fa-times"></i>
-                </a>
             </div>
         </div>
 <?php
@@ -238,6 +222,7 @@ $ids_itens_json = json_encode(array_values($ids_itens));
 ?>
 
 <script type="text/javascript">
+    // --- Lógica JavaScript (sem alterações, já é funcional) ---
     var itens = <?= $linhas ?>;
     var ids_materiais = <?= $ids_itens_json ?>;
 
@@ -258,7 +243,6 @@ $ids_itens_json = json_encode(array_values($ids_itens));
         $("#btn_venda").hide();
     }
     
-    // NOVA FUNÇÃO PARA CONFIRMAR EXCLUSÃO
     function confirmarExclusao(id) {
         if (confirm("Deseja realmente remover este item?")) {
             excluirItem(id);
@@ -267,82 +251,39 @@ $ids_itens_json = json_encode(array_values($ids_itens));
 
     function excluirItem(id) {
         $.ajax({
-            url: 'paginas/' + pag + "/excluir-item.php",
-            method: 'POST',
-            data: { id },
-            success: function(mensagem) {
-                if (mensagem.trim() == "Excluído com Sucesso") {
-                    listarVendas();
-                } else {
-                    alert(mensagem);
-                }
-            }
+            url: 'paginas/' + pag + "/excluir-item.php", method: 'POST', data: { id },
+            success: function(msg) { (msg.trim() == "Excluído com Sucesso") ? listarVendas() : alert(msg); }
         });
     }
 
     function diminuir(id, quantidade) {
         $.ajax({
-            url: 'paginas/' + pag + "/diminuir.php",
-            method: 'POST',
-            data: { id, quantidade },
-            success: function(mensagem) {
-                if (mensagem.trim() == "Excluído com Sucesso" || mensagem.trim() == "Atualizado com Sucesso") {
-                    listarVendas();
-                } else {
-                    alert(mensagem);
-                }
-            }
+            url: 'paginas/' + pag + "/diminuir.php", method: 'POST', data: { id, quantidade },
+            success: function(msg) { (msg.trim() == "Excluído com Sucesso" || msg.trim() == "Atualizado com Sucesso") ? listarVendas() : alert(msg); }
         });
     }
 
     function aumentar(id, quantidade) {
         $.ajax({
-            url: 'paginas/' + pag + "/aumentar.php",
-            method: 'POST',
-            data: { id, quantidade },
-            success: function(mensagem) {
-                if (mensagem.trim() == "Atualizado com Sucesso") {
-                    listarVendas();
-                } else {
-                    alert(mensagem);
-                }
-            }
+            url: 'paginas/' + pag + "/aumentar.php", method: 'POST', data: { id, quantidade },
+            success: function(msg) { (msg.trim() == "Atualizado com Sucesso") ? listarVendas() : alert(msg); }
         });
     }
 
     $('.input-preco-produto').on('blur', function() {
         var id = $(this).data('id');
-        var preco = $(this).val();
-        
-        preco = preco.replace(/\./g, '').replace(',', '.').replace('R$ ', '');
+        var preco = $(this).val().replace(/\./g, '').replace(',', '.').replace('R$ ', '');
         
         if (preco !== "" && !isNaN(preco)) {
             $.ajax({
-                url: 'paginas/' + pag + "/atualizar-preco.php",
-                method: 'POST',
-                data: { id: id, preco: preco },
-                success: function(response) {
-                    if (response.trim() === "Atualizado com Sucesso") {
-                        listarVendas();
-                    }
-                }
+                url: 'paginas/' + pag + "/atualizar-preco.php", method: 'POST', data: { id: id, preco: preco },
+                success: function(res) { if (res.trim() === "Atualizado com Sucesso") { listarVendas(); } }
             });
         }
     });
 
-    // Funções de máscara permanecem as mesmas
-    function mascara(o,f){
-        v_obj=o;
-        v_fun=f;
-        setTimeout("execmascara()",1);
-    }
-    function execmascara(){
-        v_obj.value=v_fun(v_obj.value);
-    }
-    function moeda(v){
-        v=v.replace(/\D/g,"");
-        v=v.replace(/(\d)(\d{2})$/,"$1,$2");
-        v=v.replace(/(?=(\d{3})+(\D))\B/g,".");
-        return v;
-    }
+    // Funções de máscara (sem alterações)
+    function mascara(o,f){ v_obj=o; v_fun=f; setTimeout("execmascara()",1); }
+    function execmascara(){ v_obj.value=v_fun(v_obj.value); }
+    function moeda(v){ v=v.replace(/\D/g,""); v=v.replace(/(\d)(\d{2})$/,"$1,$2"); v=v.replace(/(?=(\d{3})+(\D))\B/g,"."); return v; }
 </script>
