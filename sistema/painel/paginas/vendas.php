@@ -562,20 +562,35 @@ if (@$_SESSION['modo_edicao_venda'] === true && isset($_SESSION['dados_edicao_ve
 
 <script type="text/javascript">
 	$("#form_venda").submit(function(event) {
-		// ========================================================== //
-		// ===== ADICIONE ESTA LINHA PARA O DIAGNÓSTICO 3 ===== //
-		// ========================================================== //
-		var valorFinalCliente = $('#cliente_input').val();
-		console.log('%c[DIAGNÓSTICO 3] Formulário enviado! O valor final no campo oculto #cliente_input é: "' + valorFinalCliente + '"', 'background: #dc3545; color: #fff; font-size: 16px;');
-		// ========================================================== //
-
 		// Previne o comportamento padrão do formulário
 		event.preventDefault();
+
+		// ========================================================== //
+		// ===== NOVA VALIDAÇÃO DE ITENS OBRIGATÓRIOS ADICIONADA ==== //
+		// ========================================================== //
+		// A variável global 'itens' é sempre atualizada pela função listarVendas()
+		if (itens == 0) {
+			alert('É obrigatório adicionar pelo menos um item para fechar a venda!');
+
+			// Exibe uma mensagem de erro na interface para o usuário
+			$('#mensagem').text('Adicione pelo menos um item para continuar.').addClass('text-danger');
+
+			// PARA a execução do script aqui, impedindo o envio do formulário.
+			return;
+		}
+		// ========================================================== //
+		// ==================== FIM DA VALIDAÇÃO ==================== //
+		// ========================================================== //
+
+		var valorFinalCliente = $('#cliente_input').val();
+		console.log('%c[DIAGNÓSTICO 3] Formulário enviado! O valor final no campo oculto #cliente_input é: "' + valorFinalCliente + '"', 'background: #dc3545; color: #fff; font-size: 16px;');
 
 		// Oculta os botões e exibe o indicador de carregamento
 		$("#btn_venda").hide();
 		$("#btn_limpar").hide();
 		$("#img_loading").show();
+		// Limpa a mensagem de erro, caso houvesse uma da validação anterior
+		$('#mensagem').text('').removeClass('text-danger');
 
 		// Verifica se a data e o cliente são válidos
 		var data = $("#data2").val();
@@ -586,6 +601,7 @@ if (@$_SESSION['modo_edicao_venda'] === true && isset($_SESSION['dados_edicao_ve
 			alert('Você precisa selecionar um cliente para essa venda!');
 			$("#img_loading").hide();
 			$("#btn_venda").show();
+			$("#btn_limpar").show(); // Adicionado para consistência
 			return;
 		}
 
@@ -638,7 +654,7 @@ if (@$_SESSION['modo_edicao_venda'] === true && isset($_SESSION['dados_edicao_ve
 					$("#btn_limpar").show();
 				}
 
-				// Restaura os botões
+				// Restaura os botões (redundante, mas garante que apareçam)
 				$("#btn_venda").show();
 				$("#btn_limpar").show();
 			},
