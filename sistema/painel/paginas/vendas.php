@@ -1,25 +1,79 @@
 <?php
 $pag = 'vendas';
 
-//verificar se ele tem a permissão de estar nessa página
+// Bloco de verificação de permissão (sem alterações)
 if (@$vendas == 'ocultar') {
 	echo "<script>window.location='index.php'</script>";
 	exit();
 }
 
-// Lógica PHP para verificar modo de edição (sem alterações)
+// Garante que temos o ID do usuário logado para as queries
+$id_usuario_logado = $_SESSION['id'];
+
+// ======================================================================= //
+// ===== LÓGICA DE CONTROLE DE ESTADO DO CARRINHO (SOLUÇÃO PRECISA) ====== //
+// ======================================================================= //
+
+// ETAPA 1: VERIFICA SE UMA EDIÇÃO FOI ABANDONADA
+if (!isset($_SESSION['modo_edicao_venda']) && isset($_SESSION['carrinho_em_modo_edicao'])) {
+
+	// Ação: Limpa o carrinho temporário para descartar os itens da edição.
+	$stmt_limpar = $pdo->prepare("DELETE FROM itens_venda WHERE id_venda = 0 AND funcionario = :id_funcionario");
+	$stmt_limpar->execute([':id_funcionario' => $id_usuario_logado]);
+
+	// Ação: Remove a "etiqueta" de edição do carrinho, voltando ao estado normal.
+	unset($_SESSION['carrinho_em_modo_edicao']);
+}
+
+
+// ======================================================================= //
+// ===== LÓGICA PARA INICIAR UMA NOVA EDIÇÃO ============================== //
+// ======================================================================= //
+
+// Inicialização das variáveis padrão para o formulário
 $id_venda_edicao = 0;
 $cliente_edicao = '';
 $desconto_edicao = '';
 $tipo_desconto_edicao = 'reais';
 $frete_edicao = '';
-$valor_pago_edicao = '';
+$valor_pago_edicao = ''; // <-- AQUI ESTÁ A CORREÇÃO!
 $forma_pgto_edicao = '';
 $data_edicao = date('Y-m-d');
 
-if (@$_SESSION['modo_edicao_venda'] === true && isset($_SESSION['dados_edicao_venda'])) {
-	$dados = $_SESSION['dados_edicao_venda'];
+// ETAPA 2: PREPARA O AMBIENTE QUANDO O USUÁRIO CLICA EM "EDITAR"
+if (isset($_SESSION['modo_edicao_venda']) && @$_SESSION['modo_edicao_venda'] === true) {
 
+	$dados = $_SESSION['dados_edicao_venda'];
+	$id_venda_para_editar = $dados['id'];
+
+	try {
+		$pdo->beginTransaction();
+
+		// Limpa qualquer carrinho existente (seja de uma nova venda ou outra)
+		$stmt_limpar = $pdo->prepare("DELETE FROM itens_venda WHERE id_venda = 0 AND funcionario = :id_funcionario");
+		$stmt_limpar->execute([':id_funcionario' => $id_usuario_logado]);
+
+		// Copia os itens da venda original para o carrinho temporário
+		$stmt_copiar = $pdo->prepare(
+			"INSERT INTO itens_venda (material, valor, quantidade, total, funcionario, id_venda) " .
+				"SELECT material, valor, quantidade, total, :id_funcionario, 0 " .
+				"FROM itens_venda WHERE id_venda = :id_venda_origem"
+		);
+		$stmt_copiar->execute([
+			':id_funcionario' => $id_usuario_logado,
+			':id_venda_origem' => $id_venda_para_editar
+		]);
+
+		$pdo->commit();
+
+		// "Etiquetamos" o carrinho
+		$_SESSION['carrinho_em_modo_edicao'] = true;
+	} catch (Exception $e) {
+		$pdo->rollBack();
+		die("ERRO CRÍTICO: Não foi possível preparar a venda para edição. Detalhes: " . $e->getMessage());
+	}
+
+	// Popula as variáveis para preencher o formulário HTML/JS
 	$id_venda_edicao = $dados['id'];
 	$cliente_edicao = $dados['cliente_id'];
 	$desconto_edicao = $dados['desconto'];
@@ -29,6 +83,7 @@ if (@$_SESSION['modo_edicao_venda'] === true && isset($_SESSION['dados_edicao_ve
 	$forma_pgto_edicao = $dados['forma_pagamento_id'];
 	$data_edicao = date('Y-m-d', strtotime($dados['data_venda']));
 
+	// Limpa o gatilho inicial
 	unset($_SESSION['modo_edicao_venda']);
 	unset($_SESSION['dados_edicao_venda']);
 }
@@ -625,6 +680,8 @@ if (@$_SESSION['modo_edicao_venda'] === true && isset($_SESSION['dados_edicao_ve
 				$('#mensagem').removeClass();
 
 				if (msg[0].trim() == "Salvo com Sucesso") {
+					// AÇÃO ADICIONADA: Chama o script para limpar a sessão de edição
+					$.post('paginas/' + pag + '/limpar_sessao_edicao.php');
 					$("#img_loading").hide();
 
 					// Limpa os campos do formulário
@@ -770,6 +827,9 @@ if (@$_SESSION['modo_edicao_venda'] === true && isset($_SESSION['dados_edicao_ve
 			dataType: "html",
 
 			success: function(result) {
+				// AÇÃO ADICIONADA: Chama o script para limpar a sessão de edição
+				$.post('paginas/' + pag + '/limpar_sessao_edicao.php');
+
 				listarVendas();
 			}
 		});
