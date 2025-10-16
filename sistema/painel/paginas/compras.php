@@ -444,9 +444,9 @@ if (@$compras == 'ocultar') {
 
 
 
-
 <script type="text/javascript">
-	var pag = "<?= $pag ?>"
+	var pag = "<?= $pag ?>";
+	var itens = 0; // <<<<<<< 1. DECLARAÇÃO DA VARIÁVEL GLOBAL
 </script>
 <script src="js/ajax.js"></script>
 
@@ -467,46 +467,42 @@ if (@$compras == 'ocultar') {
 </script>
 
 <script type="text/javascript">
-	$("#form-compras").submit(function(event) {
+	$("#form_compra").submit(function(event) {
 		event.preventDefault();
+
+		// VALIDAÇÃO DE ITENS (agora vai funcionar)
+		if (itens == 0) {
+			alert('É obrigatório adicionar pelo menos um item para fechar a compra!');
+			$('#mensagem').text('Adicione pelo menos um item para continuar.').addClass('text-danger');
+			return;
+		}
 
 		var $btn = $('#btn_compra');
 		$btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm"></span> Salvando...');
 
+		$('#mensagem').text('').removeClass('text-danger');
 		var formData = new FormData(this);
 
 		$.ajax({
-			url: 'paginas/compras/salvar.php',
+			url: 'paginas/' + pag + '/salvar.php', // Adicionado pag para consistência
 			type: 'POST',
 			data: formData,
 			cache: false,
 			contentType: false,
 			processData: false,
-
-			success: function(response) {
-				try {
-					if (typeof response === 'string') {
-						response = JSON.parse(response);
-					}
-
-					if (response.status === 'success') {
-						limparCompra();
-						listarCompras();
-						alert(response.mensagem);
-					} else {
-						alert(response.mensagem || 'Erro ao processar a compra');
-					}
-				} catch (e) {
-					console.error("Erro ao processar resposta:", e);
-					alert('Erro ao processar resposta do servidor');
+			success: function(mensagem) {
+				if (mensagem.trim() == "Salvo com Sucesso") {
+					alert('Compra Salva com Sucesso!');
+					limparCompra();
+				} else {
+					alert(mensagem);
 				}
 			},
-			error: function(xhr, status, error) {
-				console.error("Erro na requisição:", error);
-				alert('Erro na requisição: ' + error);
+			error: function() {
+				alert('Ocorreu um erro ao processar a requisição.');
 			}
 		}).always(function() {
-			$btn.prop('disabled', false).html('Salvar');
+			$btn.prop('disabled', false).html('Fechar Compra');
 		});
 	});
 
@@ -576,7 +572,7 @@ if (@$compras == 'ocultar') {
 			dataType: "html",
 
 			success: function(result) {
-				$("#listar_vendas").html(result);
+				$("#listar_compras").html(result);
 			}
 		});
 
