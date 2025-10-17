@@ -482,7 +482,7 @@ if (@$vendas == 'ocultar') {
                 // Verifica se a impressão automática está habilitada
                 var imp_auto = "<?= $impressao_automatica ?>";
                 if (imp_auto == 'Sim') {
-                    window.open('rel/comprovante.php?id=' + msg[1]);
+                    window.open('rel/comprovante_pdf.php?id=' + msg[1]);
                 } else {
                     alert('Venda Efetuada!');
                     $('#div_pgto2').hide();

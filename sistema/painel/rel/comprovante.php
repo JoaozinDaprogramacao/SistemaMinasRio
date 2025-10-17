@@ -1,476 +1,491 @@
-<?php 
+<?php
+// 1. INCLUSÃO E VARIÁVEIS INICIAIS
 include('../../conexao.php');
 
-$id = $_GET['id'];
+// Define um valor padrão para impressao_automatica caso não esteja definido
+// Isso evita um 'Undefined variable' no script de impressão
+$impressao_automatica = @$impressao_automatica ?? 'Não';
 
-//BUSCAR AS INFORMAÇÕES DO PEDIDO
-$query = $pdo->query("SELECT * from receber where id = '$id' ");
-$res = $query->fetchAll(PDO::FETCH_ASSOC);
+// Coleta e sanitiza o ID da URL, garantindo que seja um inteiro
+$id = filter_input(INPUT_GET, 'id', FILTER_SANITIZE_NUMBER_INT);
 
-		$id = $res[0]['id'];
-		$descricao = $res[0]['descricao'];
-		$cliente = $res[0]['cliente'];
-		$valor = $res[0]['valor'];
-		$data_lanc = $res[0]['data_lanc'];
-		$data_venc = $res[0]['vencimento'];
-		$data_pgto = $res[0]['data_pgto'];
-		$usuario_lanc = $res[0]['usuario_lanc'];
-		$usuario_pgto = $res[0]['usuario_pgto'];
-		$frequencia = $res[0]['frequencia'];
-		$saida = $res[0]['forma_pgto'];
-		$arquivo = $res[0]['arquivo'];
-		$pago = $res[0]['pago'];
-		$obs = $res[0]['obs'];
-		$desconto = $res[0]['desconto'];
-		$troco = $res[0]['troco'];
-		$hora = $res[0]['hora'];
-		$cancelada = $res[0]['cancelada'];
-		$garantia_venda = '';
-		$tipo_desconto = $res[0]['tipo_desconto'];
-		$total_venda = $res[0]['subtotal'];
-		$valor_restante = $res[0]['valor_restante'];
-		$forma_pgto_restante = $res[0]['forma_pgto_restante'];
-		$data_restante = $res[0]['data_restante'];
-		$id_ref = $res[0]['id_ref'];
-		$referencia = $res[0]['referencia'];
-		$frete = $res[0]['frete'];
+// Verifica se o ID é válido
+if (!$id) {
+	die('ID de registro inválido ou não fornecido.');
+}
 
-		$data_venc_1 = '';
-		if(@strtotime($data_venc) > @strtotime($data_lanc)){
-			$data_venc_1 = $data_venc;
-		}
+// 2. BUSCAR AS INFORMAÇÕES DO REGISTRO (Tabela receber) - SEGURANÇA: Prepared Statement
+try {
+	$stmt = $pdo->prepare("SELECT * FROM receber WHERE id = :id");
+	// PDO::PARAM_INT garante que o dado seja tratado como um número inteiro
+	$stmt->bindValue(':id', $id, PDO::PARAM_INT);
+	$stmt->execute();
+	$res = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-		$data_venc_2 = '';
-		if(@strtotime($data_restante) > @strtotime($data_lanc)){
-			$data_venc_2 = $data_restante;
-		}
+	if (count($res) === 0) {
+		die('Registro não encontrado na tabela "receber".');
+	}
 
-if($troco > 0){
-	$total_troco = $troco - $valor;
-}else{
-	$total_troco = 0;
+	// Atribuição de variáveis
+	$dados = $res[0];
+
+	// As colunas foram mantidas com os nomes originais (baseado na estrutura fornecida)
+	$id_receber = $dados['id']; // ID real do registro receber
+	$descricao = $dados['descricao'];
+	$cliente = $dados['cliente'];
+	$valor = $dados['valor'];
+	$data_lanc = $dados['data_lanc'];
+	$data_venc = $dados['vencimento']; // coluna 'vencimento'
+	$data_pgto = $dados['data_pgto'];
+	$usuario_lanc = $dados['usuario_lanc'];
+	$usuario_pgto = $dados['usuario_pgto'];
+	$frequencia = $dados['frequencia'];
+
+	// ATENÇÃO: Renomeado para ID da Forma de Pgto para evitar conflito
+	$saida_id = $dados['forma_pgto'];
+
+	$arquivo = $dados['arquivo'];
+	$pago = $dados['pago'];
+	$obs = $dados['obs'];
+	$desconto = $dados['desconto'];
+	$troco = $dados['troco'];
+	$hora = $dados['hora'];
+	$cancelada = $dados['cancelada'];
+	$tipo_desconto = $dados['tipo_desconto'];
+	$total_venda = $dados['subtotal']; // coluna 'subtotal'
+	$valor_restante = $dados['valor_restante'];
+
+	// ATENÇÃO: Assumindo que existe uma coluna ID para a forma de pgto restante
+	$forma_pgto_restante_id = $dados['forma_pgto_restante'];
+
+	$data_restante = $dados['data_restante'];
+	$id_ref = $dados['id_ref'];
+	$referencia = $dados['referencia'];
+	$frete = $dados['frete'];
+
+	// Variável que o código original inicializa como vazia
+	$garantia_venda = '';
+} catch (PDOException $e) {
+	// Tratamento de erro de banco de dados
+	die("Erro ao buscar dados do registro: " . $e->getMessage());
+}
+
+// 3. CÁLCULOS E FORMATAÇÕES DE DATAS E VALORES
+
+// Lógica de Vencimento
+$data_venc_1 = '';
+if (strtotime($data_venc) > strtotime($data_lanc)) {
+	$data_venc_1 = $data_venc;
+}
+
+$data_venc_2 = '';
+if (strtotime($data_restante) > strtotime($data_lanc)) {
+	$data_venc_2 = $data_restante;
+}
+
+// Cálculo de Troco (Assumindo que $troco é o valor recebido)
+$total_troco = 0;
+if ($troco > 0) {
+	// O troco é o valor recebido ($troco) menos o valor final devido ($valor)
+	$total_troco = max(0, floatval($troco) - floatval($valor));
 }
 
 
-$data_venc_1F = implode('/', array_reverse(@explode('-', $data_venc_1)));
-$data_venc_2F = implode('/', array_reverse(@explode('-', $data_venc_2)));
-$data_lancF = implode('/', array_reverse(@explode('-', $data_lanc)));
-$data_vencF = implode('/', array_reverse(@explode('-', $data_venc)));
-$data_pgtoF = implode('/', array_reverse(@explode('-', $data_pgto)));
-$valorF = @number_format($valor, 2, ',', '.');
+// Formatação de Datas (função 'implode/array_reverse/explode' é mantida)
+$data_venc_1F = $data_venc_1 ? implode('/', array_reverse(explode('-', $data_venc_1))) : '';
+$data_venc_2F = $data_venc_2 ? implode('/', array_reverse(explode('-', $data_venc_2))) : '';
+$data_lancF = $data_lanc ? implode('/', array_reverse(explode('-', $data_lanc))) : '';
+$data_vencF = $data_venc ? implode('/', array_reverse(explode('-', $data_venc))) : '';
+$data_pgtoF = $data_pgto ? implode('/', array_reverse(explode('-', $data_pgto))) : '';
 
-$trocoF = @number_format($troco, 2, ',', '.');
-$total_trocoF = @number_format($total_troco, 2, ',', '.');
+// Formatação de Valores
+$valorF = number_format(floatval($valor), 2, ',', '.');
+$trocoF = number_format(floatval($troco), 2, ',', '.');
+$total_trocoF = number_format(floatval($total_troco), 2, ',', '.');
+$total_vendaF = number_format(floatval($total_venda), 2, ',', '.');
+$valor_restanteF = number_format(floatval($valor_restante), 2, ',', '.');
 
-$total_vendaF = @number_format($total_venda, 2, ',', '.');
-$valor_restanteF = @number_format($valor_restante, 2, ',', '.');
+// Desconto Percentual para exibição
+$descontoFP = number_format(floatval($desconto), 0, ',', '.'); // Se for porcentagem, mostra sem casas decimais
 
-$descontoFP = @number_format($desconto, 0, ',', '.');
+$freteF = number_format(floatval($frete), 2, ',', '.');
 
-$freteF = @number_format($frete, 2, ',', '.');
+// 4. BUSCAS DE RELACIONAMENTOS (Clientes, Usuários, Formas de Pgto) - SEGURANÇA: Prepared Statements
 
-$query2 = $pdo->query("SELECT * FROM usuarios where id = '$usuario_lanc'");
-$res2 = $query2->fetchAll(PDO::FETCH_ASSOC);
-if(@count($res2) > 0){
-	$nome_usu_lanc = $res2[0]['nome'];
-}else{
-	$nome_usu_lanc = 'Sem Usuário';
+// BUSCA DADOS DO USUÁRIO LANÇAMENTO
+$nome_usu_lanc = 'Sem Usuário';
+$stmt_usu = $pdo->prepare("SELECT nome FROM usuarios WHERE id = :usuario_lanc");
+$stmt_usu->bindValue(':usuario_lanc', $usuario_lanc, PDO::PARAM_INT);
+$stmt_usu->execute();
+$res_usu = $stmt_usu->fetch(PDO::FETCH_ASSOC);
+if ($res_usu) {
+	$nome_usu_lanc = $res_usu['nome'];
 }
 
 
-$query2 = $pdo->query("SELECT * FROM clientes where id = '$cliente'");
-$res2 = $query2->fetchAll(PDO::FETCH_ASSOC);
-if(@count($res2) > 0){
-	$nome_cliente = $res2[0]['nome'];	
-	$tel_cliente = $res2[0]['telefone'];
-}else{
-	$nome_cliente = 'Não Informado';	
-	$tel_cliente = '';
+// BUSCA DADOS DO CLIENTE (Coluna 'telefone' foi substituída por 'contato')
+$nome_cliente = 'Não Informado';
+$tel_cliente = ''; // Mantemos o nome da variável PHP como $tel_cliente para o restante do código
+$stmt_cli = $pdo->prepare("SELECT nome, contato FROM clientes WHERE id = :cliente");
+$stmt_cli->bindValue(':cliente', $cliente, PDO::PARAM_INT);
+$stmt_cli->execute();
+$res_cli = $stmt_cli->fetch(PDO::FETCH_ASSOC); // Usamos fetch() já que esperamos apenas um resultado
+if ($res_cli) {
+	$nome_cliente = $res_cli['nome'];
+	$tel_cliente = $res_cli['contato']; // CORRIGIDO: O campo agora é 'contato'
 }
 
 
-if($id_ref != "" and $referencia == 'Venda'){
-	$id = $id_ref;
+// LÓGICA DE REFERÊNCIA (MANTIDA)
+if ($id_ref != "" && $referencia == 'Venda') {
+	$id_principal = $id_ref; // Usa o id de referência para buscar os itens da venda
+} else {
+	$id_principal = $id_receber; // Usa o id do registro 'receber'
 }
 
 
-
-$query2 = $pdo->query("SELECT * FROM formas_pgto where id = '$saida'");
-$res2 = $query2->fetchAll(PDO::FETCH_ASSOC);
-if(@count($res2) > 0){
-	$saida = $res2[0]['nome'];
-	
-}else{
-	$saida = '';
-
+// BUSCA NOME DA FORMA DE PAGAMENTO (SAÍDA)
+$saida = '';
+$stmt_saida = $pdo->prepare("SELECT nome FROM formas_pgto WHERE id = :saida_id");
+$stmt_saida->bindValue(':saida_id', $saida_id, PDO::PARAM_INT);
+$stmt_saida->execute();
+$res_saida = $stmt_saida->fetch(PDO::FETCH_ASSOC);
+if ($res_saida) {
+	$saida = $res_saida['nome'];
 }
 
 
-$query2 = $pdo->query("SELECT * FROM formas_pgto where id = '$forma_pgto_restante'");
-$res2 = $query2->fetchAll(PDO::FETCH_ASSOC);
-if(@count($res2) > 0){
-	$forma_pgto_restante = $res2[0]['nome'];
-	
-}else{
-	$forma_pgto_restante = '';
-
+// BUSCA NOME DA FORMA DE PAGAMENTO RESTANTE (ATENÇÃO: USA A COLUNA ASSUMIDA)
+$forma_pgto_restante = '';
+// Se a coluna 'forma_pgto_restante' for realmente um ID, a consulta abaixo funciona:
+$stmt_rest = $pdo->prepare("SELECT nome FROM formas_pgto WHERE id = :forma_pgto_restante_id");
+$stmt_rest->bindValue(':forma_pgto_restante_id', $forma_pgto_restante_id, PDO::PARAM_INT);
+$stmt_rest->execute();
+$res_rest = $stmt_rest->fetch(PDO::FETCH_ASSOC);
+if ($res_rest) {
+	$forma_pgto_restante = $res_rest['nome'];
 }
 
 
+// 5. INÍCIO DO HTML E CSS (MANTIDOS)
 ?>
 
 
 <script src="//cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
 
-<?php if(@$impressao_automatica == 'Sim' and @$_GET['imprimir'] != 'Não'){ ?>
-<script type="text/javascript">
-	$(document).ready(function() {    		
-		window.print();
-		window.close(); 
-	} );
-</script>
+<?php if (@$impressao_automatica == 'Sim' && @$_GET['imprimir'] != 'Não') { ?>
+	<script type="text/javascript">
+		$(document).ready(function() {
+			// Pequeno delay para garantir que a página carregou antes de imprimir
+			setTimeout(function() {
+				window.print();
+				window.close();
+			}, 500);
+		});
+	</script>
 <?php } ?>
 
 
 <style type="text/css">
-	*{
-	margin:0px;
-
-	/*Espaçamento da margem da esquerda e da Direita*/
-	padding:0px;
-	background-color:#ffffff;
-	
-	font-color:#000;	
-	font-family: TimesNewRoman, Geneva, sans-serif; 
-
-}
-.text {
-	&-center { text-align: center; }
-}
-.ttu { text-transform: uppercase;
-	font-weight: bold;
-	font-size: 1.2em;
- }
-
-.printer-ticket {
-	display: table !important;
-	width: 100%;
-
-	/*largura do Campos que vai os textos*/
-	max-width: 400px;
-	font-weight: light;
-	line-height: 1.3em;
-
-	/*Espaçamento da margem da esquerda e da Direita*/
-	padding: 0px;
-	font-family: TimesNewRoman, Geneva, sans-serif; 
-
-	/*tamanho da Fonte do Texto*/
-	font-size: 11px; 
-	font-color:#000;
-	
-	
+	* {
+		margin: 0px;
+		padding: 0px;
+		background-color: #ffffff;
+		font-color: #000;
+		font-family: TimesNewRoman, Geneva, sans-serif;
 	}
-	
-	th { 
+
+	.text {
+		&-center {
+			text-align: center;
+		}
+	}
+
+	.ttu {
+		text-transform: uppercase;
+		font-weight: bold;
+		font-size: 1.2em;
+	}
+
+	.printer-ticket {
+		display: table !important;
+		width: 100%;
+		max-width: 400px;
+		font-weight: light;
+		line-height: 1.3em;
+		padding: 0px;
+		font-family: TimesNewRoman, Geneva, sans-serif;
+		font-size: 11px;
+		font-color: #000;
+	}
+
+	th {
 		font-weight: inherit;
-
-		/*Espaçamento entre as uma linha para outra*/
-		padding:5px;
+		padding: 5px;
 		text-align: center;
-
-		/*largura dos tracinhos entre as linhas*/
 		border-bottom: 1px dashed #000000;
 	}
 
-
-	
-
-	
-	
-		
-	.cor{
-		color:#000000;
+	.cor {
+		color: #000000;
 	}
-	
-	
-	
 
-	/*margem Superior entre as Linhas*/
-	.margem-superior{
-		padding-top:5px;
+	.margem-superior {
+		padding-top: 5px;
 	}
-	
-	
-} 
+
+	}
 </style>
-
-
 
 <table class="printer-ticket">
 
+	<tr>
 		<td>
-		<img style="margin-top: 10px; margin-left: 40px;" id="imag" src="<?php echo $url_sistema ?>img/logo.jpg" width="220px">
-	</td>
+			<img style="margin-top: 10px; margin-left: 40px;" id="imag" src="<?php echo @$url_sistema ?>img/logo.jpg" width="220px">
+		</td>
+	</tr>
 
 	<tr>
 		<th class="ttu" class="title" colspan="3"></th>
 	</tr>
 	<tr style="font-size: 10px">
 		<th colspan="3">
-			<?php echo $endereco_sistema ?> <br />
-			<?php if($cnpj_sistema != ""){ ?> CNPJ <?php echo  $cnpj_sistema  ?><?php } ?><br />
-			Contato: <?php echo $telefone_sistema ?> 
+			<?php echo @$endereco_sistema ?> <br />
+			<?php if (@$cnpj_sistema != "") { ?> CNPJ <?php echo @$cnpj_sistema ?><?php } ?><br />
+				Contato: <?php echo @$telefone_sistema ?>
 		</th>
 	</tr>
 
-	<tr >
-		<th colspan="3">Cliente <?php echo $nome_cliente ?> - Data: <?php echo $data_lancF ?>			
+	<tr>
+		<th colspan="3">Cliente <?php echo $nome_cliente ?> - Data: <?php echo $data_lancF ?>
 			<br>
-			Venda: <?php echo $id ?> - <?php if($cancelada == 'Sim'){
-				echo 'CANCELADA';
-			}else{ ?>Pago : <?php echo $pago ?> <?php } ?>
-			
-			
+			Venda: <?php echo $id_principal ?> - <?php if ($cancelada == 'Sim') {
+														echo 'CANCELADA';
+													} else { ?>Pago : <?php echo $pago ?> <?php } ?>
+
+
 		</th>
 	</tr>
-	
+
 	<tr>
 		<th class="ttu margem-superior" colspan="3">
 			Comprovante de Venda
-			
+
 		</th>
 	</tr>
 	<tr>
-		<?php if($garantia_venda != ''){ ?>
+		<?php if ($garantia_venda != '') { ?>
 			<th colspan="3">
-			Garantia de <?php echo $garantia_venda ?> Dias
+				Garantia de <?php echo $garantia_venda ?> Dias
 			</th>
-		<?php }else{ ?>
-		<th colspan="3">
-			CUMPOM NÃO FISCAL
-			
-		</th>
-	<?php } ?>
+		<?php } else { ?>
+			<th colspan="3">
+				CUMPOM NÃO FISCAL
+
+			</th>
+		<?php } ?>
 	</tr>
-	
+
 	<tbody>
 
-		<?php 
+		<?php
+		// 6. BUSCA ITENS DA VENDA - SEGURANÇA: Prepared Statement
+		$stmt_itens = $pdo->prepare("SELECT * FROM itens_venda WHERE id_venda = :id_venda ORDER BY id ASC");
+		$stmt_itens->bindValue(':id_venda', $id_principal, PDO::PARAM_INT);
+		$stmt_itens->execute();
+		$dados_itens = $stmt_itens->fetchAll(PDO::FETCH_ASSOC);
 
-		$res = $pdo->query("SELECT * from itens_venda where id_venda = '$id' order by id asc");
-		$dados = $res->fetchAll(PDO::FETCH_ASSOC);
-		$linhas = count($dados);
+		$total_itens = 0; // Total bruto dos itens
 
-		$sub_tot;
-		$total_itens = 0;
-		for ($i=0; $i < count($dados); $i++) { 
-			foreach ($dados[$i] as $key => $value) {
-			}
+		if (count($dados_itens) > 0) {
+			foreach ($dados_itens as $item) {
 
-			$id_produto = $dados[$i]['material']; 
-			$quantidade = $dados[$i]['quantidade'];
-			$valor = $dados[$i]['valor'];
-			$total= $dados[$i]['total'];
-			$valor = $dados_p[0]['valor'];
-			$unidade = $dados_p[0]['unidade'];				
-			$total_item = $valor * $quantidade;	
+				$id_produto = $item['material'];
+				$quantidade = $item['quantidade']; // Quantidade de itens (coluna 'quantidade')
+				$valor_unitario = $item['valor']; // Valor unitário (coluna 'valor')
 
-		
-			
-			$res_p = $pdo->query("SELECT * from materiais where id = '$id_produto' ");
-				$dados_p = $res_p->fetchAll(PDO::FETCH_ASSOC);
-				$nome_produto = $dados_p[0]['nome'];				
-
-				$query3 = $pdo->query("SELECT * FROM unidade_medida where id = '$unidade'");
-	$res3 = $query3->fetchAll(PDO::FETCH_ASSOC);
-	if(@count($res3) > 0){
-		$nome_unidade = $res3[0]['nome'];
-	}else{
-		$nome_unidade = 'Sem Unidade';
-	}
-
-	$sigla_unidade = '';
-	$estoque_unit = '';
-	if($nome_unidade == 'Quilogramas' or $nome_unidade == 'Quilo' or $nome_unidade == 'Quilograma' or $nome_unidade == 'KG'){
-		$sigla_unidade = ' (KG)';
-		$estoque_unit = 'Não';
-	}
-
-	if($nome_unidade == 'Metros' or $nome_unidade == 'Metro' or $nome_unidade == 'M' or $nome_unidade == 'm'){
-		$sigla_unidade = ' (m)';
-		$estoque_unit = 'Não';
-	}
-
-	if($nome_unidade == 'Litro' or $nome_unidade == 'Litros' or $nome_unidade == 'L'){
-		$sigla_unidade = ' (L)';
-		$estoque_unit = 'Não';
-	}
+				// CORREÇÃO: Removemos toda a lógica de busca por unidade.
+				// A sigla será padronizada para UNID.
+				$sigla_unidade = ' (UNID)';
 
 
-	//tratamento separa string
-	$qt = explode(".", $quantidade);
-	if($qt[1] > 0){
-		$quantidadeF = $quantidade;		
-	}else{
-		$quantidadeF = $qt[0];
-	}
+				// 7. BUSCA APENAS O NOME DO MATERIAL (Tabela materiais) - SEGURANÇA: Prepared Statement
+				// Não busca mais 'unidade' ou 'valor'
+				$stmt_p = $pdo->prepare("SELECT nome FROM materiais WHERE id = :id_produto");
+				$stmt_p->bindValue(':id_produto', $id_produto, PDO::PARAM_INT);
+				$stmt_p->execute();
+				$dados_p = $stmt_p->fetch(PDO::FETCH_ASSOC);
 
+				$nome_produto = 'Produto Não Encontrado';
 
+				if ($dados_p) {
+					$nome_produto = $dados_p['nome'];
+				}
 
-			?>
+				// Cálculo do total do item 
+				$total_item = floatval($valor_unitario) * floatval($quantidade);
+				$total_itens += $total_item;
 
-			<tr>
-				
+				// 8. FORMATAÇÃO
+
+				// Tratamento de Quantidade (mantido para remover o '.0')
+				$qt = explode(".", $quantidade);
+				// Se a parte decimal for zero, exibe o inteiro; se for maior que zero, formata com duas casas.
+				$quantidadeF = (isset($qt[1]) && floatval($qt[1]) > 0) ? number_format(floatval($quantidade), 2, ',', '.') : $qt[0];
+
+				// Formatação do total do item para exibição
+				$total_itemF = number_format($total_item, 2, ',', '.');
+
+		?>
+
+				<tr>
 					<td colspan="2" width="70%"> <?php echo $quantidadeF ?> <?php echo $sigla_unidade ?> - <?php echo $nome_produto ?>
 					</td>
-				
+					<td align="right">R$ <?php echo $total_itemF; ?></td>
+				</tr>
 
-				<td align="right">R$ <?php
-				@$total_item;
-				@$sub_tot = @$valor;
-				@$sub_total = $sub_tot - $desconto;
-
-				$total_itens += $total_item;
-				
-				$sub_tot = @number_format( $sub_tot , 2, ',', '.');
-				$sub_total = @number_format( $sub_total , 2, ',', '.');
-				$total_item = @number_format( $total_item , 2, ',', '.');
-				$total_itensF = @number_format( $total_itens , 2, ',', '.');
-				// $total = @number_format( $cp1 , 2, ',', '.');
-
-
-				
-
-				echo $total_item ;
-				?></td>
+			<?php } // Fim do foreach
+		} else { ?>
+			<tr>
+				<td colspan="3" align="center">Nenhum item encontrado para esta venda.</td>
 			</tr>
-
 		<?php } ?>
 
-<?php 
-	if($tipo_desconto == '%' and $desconto > 0){
-		$desconto = $total_itens * $desconto / 100;
-	}
-	$descontoF = @number_format($desconto, 2, ',', '.');
- ?>
-				
 	</tbody>
 	<tfoot>
 
+		<?php
+		// **INICIALIZAÇÃO DA VARIÁVEL CORRIGIDA para resolver o Warning!**
+		$desconto_aplicado = 0.00;
+
+		// Recálculo do desconto aplicado (para exibição)
+		if ($tipo_desconto == '%' && floatval($desconto) > 0) {
+			// Desconto percentual baseado no total bruto dos itens
+			$desconto_aplicado = floatval($total_itens) * floatval($desconto) / 100;
+		} else {
+			// Desconto em valor fixo
+			$desconto_aplicado = floatval($desconto);
+		}
+
+		$descontoF = number_format($desconto_aplicado, 2, ',', '.');
+		$total_itensF = number_format($total_itens, 2, ',', '.');
+		?>
+
 		<tfoot>
 
-		<tr>
-			<th class="ttu"  colspan="3" class="cor">
-			<!-- _ _	_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ -->
-			</th>
-		</tr>	
-		
-		<?php if($desconto != 0 and $desconto != ""){ ?>
-		<tr>
-			<td colspan="2">Total</td>
-			<td align="right">R$ <?php echo $total_itensF ?></td>
-		</tr>
-		<?php } ?>
+			<tr>
+				<th class="ttu" colspan="3" class="cor">
+				</th>
+			</tr>
 
-		<?php if($desconto != 0 and $desconto != ""){ ?>
-		<tr>
-			<?php if($tipo_desconto == '%'){ ?>
-				<td colspan="2">Desconto <?php echo $descontoFP ?>%</td>
-			<?php }else{ ?>
-			<td colspan="2">Desconto</td>
-		<?php } ?>			
-			
-			<td align="right">R$ <?php echo $descontoF ?></td>
-		
-		</tr>
-		<?php } ?>
+			<?php if ($desconto_aplicado != 0 || floatval($frete) != 0) { // Exibe Total Bruto se houver descontos ou frete 
+			?>
+				<tr>
+					<td colspan="2">Total Bruto</td>
+					<td align="right">R$ <?php echo $total_itensF ?></td>
+				</tr>
+			<?php } ?>
+
+			<?php if ($desconto_aplicado != 0) { ?>
+				<tr>
+					<?php if ($tipo_desconto == '%') { ?>
+						<td colspan="2">Desconto (<?php echo $descontoFP ?>%)</td>
+					<?php } else { ?>
+						<td colspan="2">Desconto</td>
+					<?php } ?>
+
+					<td align="right">R$ <?php echo $descontoF ?></td>
+
+				</tr>
+			<?php } ?>
 
 
+			<?php if (floatval($frete) != 0) { ?>
+				<tr>
+					<td colspan="2">Frete</td>
+					<td align="right">R$ <?php echo $freteF ?></td>
+				</tr>
+			<?php } ?>
 
-			<?php if($frete != 0 and $frete != ""){ ?>
-		<tr>
-			<td colspan="2">Frete</td>
-			<td align="right">R$ <?php echo $freteF ?></td>
-		</tr>
-		<?php } ?>
 
-		
-		</tr>
+			</tr>
 
 			<tr>
-			<td colspan="2"><b>SubTotal</b></td>
-			<?php if($valor_restante > 0){ ?>
-			<td align="right"><b>R$ <?php echo $total_vendaF ?></b></td>
-		<?php }else{ ?>
-			<td align="right"><b>R$ <?php echo $valorF ?></b></td>
-		<?php } ?>
-		</tr>	
+				<td colspan="2"><b>SubTotal</b></td>
+				<?php
+				// Manter a lógica original de exibição do valor.
+				if (floatval($valor_restante) > 0) { ?>
+					<td align="right"><b>R$ <?php echo $total_vendaF ?></b></td>
+				<?php } else { ?>
+					<td align="right"><b>R$ <?php echo $valorF ?></b></td>
+				<?php } ?>
+			</tr>
 
-		<?php if($troco != 0 and $troco != ""){ ?>
-		<tr>
-			<td colspan="2">Valor Recebido</td>
-			<td align="right">R$ <?php echo $trocoF ?></td>
-		</tr>
-		<?php } ?>
+			<?php if (floatval($troco) != 0) { // Valor recebido (coluna 'troco' da tabela 'receber') 
+			?>
+				<tr>
+					<td colspan="2">Valor Recebido</td>
+					<td align="right">R$ <?php echo $trocoF ?></td>
+				</tr>
+			<?php } ?>
 
-		<?php if($total_troco != 0){ ?>
-		<tr>
-			<td colspan="2">Troco</td>
-			<td align="right">R$ <?php echo $total_trocoF ?></td>
-		</tr>
-		<?php } ?>	
+			<?php if (floatval($total_troco) > 0) { // Troco calculado no PHP 
+			?>
+				<tr>
+					<td colspan="2">Troco</td>
+					<td align="right">R$ <?php echo $total_trocoF ?></td>
+				</tr>
+			<?php } ?>
 
-		<tr>
-			<th class="ttu" colspan="3" class="cor">
-			<!-- _ _	_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ -->
-			</th>
-		</tr>	
-
-
-		<?php if($valor_restante > 0){ ?>
-		
-		<tr>
-			<td colspan="2">Pgto (R$ <?php echo $valorF ?>)</td>
-			<td align="right"> <?php echo $saida ?> <?php echo $data_venc_1F ?></td>
-		</tr>
-
-		<tr>
-			<td colspan="2">Restante (R$ <?php echo $valor_restanteF ?>)</td>
-			<td align="right"> <?php echo $forma_pgto_restante ?> <?php echo $data_venc_2F ?></td>
-		</tr>
-	
-	
-
-	<?php }else{ ?>
-
-		<tr>
-			<td colspan="2">Forma de Pagamento</td>
-			<td align="right"><?php echo $saida ?></td>
-		</tr>
-
-		<?php if($pago == 'Não'){ ?>
-		<tr>
-			<td colspan="2">Data de Pagamento</td>
-			<td align="right"><?php echo $data_vencF ?></td>
-		</tr>
-		<?php } ?>
-
-	<?php } ?>
+			<tr>
+				<th class="ttu" colspan="3" class="cor">
+				</th>
+			</tr>
 
 
-		<tr>
-			<td colspan="2">Vendedor</td>
-			<td align="right"><?php echo $nome_usu_lanc ?></td>
-		</tr>
+			<?php if (floatval($valor_restante) > 0) { ?>
 
-		
+				<tr>
+					<td colspan="2">Pgto (R$ <?php echo $valorF ?>)</td>
+					<td align="right"> <?php echo $saida ?> <?php echo $data_venc_1F ?></td>
+				</tr>
 
-	</tfoot>
+				<tr>
+					<td colspan="2">Restante (R$ <?php echo $valor_restanteF ?>)</td>
+					<td align="right"> <?php echo $forma_pgto_restante ?> <?php echo $data_venc_2F ?></td>
+				</tr>
+
+
+
+			<?php } else { ?>
+
+				<tr>
+					<td colspan="2">Forma de Pagamento</td>
+					<td align="right"><?php echo $saida ?></td>
+				</tr>
+
+				<?php if ($pago == 'Não') { ?>
+					<tr>
+						<td colspan="2">Data de Vencimento</td>
+						<td align="right"><?php echo $data_vencF ?></td>
+					</tr>
+				<?php } ?>
+
+			<?php } ?>
+
+
+			<tr>
+				<td colspan="2">Vendedor</td>
+				<td align="right"><?php echo $nome_usu_lanc ?></td>
+			</tr>
+
+
+
+		</tfoot>
 </table>
 
-<?php if($pago == 'Não'){ ?>
-<br><br>
-<div align="center">__________________________</div>
-<div align="center"><small>Assinatura do Cliente</small></div>
+<?php if ($pago == 'Não') { ?>
+	<br><br>
+	<div align="center">__________________________</div>
+	<div align="center"><small>Assinatura do Cliente</small></div>
 <?php } ?>

@@ -52,7 +52,7 @@ require_once("../../../conexao.php");
                 $('#listar-itens').html(result.tabela_itens);
 
                 // Ajusta o link do botão de imprimir para usar o ID do comprovante correto
-                $('#btn_imprimir').attr('href', 'rel/comprovante.php?id=' + result.id_comprovante);
+                $('#btn_imprimir').attr('href', 'rel/comprovante_pdf.php?id=' + result.id_comprovante);
 
                 // Abre o modal
                 var myModal = new bootstrap.Modal(document.getElementById('modalDetalhes'));

@@ -734,7 +734,8 @@ if (isset($_SESSION['modo_edicao_venda']) && @$_SESSION['modo_edicao_venda'] ===
 					// Verifica se a impressão automática está habilitada
 					var imp_auto = "<?= $impressao_automatica ?>";
 					if (imp_auto == 'Sim') {
-						window.open('rel/comprovante.php?id=' + msg[1]);
+						console.log("aqui");
+						window.open('rel/comprovante_pdf.php?id=' + msg[1]);
 					} else {
 						alert('Venda Efetuada!');
 						$('#div_pgto2').hide();
