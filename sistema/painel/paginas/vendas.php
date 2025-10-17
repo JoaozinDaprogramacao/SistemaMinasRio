@@ -1,4 +1,11 @@
 <?php
+// Certifique-se de que a sessão está iniciada e a conexão com o banco de dados ($pdo) está estabelecida.
+// Este código assume que 'conexao.php' e 'data_atual' estão definidos em um ponto anterior.
+// require_once("conexao.php"); 
+// $data_atual = date('Y-m-d'); 
+// $impressao_automatica = 'Não'; // Exemplo de variável global
+// $vendas = 'permitido'; // Exemplo de variável de permissão
+
 $pag = 'vendas';
 
 // Bloco de verificação de permissão (sem alterações)
@@ -10,20 +17,21 @@ if (@$vendas == 'ocultar') {
 // Garante que temos o ID do usuário logado para as queries
 $id_usuario_logado = $_SESSION['id'];
 
+error_log("[VENDAS] ETAPA 0 -> modo_edicao_venda=" . (isset($_SESSION['modo_edicao_venda']) ? '1' : '0') . " carrinho_em_modo_edicao=" . (isset($_SESSION['carrinho_em_modo_edicao']) ? '1' : '0') . " user={$id_usuario_logado}");
+
+
 // ======================================================================= //
-// ===== LÓGICA DE CONTROLE DE ESTADO DO CARRINHO (SOLUÇÃO PRECISA) ====== //
+// ===== LÓGICA DE CONTROLE DE ESTADO DO CARRINHO (SOLUÇÃO FINAL) ======== //
 // ======================================================================= //
 
-// ETAPA 1: VERIFICA SE UMA EDIÇÃO FOI ABANDONADA
+// ETAPA 1 (DESATIVADA): não limpar automaticamente aqui! Isso apaga o carrinho copiado.
+/*
 if (!isset($_SESSION['modo_edicao_venda']) && isset($_SESSION['carrinho_em_modo_edicao'])) {
-
-	// Ação: Limpa o carrinho temporário para descartar os itens da edição.
-	$stmt_limpar = $pdo->prepare("DELETE FROM itens_venda WHERE id_venda = 0 AND funcionario = :id_funcionario");
-	$stmt_limpar->execute([':id_funcionario' => $id_usuario_logado]);
-
-	// Ação: Remove a "etiqueta" de edição do carrinho, voltando ao estado normal.
-	unset($_SESSION['carrinho_em_modo_edicao']);
+    $stmt_limpar = $pdo->prepare("DELETE FROM itens_venda WHERE id_venda = 0 AND funcionario = :id_funcionario");
+    $stmt_limpar->execute([':id_funcionario' => $id_usuario_logado]);
+    unset($_SESSION['carrinho_em_modo_edicao']);
 }
+*/
 
 
 // ======================================================================= //
@@ -36,7 +44,7 @@ $cliente_edicao = '';
 $desconto_edicao = '';
 $tipo_desconto_edicao = 'reais';
 $frete_edicao = '';
-$valor_pago_edicao = ''; // <-- AQUI ESTÁ A CORREÇÃO!
+$valor_pago_edicao = '';
 $forma_pgto_edicao = '';
 $data_edicao = date('Y-m-d');
 
@@ -49,44 +57,68 @@ if (isset($_SESSION['modo_edicao_venda']) && @$_SESSION['modo_edicao_venda'] ===
 	try {
 		$pdo->beginTransaction();
 
-		// Limpa qualquer carrinho existente (seja de uma nova venda ou outra)
+		// Log para diagnóstico (O que vamos editar?)
+		error_log("[VENDAS] ETAPA 2 - INÍCIO. id_venda_para_editar: " . $id_venda_para_editar);
+
+		// Limpa qualquer carrinho existente deste usuário
 		$stmt_limpar = $pdo->prepare("DELETE FROM itens_venda WHERE id_venda = 0 AND funcionario = :id_funcionario");
 		$stmt_limpar->execute([':id_funcionario' => $id_usuario_logado]);
 
-		// Copia os itens da venda original para o carrinho temporário
+		// Descobre o 'codigo' do carrinho atual
+		$stmt_cod = $pdo->prepare("SELECT codigo FROM itens_venda WHERE id_venda = 0 AND funcionario = :id_funcionario LIMIT 1");
+		$stmt_cod->execute([':id_funcionario' => $id_usuario_logado]);
+		$codigo_carrinho = $stmt_cod->fetchColumn();
+
+		if (!$codigo_carrinho) {
+			$codigo_carrinho = session_id(); // <- troque por $_SESSION['codigo_caixa'] se for o seu padrão
+		}
+
+		// CÓPIA dos itens da venda para o carrinho temporário do usuário
 		$stmt_copiar = $pdo->prepare(
-			"INSERT INTO itens_venda (material, valor, quantidade, total, funcionario, id_venda) " .
-				"SELECT material, valor, quantidade, total, :id_funcionario, 0 " .
-				"FROM itens_venda WHERE id_venda = :id_venda_origem"
+			"INSERT INTO itens_venda (material, valor, quantidade, total, funcionario, id_venda, codigo)
+     SELECT iv.material, iv.valor, iv.quantidade, iv.total, :id_funcionario, 0, :codigo_carrinho
+     FROM itens_venda AS iv
+     WHERE iv.id_venda_real = :id_venda_origem" /* <-- MUDANÇA CRÍTICA AQUI */
 		);
 		$stmt_copiar->execute([
-			':id_funcionario' => $id_usuario_logado,
-			':id_venda_origem' => $id_venda_para_editar
+			':id_funcionario'   => $id_usuario_logado,
+			':codigo_carrinho'  => $codigo_carrinho,
+			':id_venda_origem'  => $id_venda_para_editar
 		]);
+
+		// ADICIONADO LOG PARA VERIFICAR A COPIA
+		$itens_copiados = $stmt_copiar->rowCount(); // Pega o número de linhas afetadas
+		error_log("[VENDAS][EDIT] Tentativa de cópia da Venda ID #{$id_venda_para_editar} para Carrinho. Itens copiados: {$itens_copiados}.");
+
+		$dbg = $pdo->prepare("SELECT COUNT(*) FROM itens_venda WHERE id_venda = 0 AND funcionario = :f");
+		$dbg->execute([':f' => $id_usuario_logado]);
+		error_log("[VENDAS][EDIT] Copiados para carrinho do user {$id_usuario_logado}: " . $dbg->fetchColumn());
 
 		$pdo->commit();
 
 		// "Etiquetamos" o carrinho
 		$_SESSION['carrinho_em_modo_edicao'] = true;
+		error_log("[VENDAS] ETAPA 2 - FIM. Carrinho etiquetado.");
 	} catch (Exception $e) {
 		$pdo->rollBack();
-		die("ERRO CRÍTICO: Não foi possível preparar a venda para edição. Detalhes: " . $e->getMessage());
+		die("ERRO CRÍTICO AO COPIAR ITENS PARA EDIÇÃO: <br>" . $e->getMessage());
 	}
 
-	// Popula as variáveis para preencher o formulário HTML/JS
-	$id_venda_edicao = $dados['id'];
-	$cliente_edicao = $dados['cliente_id'];
-	$desconto_edicao = $dados['desconto'];
+	// Popula variáveis do formulário
+	$id_venda_edicao    = $dados['id'];
+	$cliente_edicao     = $dados['cliente_id'];
+	$desconto_edicao    = $dados['desconto'];
 	$tipo_desconto_edicao = $dados['tipo_desconto'] == '%' ? '%' : 'reais';
-	$frete_edicao = $dados['frete'];
-	$valor_pago_edicao = $dados['valor_pago'];
-	$forma_pgto_edicao = $dados['forma_pagamento_id'];
-	$data_edicao = date('Y-m-d', strtotime($dados['data_venda']));
+	$frete_edicao       = $dados['frete'];
+	$valor_pago_edicao  = $dados['valor_pago'];
+	$forma_pgto_edicao  = $dados['forma_pagamento_id'];
+	$data_edicao        = date('Y-m-d', strtotime($dados['data_venda']));
 
 	// Limpa o gatilho inicial
 	unset($_SESSION['modo_edicao_venda']);
 	unset($_SESSION['dados_edicao_venda']);
 }
+
 ?>
 
 <style>
@@ -279,7 +311,6 @@ if (isset($_SESSION['modo_edicao_venda']) && @$_SESSION['modo_edicao_venda'] ===
 			</div>
 
 			<div id="mensagem" class="text-center mt-2 small"></div>
-			<input type="hidden" name="cliente" id="cliente_input">
 			<input type="hidden" name="tipo_desconto" id="tipo_desconto" value="reais">
 			<input type="hidden" name="subtotal_venda" id="subtotal_venda">
 			<input type="hidden" name="ids_itens" id="ids_itens">
@@ -315,7 +346,6 @@ if (isset($_SESSION['modo_edicao_venda']) && @$_SESSION['modo_edicao_venda'] ===
 
 
 
-<!-- Modal Cliente -->
 <div class="modal fade" id="modalCliente" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
 	<div class="modal-dialog modal-lg">
 		<div class="modal-content">
@@ -492,7 +522,6 @@ if (isset($_SESSION['modo_edicao_venda']) && @$_SESSION['modo_edicao_venda'] ===
 
 
 
-<!-- Modal Quantidade -->
 <div class="modal fade" id="modalQuantidade" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
 	<div class="modal-dialog ">
 		<div class="modal-content">
@@ -526,26 +555,23 @@ if (isset($_SESSION['modo_edicao_venda']) && @$_SESSION['modo_edicao_venda'] ===
 </div>
 
 
-
-
 <script type="text/javascript">
-	function trocarCliente() {
-		$('#cliente_input').val($('#cliente').val());
-	}
-	var pag = "<?= $pag ?>"
-	// Adicione este bloco para sincronizar o select com o input hidden
-	$('#listar_clientes').on('change', '#cliente', function() {
-		// Pega o valor (ID do cliente) do <select> que acabou de ser alterado
-		var clienteIdSelecionado = $(this).val();
+	// Não precisamos mais de input hidden. O <select id="cliente" name="cliente">
+	// será enviado diretamente no FormData por estar vinculado ao form.
 
-		// Atualiza o valor do campo oculto
-		$('#cliente_input').val(clienteIdSelecionado);
+	var pag = "<?= $pag ?>";
 
-		// DEBUG: Linha adicionada para vermos a mágica acontecer
-		console.log('%c[DEBUG PASSO 1] O <select> mudou! ID selecionado: ' + clienteIdSelecionado, 'color: green; font-weight: bold;');
-		console.log('%c[DEBUG PASSO 1] Valor do campo oculto #cliente_input agora é: "' + $('#cliente_input').val() + '"', 'color: blue;');
+	// Observa a seleção do cliente (funciona com ou sem Select2)
+	$(document).on('change', '#cliente', function() {
+		console.log('[CLIENTE] selecionado:', $(this).val());
+	});
+
+	// (Opcional) Log específico do Select2, se estiver ativo
+	$(document).on('select2:select', '#cliente', function(e) {
+		console.log('[CLIENTE][select2:select] selecionado:', $(this).val());
 	});
 </script>
+
 <script src="js/ajax.js"></script>
 
 <script type="text/javascript">
@@ -663,6 +689,16 @@ if (isset($_SESSION['modo_edicao_venda']) && @$_SESSION['modo_edicao_venda'] ===
 		// Cria um objeto FormData com os dados do formulário
 		var formData = new FormData(this);
 
+		// ========================================================== //
+		// ===== DEBUG 3: VERIFICAÇÃO FINAL DO VALOR NO FORM DATA ===== //
+		// ========================================================== //
+		var check_cliente = formData.get('cliente');
+		var check_cliente_input_val = $('#cliente_input').val();
+
+		console.log('%c[DEBUG 3.1 - SUBMIT] Valor do #cliente_input (via .val()): "' + check_cliente_input_val + '"', 'background: #dc3545; color: #fff; font-size: 16px;');
+		console.log('%c[DEBUG 3.2 - SUBMIT] Valor do campo "cliente" no FormData (que será enviado): "' + check_cliente + '"', 'background: #007bff; color: #fff; font-size: 16px;');
+		// ========================================================== //
+
 		// Envia a requisição AJAX
 		$.ajax({
 			url: 'paginas/' + pag + "/salvar.php",
@@ -692,7 +728,8 @@ if (isset($_SESSION['modo_edicao_venda']) && @$_SESSION['modo_edicao_venda'] ===
 					$('#data').val('<?= $data_atual ?>');
 
 					// Atualiza as listas de vendas e produtos
-					listar();
+					// Assumindo que 'listar()' existe para atualizar a lista principal de vendas
+					// listar(); 
 					listarVendas();
 
 					// Verifica se a impressão automática está habilitada
@@ -858,7 +895,8 @@ if (isset($_SESSION['modo_edicao_venda']) && @$_SESSION['modo_edicao_venda'] ===
 				if (mensagem.trim() == "Salvo com Sucesso") {
 
 					$('#btn-fechar-cliente').click();
-					listar();
+					// Assumindo que 'listar()' existe para atualizar a lista principal
+					// listar(); 
 					listarClientes('1');
 
 
@@ -900,12 +938,20 @@ if (isset($_SESSION['modo_edicao_venda']) && @$_SESSION['modo_edicao_venda'] ===
 				// 2. Inicialize o Select2 no novo <select> que acabamos de criar
 				$('#cliente').select2();
 
+				$('#cliente').on('change', function() {
+					// Se quiser logar/validar
+					console.log('[CLIENTE] selecionado:', $(this).val());
+				});
+
+
 				// 3. LEIA o valor que está de fato selecionado no <select> após a carga
 				var clienteSelecionado = $('#cliente').val();
 
 				// 4. ATUALIZE O CAMPO OCULTO IMEDIATAMENTE!
 				// Esta é a correção definitiva.
 				$('#cliente_input').val(clienteSelecionado);
+				console.log('%c[DEBUG 1.1 - PÓS-AJAX] Valor lido do SELECT #cliente: "' + $('#cliente').val() + '"', 'color: orange; font-weight: bold;');
+				console.log('%c[DEBUG 1.2 - PÓS-AJAX] Valor no HIDDEN #cliente_input: "' + $('#cliente_input').val() + '"', 'color: purple; font-weight: bold;');
 
 				// Log de confirmação final
 				console.log('%c[PÓS-AJAX] O campo oculto #cliente_input foi FORÇADO para o valor: "' + $('#cliente_input').val() + '"', 'color: purple; font-weight: bold;');
@@ -1037,4 +1083,365 @@ if (isset($_SESSION['modo_edicao_venda']) && @$_SESSION['modo_edicao_venda'] ===
 			limpa_formulário_cep();
 		}
 	};
+</script>
+
+<?php
+// require_once("../../../conexao.php"); // Presumindo que já está conectado
+$tabela = 'itens_venda';
+// @session_start(); // Presumindo que a sessão já está iniciada
+$id_usuario = $_SESSION['id'];
+
+
+// --- Lógica de totais (sem alterações) ---
+$desconto = floatval(str_replace(',', '.', $_POST['desconto'] ?? '0'));
+$troco = floatval(str_replace(',', '.', $_POST['troco'] ?? '0'));
+$tipo_desconto = $_POST['tipo_desconto'] ?? '';
+$frete = floatval(str_replace(',', '.', $_POST['frete'] ?? '0'));
+$subtotal_itens = 0;
+$ids_itens = [];
+
+// Seleciona APENAS os itens do carrinho (id_venda = 0) do funcionário logado
+$query = $pdo->prepare("SELECT * FROM $tabela WHERE funcionario = :id_usuario AND id_venda = 0 ORDER BY id ASC");
+$query->execute([':id_usuario' => $id_usuario]);
+$res = $query->fetchAll(PDO::FETCH_ASSOC);
+$linhas = @count($res);
+
+if ($linhas > 0) {
+	foreach ($res as $item) {
+		$subtotal_itens += $item['total'];
+		$ids_itens[] = $item['id'];
+	}
+}
+$valor_desconto = ($tipo_desconto == '%') ? ($subtotal_itens * ($desconto / 100)) : $desconto;
+$total_final = $subtotal_itens - $valor_desconto + $frete;
+$total_troco = ($troco > 0 && $troco > $total_final) ? ($troco - $total_final) : 0;
+?>
+
+<style>
+	/* SEUS ESTILOS CSS (sem alterações) */
+	.lista-vendas-container {
+		overflow-y: auto;
+		max-height: 250px;
+		width: 100%;
+		scrollbar-width: thin;
+		scrollbar-color: #888 #f1f1f1;
+		border-top: 1px solid #eee;
+		border-bottom: 1px solid #eee;
+		padding-top: 5px;
+	}
+
+	.item-venda {
+		display: flex;
+		flex-direction: column;
+		gap: 12px;
+		padding: 12px 8px;
+		border-bottom: 1px solid #f0f0f0;
+	}
+
+	.item-venda:last-child {
+		border-bottom: none;
+	}
+
+	.item-header {
+		display: flex;
+		justify-content: space-between;
+		align-items: flex-start;
+	}
+
+	.nome-produto {
+		font-size: 14px;
+		font-weight: 600;
+		color: #333;
+		padding-right: 10px;
+	}
+
+	.item-body {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+	}
+
+	.controles-produto {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+	}
+
+	.controle-qtd a {
+		color: #555;
+		text-decoration: none;
+	}
+
+	.controle-qtd big {
+		font-size: 1.3em;
+	}
+
+	.controle-preco label {
+		font-size: 11px;
+		color: #666;
+	}
+
+	.input-preco-produto {
+		width: 85px;
+		height: 30px;
+		font-size: 13px;
+		padding: 5px;
+	}
+
+	.preco-total-item {
+		font-size: 14px;
+		font-weight: bold;
+		color: #2c2c2c;
+	}
+
+	.btn-remover-item {
+		color: #7d1107;
+		text-decoration: none;
+		font-size: 1.3em;
+		padding: 0 5px;
+	}
+
+	.btn-remover-item:hover {
+		color: #a9180b;
+	}
+
+	.rodape-venda {
+		margin-top: 15px;
+		padding-top: 10px;
+		font-size: 14px;
+		border-top: 1px solid #ccc;
+	}
+
+	.rodape-linha {
+		display: flex;
+		justify-content: space-between;
+		padding: 3px 5px;
+	}
+
+	.rodape-linha span:last-child {
+		font-weight: bold;
+	}
+
+	@media (min-width: 768px) {
+		.item-venda {
+			flex-direction: row;
+			justify-content: space-between;
+			align-items: center;
+			padding: 10px 5px;
+		}
+
+		.item-header {
+			flex-grow: 1;
+		}
+
+		.item-body {
+			justify-content: flex-end;
+			gap: 20px;
+		}
+
+		.item-body {
+			order: 3;
+		}
+
+		.item-header .btn-remover-item {
+			order: 4;
+			padding-left: 15px;
+		}
+
+		.nome-produto {
+			font-weight: 500;
+		}
+	}
+</style>
+
+<div class="lista-vendas-container">
+	<?php
+	if ($linhas > 0) {
+		foreach ($res as $item) {
+			$id = $item['id'];
+			$material_id = $item['material'];
+			$valor = $item['valor'];
+			$quantidade = $item['quantidade'];
+			$total = $item['total'];
+
+			// ========================================================================//
+			// ===== CORREÇÃO PARA GARANTIR QUE O NOME DO PRODUTO É ENCONTRADO ======= //
+			// ========================================================================//
+			// Buscamos o nome na tabela correta 'materiais'
+			$query2 = $pdo->prepare("SELECT nome FROM materiais WHERE id = :material_id");
+			$query2->execute([':material_id' => $material_id]);
+			$nome_produto = $query2->fetchColumn();
+
+			// Se falhar (produto não encontrado/excluído), defina um nome substituto
+			if ($nome_produto === false) {
+				$nome_produto = "[Material Excluído], id: " . strval($material_id);
+			}
+
+			// Formatação
+			$quantidadeF = (fmod($quantidade, 1) == 0) ? intval($quantidade) : $quantidade;
+			$valorF = number_format($valor, 2, ',', '.');
+			$totalF = number_format($total, 2, ',', '.');
+	?>
+			<div class="item-venda">
+				<div class="item-header">
+					<div class="nome-produto"><?php echo htmlspecialchars($nome_produto); ?></div>
+					<a href="#" onclick="confirmarExclusao(<?php echo $id; ?>)" class="btn-remover-item" title="Remover Item">
+						<i class="fa fa-times"></i>
+					</a>
+				</div>
+
+				<div class="item-body">
+					<div class="controles-produto">
+						<div class="controle-qtd">
+							<a href="#" onclick="diminuir(<?php echo $id; ?>, <?php echo $quantidade; ?>)"><big><i class="fa fa-minus-circle text-danger"></i></big></a>
+							<span style="margin: 0 8px; font-size: 14px;"><?php echo $quantidadeF; ?></span>
+							<a href="#" onclick="aumentar(<?php echo $id; ?>, <?php echo $quantidade; ?>)"><big><i class="fa fa-plus-circle text-success"></i></big></a>
+						</div>
+						<div class="controle-preco">
+							<label for="preco-produto-<?php echo $id; ?>">Unit.:</label>
+							<input type="text" id="preco-produto-<?php echo $id; ?>"
+								class="form-control input-preco-produto"
+								data-id="<?php echo $id; ?>"
+								onkeyup="mascara(this, 'moeda')"
+								value="<?php echo $valorF; ?>">
+						</div>
+					</div>
+					<span class="preco-total-item">R$ <?php echo $totalF; ?></span>
+				</div>
+			</div>
+	<?php
+		}
+	} else {
+		echo '<p style="text-align:center; color:#888; padding: 20px 0;">Nenhum item adicionado.</p>';
+	}
+	?>
+</div>
+
+<?php
+$total_finalF = number_format($total_final, 2, ',', '.');
+$total_trocoF = number_format($total_troco, 2, ',', '.');
+?>
+<div class="rodape-venda">
+	<div class="rodape-linha">
+		<span>Itens:</span>
+		<span><?php echo $linhas; ?></span>
+	</div>
+	<div class="rodape-linha" style="font-size: 16px;">
+		<span>Total da Venda:</span>
+		<span>R$ <?php echo $total_finalF; ?></span>
+	</div>
+	<?php if ($total_troco > 0): ?>
+		<div class="rodape-linha text-primary" style="margin-top: 5px;">
+			<span>Troco:</span>
+			<span>R$ <?php echo $total_trocoF; ?></span>
+		</div>
+	<?php endif; ?>
+</div>
+
+<?php
+$ids_itens_json = json_encode(array_values($ids_itens));
+?>
+
+<script type="text/javascript">
+	// --- Lógica JavaScript (sem alterações) ---
+	var itens = <?= $linhas ?>;
+	var ids_materiais = <?= $ids_itens_json ?>;
+	$('#ids_itens').val(ids_materiais.join(','));
+	$('#subtotal_venda').val('<?= $total_final ?>');
+	if ($('#valor_pago').val() === '') {
+		// Inicializa o valor pago com o total, se estiver vazio
+		$('#valor_pago').val('<?= number_format($total_final, 2, ',', '.') ?>');
+	}
+	FormaPg();
+	if (itens > 0) {
+		$("#btn_limpar").show();
+		$("#btn_venda").show();
+	} else {
+		$("#btn_limpar").hide();
+		$("#btn_venda").hide();
+	}
+
+	function confirmarExclusao(id) {
+		if (confirm("Deseja realmente remover este item?")) {
+			excluirItem(id);
+		}
+	}
+
+	function excluirItem(id) {
+		$.ajax({
+			url: 'paginas/' + pag + "/excluir-item.php",
+			method: 'POST',
+			data: {
+				id
+			},
+			success: function(msg) {
+				(msg.trim() == "Excluído com Sucesso") ? listarVendas(): alert(msg);
+			}
+		});
+	}
+
+	function diminuir(id, quantidade) {
+		$.ajax({
+			url: 'paginas/' + pag + "/diminuir.php",
+			method: 'POST',
+			data: {
+				id,
+				quantidade
+			},
+			success: function(msg) {
+				(msg.trim() == "Excluído com Sucesso" || msg.trim() == "Atualizado com Sucesso") ? listarVendas(): alert(msg);
+			}
+		});
+	}
+
+	function aumentar(id, quantidade) {
+		$.ajax({
+			url: 'paginas/' + pag + "/aumentar.php",
+			method: 'POST',
+			data: {
+				id,
+				quantidade
+			},
+			success: function(msg) {
+				(msg.trim() == "Atualizado com Sucesso") ? listarVendas(): alert(msg);
+			}
+		});
+	}
+	$('.input-preco-produto').on('blur', function() {
+		var id = $(this).data('id');
+		var preco = $(this).val().replace(/\./g, '').replace(',', '.').replace('R$ ', '');
+		if (preco !== "" && !isNaN(preco)) {
+			$.ajax({
+				url: 'paginas/' + pag + "/atualizar-preco.php",
+				method: 'POST',
+				data: {
+					id: id,
+					preco: preco
+				},
+				success: function(res) {
+					if (res.trim() === "Atualizado com Sucesso") {
+						listarVendas();
+					}
+				}
+			});
+		}
+	});
+	// Funções de máscara de moeda (certifique-se de ter a função 'mascara_decimal' também)
+	function mascara(o, f) {
+		v_obj = o;
+		v_fun = f;
+		setTimeout("execmascara()", 1);
+	}
+
+	function execmascara() {
+		v_obj.value = v_fun(v_obj.value);
+	}
+
+	function moeda(v) {
+		v = v.replace(/\D/g, "");
+		v = v.replace(/(\d)(\d{2})$/, "$1,$2");
+		v = v.replace(/(?=(\d{3})+(\D))\B/g, ".");
+		return v;
+	}
+	// function mascara_decimal(id) { /* Implemente ou certifique-se que está em js/ajax.js */ }
 </script>

@@ -1,18 +1,15 @@
 <?php
 $tabela = 'itens_venda';
 require_once("../../../conexao.php");
-// ini_set('display_errors', 1); // Descomente para depurar se necessário
-// ini_set('display_startup_errors', 1);
-// error_reporting(E_ALL);
 @session_start();
 $id_usuario = $_SESSION['id'];
 
-// --- Lógica PHP para cálculo de totais (sem alterações) ---
+
+// --- Lógica de totais (sem alterações) ---
 $desconto = floatval(str_replace(',', '.', $_POST['desconto'] ?? '0'));
 $troco = floatval(str_replace(',', '.', $_POST['troco'] ?? '0'));
 $tipo_desconto = $_POST['tipo_desconto'] ?? '';
 $frete = floatval(str_replace(',', '.', $_POST['frete'] ?? '0'));
-
 $subtotal_itens = 0;
 $ids_itens = [];
 
@@ -27,117 +24,37 @@ if ($linhas > 0) {
         $ids_itens[] = $item['id'];
     }
 }
-
 $valor_desconto = ($tipo_desconto == '%') ? ($subtotal_itens * ($desconto / 100)) : $desconto;
 $total_final = $subtotal_itens - $valor_desconto + $frete;
 $total_troco = ($troco > 0 && $troco > $total_final) ? ($troco - $total_final) : 0;
 ?>
 
 <style>
-    .lista-vendas-container {
-        overflow-y: auto;
-        max-height: 250px;
-        width: 100%;
-        scrollbar-width: thin;
-        scrollbar-color: #888 #f1f1f1;
-        border-top: 1px solid #eee;
-        border-bottom: 1px solid #eee;
-        padding-top: 5px;
-    }
-
-    /* --- ESTILOS PADRÃO (MOBILE) --- */
-    .item-venda {
-        display: flex;
-        flex-direction: column; /* Empilha os elementos verticalmente */
-        gap: 12px; /* Espaço entre as seções */
-        padding: 12px 8px;
-        border-bottom: 1px solid #f0f0f0;
-    }
-    .item-venda:last-child {
-        border-bottom: none;
-    }
-
-    .item-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: flex-start;
-    }
-
-    .nome-produto {
-        font-size: 14px;
-        font-weight: 600; /* Mais destaque no mobile */
-        color: #333;
-        padding-right: 10px; /* Evita que o texto encoste no botão de remover */
-    }
-    
-    .item-body {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-
-    .controles-produto {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-    }
-    
+    /* SEUS ESTILOS CSS (sem alterações) */
+    .lista-vendas-container { overflow-y: auto; max-height: 250px; width: 100%; scrollbar-width: thin; scrollbar-color: #888 #f1f1f1; border-top: 1px solid #eee; border-bottom: 1px solid #eee; padding-top: 5px; }
+    .item-venda { display: flex; flex-direction: column; gap: 12px; padding: 12px 8px; border-bottom: 1px solid #f0f0f0; }
+    .item-venda:last-child { border-bottom: none; }
+    .item-header { display: flex; justify-content: space-between; align-items: flex-start; }
+    .nome-produto { font-size: 14px; font-weight: 600; color: #333; padding-right: 10px; }
+    .item-body { display: flex; justify-content: space-between; align-items: center; }
+    .controles-produto { display: flex; align-items: center; gap: 10px; }
     .controle-qtd a { color: #555; text-decoration: none; }
-    .controle-qtd big { font-size: 1.3em; } /* Botões de +/- mais fáceis de tocar */
-    
+    .controle-qtd big { font-size: 1.3em; }
     .controle-preco label { font-size: 11px; color: #666; }
     .input-preco-produto { width: 85px; height: 30px; font-size: 13px; padding: 5px; }
-
-    .preco-total-item {
-        font-size: 14px;
-        font-weight: bold;
-        color: #2c2c2c;
-    }
-
-    .btn-remover-item {
-        color: #7d1107;
-        text-decoration: none;
-        font-size: 1.3em; /* Ícone maior para facilitar o toque */
-        padding: 0 5px; /* Área de toque maior */
-    }
+    .preco-total-item { font-size: 14px; font-weight: bold; color: #2c2c2c; }
+    .btn-remover-item { color: #7d1107; text-decoration: none; font-size: 1.3em; padding: 0 5px; }
     .btn-remover-item:hover { color: #a9180b; }
-
-    /* Estilo do Rodapé (já era responsivo) */
     .rodape-venda { margin-top: 15px; padding-top: 10px; font-size: 14px; border-top: 1px solid #ccc; }
     .rodape-linha { display: flex; justify-content: space-between; padding: 3px 5px; }
     .rodape-linha span:last-child { font-weight: bold; }
-
-    /* --- ESTILOS PARA TELAS MAIORES (TABLET/DESKTOP) --- */
     @media (min-width: 768px) {
-        .item-venda {
-            flex-direction: row; /* Volta ao layout horizontal */
-            justify-content: space-between;
-            align-items: center;
-            padding: 10px 5px;
-        }
-
-        /* Reorganiza os elementos para ficarem lado a lado */
-        .item-header {
-            flex-grow: 1; /* Faz o nome do produto ocupar o espaço disponível */
-        }
-
-        .item-body {
-            justify-content: flex-end; /* Alinha os controles à direita */
-            gap: 20px; /* Aumenta o espaço entre os elementos */
-        }
-        
-        /* Troca a ordem visual para uma leitura mais natural no desktop */
-        .item-body {
-            order: 3;
-        }
-        .item-header .btn-remover-item {
-            order: 4;
-            padding-left: 15px;
-        }
-        
-        .nome-produto {
-            font-weight: 500; /* Peso da fonte normal para desktop */
-        }
+        .item-venda { flex-direction: row; justify-content: space-between; align-items: center; padding: 10px 5px; }
+        .item-header { flex-grow: 1; }
+        .item-body { justify-content: flex-end; gap: 20px; }
+        .item-body { order: 3; }
+        .item-header .btn-remover-item { order: 4; padding-left: 15px; }
+        .nome-produto { font-weight: 500; }
     }
 </style>
 
@@ -151,10 +68,19 @@ if ($linhas > 0) {
         $quantidade = $item['quantidade'];
         $total = $item['total'];
 
-        // Busca o nome do material
+        // ========================================================================//
+        // ===== AQUI ESTÁ A CORREÇÃO FINAL E DEFENSIVA =========================== //
+        // ========================================================================//
+        // Buscamos o nome na tabela correta 'materiais'
         $query2 = $pdo->prepare("SELECT nome FROM materiais WHERE id = :material_id");
         $query2->execute([':material_id' => $material_id]);
         $nome_produto = $query2->fetchColumn();
+        
+        // Verificamos se a busca falhou (produto não encontrado/excluído)
+        if ($nome_produto === false) {
+            // Se falhou, definimos um nome substituto para exibir na tela
+            $nome_produto = "[Material Excluído], material id: " . strval($material_id);
+        }
         
         // Formatação
         $quantidadeF = (fmod($quantidade, 1) == 0) ? intval($quantidade) : $quantidade;
@@ -163,7 +89,7 @@ if ($linhas > 0) {
 ?>
         <div class="item-venda">
             <div class="item-header">
-                <div class="nome-produto"><?php echo $nome_produto; ?></div>
+                <div class="nome-produto"><?php echo htmlspecialchars($nome_produto); ?></div>
                 <a href="#" onclick="confirmarExclusao(<?php echo $id; ?>)" class="btn-remover-item" title="Remover Item">
                     <i class="fa fa-times"></i>
                 </a>
@@ -222,19 +148,15 @@ $ids_itens_json = json_encode(array_values($ids_itens));
 ?>
 
 <script type="text/javascript">
-    // --- Lógica JavaScript (sem alterações, já é funcional) ---
+    // --- Lógica JavaScript (sem alterações) ---
     var itens = <?= $linhas ?>;
     var ids_materiais = <?= $ids_itens_json ?>;
-
     $('#ids_itens').val(ids_materiais.join(','));
     $('#subtotal_venda').val('<?= $total_final ?>');
-    
     if ($('#valor_pago').val() === '') {
         $('#valor_pago').val('<?= number_format($total_final, 2, ',', '.') ?>');
     }
-
     FormaPg();
-    
     if (itens > 0) {
         $("#btn_limpar").show();
         $("#btn_venda").show();
@@ -242,38 +164,32 @@ $ids_itens_json = json_encode(array_values($ids_itens));
         $("#btn_limpar").hide();
         $("#btn_venda").hide();
     }
-    
     function confirmarExclusao(id) {
         if (confirm("Deseja realmente remover este item?")) {
             excluirItem(id);
         }
     }
-
     function excluirItem(id) {
         $.ajax({
             url: 'paginas/' + pag + "/excluir-item.php", method: 'POST', data: { id },
             success: function(msg) { (msg.trim() == "Excluído com Sucesso") ? listarVendas() : alert(msg); }
         });
     }
-
     function diminuir(id, quantidade) {
         $.ajax({
             url: 'paginas/' + pag + "/diminuir.php", method: 'POST', data: { id, quantidade },
             success: function(msg) { (msg.trim() == "Excluído com Sucesso" || msg.trim() == "Atualizado com Sucesso") ? listarVendas() : alert(msg); }
         });
     }
-
     function aumentar(id, quantidade) {
         $.ajax({
             url: 'paginas/' + pag + "/aumentar.php", method: 'POST', data: { id, quantidade },
             success: function(msg) { (msg.trim() == "Atualizado com Sucesso") ? listarVendas() : alert(msg); }
         });
     }
-
     $('.input-preco-produto').on('blur', function() {
         var id = $(this).data('id');
         var preco = $(this).val().replace(/\./g, '').replace(',', '.').replace('R$ ', '');
-        
         if (preco !== "" && !isNaN(preco)) {
             $.ajax({
                 url: 'paginas/' + pag + "/atualizar-preco.php", method: 'POST', data: { id: id, preco: preco },
@@ -281,8 +197,6 @@ $ids_itens_json = json_encode(array_values($ids_itens));
             });
         }
     });
-
-    // Funções de máscara (sem alterações)
     function mascara(o,f){ v_obj=o; v_fun=f; setTimeout("execmascara()",1); }
     function execmascara(){ v_obj.value=v_fun(v_obj.value); }
     function moeda(v){ v=v.replace(/\D/g,""); v=v.replace(/(\d)(\d{2})$/,"$1,$2"); v=v.replace(/(?=(\d{3})+(\D))\B/g,"."); return v; }
