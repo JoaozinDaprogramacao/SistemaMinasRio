@@ -4,7 +4,6 @@ require_once("../../../conexao.php");
 @session_start();
 $id_usuario = $_SESSION['id'];
 
-
 // --- Lógica de totais (sem alterações) ---
 $desconto = floatval(str_replace(',', '.', $_POST['desconto'] ?? '0'));
 $troco = floatval(str_replace(',', '.', $_POST['troco'] ?? '0'));
