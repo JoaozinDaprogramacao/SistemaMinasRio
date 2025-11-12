@@ -81,6 +81,9 @@ if (@count($res1) > 0) {
 
 <head>
 
+	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+
+	<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 	<meta charset="UTF-8">
 	<meta name='viewport' content='width=device-width, initial-scale=1.0, user-scalable=0'>
@@ -122,7 +125,7 @@ if (@count($res1) > 0) {
 
 
 	<!-- Page -->
-		<div class="page">
+	<div class="page">
 
 		<div>
 			<!-- APP-HEADER1 -->
@@ -383,7 +386,7 @@ if (@count($res1) > 0) {
 									<span class="side-menu__label" style="margin-left: 15px">Cadastros</span><i class="angle fe fe-chevron-right"></i></a>
 								<ul class="slide-menu">
 
-									
+
 									<li class="<?php echo @$descricao_banco ?>"><a class="slide-item" href="descricao_banco"> Descrição Banco</a></li>
 
 									<li class="<?php echo @$formas_pgto ?>"><a class="slide-item" href="formas_pgto"> Formas Pgto</a></li>
@@ -433,7 +436,7 @@ if (@count($res1) > 0) {
 								</ul>
 							</li>
 
-							<li class="slide <?php echo @$menu_produtos ?>">
+							<li class="slide <?php echo @$menu_vendas ?>">
 								<a class="side-menu__item" data-bs-toggle="slide" href="javascript:void(0);">
 									<i class="fa fa-archive" aria-hidden="true"></i>
 									<span class="side-menu__label" style="margin-left: 15px">Materials</span><i class="angle fe fe-chevron-right"></i></a>
@@ -448,10 +451,21 @@ if (@count($res1) > 0) {
 									<li class="<?php echo @$entradas ?> "><a class="slide-item" href="entradas"> Entrada de Materiais</a></li>
 
 									<li class="<?php echo @$saidas ?> "><a class="slide-item" href="saidas"> Saída de Materiais</a></li>
-									
+
 									<li class="<?php echo @$vendas ?> "><a class="slide-item" href="vendas"> Vendas</a></li>
-								
+
 									<li class="<?php echo @$compras ?> "><a class="slide-item" href="compras"> Compras</a></li>
+								</ul>
+							</li>
+
+							<li class="slide <?php echo @$menu_vendas_detalhes ?>">
+								<a class="side-menu__item" data-bs-toggle="slide" href="javascript:void(0);">
+									<i class="fa fa-archive" aria-hidden="true"></i>
+									<span class="side-menu__label" style="margin-left: 15px">Vendas Detalhes</span><i class="angle fe fe-chevron-right"></i></a>
+								<ul class="slide-menu">
+									<li class="<?php echo @$vendas_detalhes ?> "><a class="slide-item" href="vendas_detalhes"> Vendas</a></li>
+
+									<li class="<?php echo @$compras_detalhes ?> "><a class="slide-item" href="compras_detalhes"> Compras</a></li>
 								</ul>
 							</li>
 

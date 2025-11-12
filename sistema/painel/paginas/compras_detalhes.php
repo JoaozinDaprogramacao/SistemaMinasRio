@@ -1,243 +1,201 @@
 <?php
-$pag = 'compras';
+$pag = 'vendas';
 
 //verificar se ele tem a permissão de estar nessa página
-if (@$compras == 'ocultar') {
+if (@$vendas == 'ocultar') {
 	echo "<script>window.location='index.php'</script>";
 	exit();
 }
+
 ?>
+<div style="width:78%; float:left;">
+	<div class="row" style="font-family: 'PT Sans', sans-serif;">
+		<?php
+		// Consulta para buscar todos os produtos diretamente
+		$query = $pdo->query("SELECT * from materiais");
+		$res = $query->fetchAll(PDO::FETCH_ASSOC);
+		$linhas = @count($res);
 
-<style>
-	/* --- ESTILOS PADRÃO (MOBILE) --- */
-	.pdv-container {
-		display: flex;
-		flex-direction: column;
-		/* Empilha os blocos verticalmente no mobile */
-		gap: 20px;
-	}
+		if ($linhas > 0) {
+			for ($i = 0; $i < $linhas; $i++) {
+				$id = $res[$i]['id'];
+				$nome = $res[$i]['nome'];
 
-	.pdv-sidebar {
-		order: 1;
-		/* Sidebar (carrinho) vem PRIMEIRO no mobile */
-		width: 100%;
-		background: #fef5ed;
-		padding: 15px;
-		border-radius: 8px;
-		border: 1px solid #eee;
-	}
+		?>
 
-	.pdv-sidebar .form-group,
-	.pdv-sidebar .form-label {
-		margin-bottom: 8px;
-	}
-
-	.pdv-produtos-grid {
-		order: 2;
-		/* Grid de produtos vem DEPOIS no mobile */
-		width: 100%;
-		display: flex;
-		flex-wrap: wrap;
-		/* Permite que os itens quebrem a linha */
-		gap: 10px;
-		/* Espaçamento entre os produtos */
-	}
-
-	.produto-item {
-		/* 2 colunas no mobile: 50% da largura menos metade do espaçamento */
-		flex-basis: calc(50% - 5px);
-		text-decoration: none;
-	}
-
-	.produto-item .r3_counter_box {
-		min-height: 70px;
-		padding: 10px;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		text-align: center;
-		border: 1px solid #ddd;
-		border-radius: 5px;
-		background: #fff;
-		transition: all 0.2s ease-in-out;
-		height: 100%;
-		/* Garante que todos os cards tenham a mesma altura */
-	}
-
-	.produto-item:hover .r3_counter_box {
-		border-color: #0d6efd;
-		transform: translateY(-2px);
-		box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
-	}
-
-	.produto-item h5 {
-		font-size: 13px;
-		color: #333;
-		margin: 0;
-	}
-
-	/* Links de desconto */
-	.desconto_link_ativo {
-		font-weight: bold;
-		color: #0d6efd;
-		text-decoration: none;
-	}
-
-	.desconto_link_inativo {
-		color: #6c757d;
-		text-decoration: underline;
-	}
-
-	/* --- ESTILOS PARA TELAS MAIORES (TABLET/DESKTOP) --- */
-	@media (min-width: 992px) {
-		.pdv-container {
-			flex-direction: row;
-			/* Layout lado a lado no desktop */
-			align-items: flex-start;
-			/* Alinha os containers no topo */
-		}
-
-		.pdv-sidebar {
-			order: 2;
-			/* Sidebar vai para a DIREITA no desktop */
-			flex: 0 0 24%;
-			/* Ocupa 24% da largura e não encolhe/estica */
-			position: sticky;
-			/* Efeito "grudento" ao rolar */
-			top: 15px;
-			margin-top: 15px;
-			/* Espaçamento do topo para desktop */
-		}
-
-		.pdv-produtos-grid {
-			order: 1;
-			/* Grid de produtos vai para a ESQUERDA no desktop */
-			flex: 1;
-			/* Ocupa todo o espaço restante */
-			margin-top: 15px;
-			/* Espaçamento do topo para desktop */
-		}
-
-		.produto-item {
-			/* 4 colunas no desktop */
-			flex-basis: calc(25% - 8px);
-		}
-	}
-</style>
-
-
-<div class="pdv-container">
-
-	<div class="pdv-sidebar">
-		<div class="row">
-			<div class="col-10" style="padding-right: 5px;">
-				<div class="form-group">
-					<div id="listar_clientes"></div>
+				<!-- Listar produto -->
+				<div class="widget" style="width:24%">
+					<a href="#" onclick="addVenda(<?php echo $id; ?>, '<?php echo addslashes($nome); ?>')">
+						<div class="r3_counter_box" style="min-height: 60px; padding:10px">
+							<div class="stats">
+								<h5 style="font-size:13px; margin-bottom:3px; margin-top:6px; color:#000">
+									<strong><?php echo $nome ?></strong>
+								</h5>
+							</div>
+						</div>
+					</a>
 				</div>
-			</div>
-			<div class="col-2" style="padding-left: 0;">
-				<button type="button" class="btn btn-primary w-100" data-bs-toggle="modal" data-bs-target="#modalCliente"><i class="fa fa-plus"></i></button>
+
+		<?php }
+		} else {
+			echo 'Nenhum produto disponível!';
+		} ?>
+	</div>
+
+
+</div>
+
+<div style="width:22%;  float:left; padding-top:10px; padding-left: 5px; background: #fef5ed ">
+	<div class="row" style="padding-left:8px; padding-right: 4px">
+		<div class="col-md-10" style="padding:2px;">
+			<div class="form-group">
+
+				<div id="listar_clientes">
+
+				</div>
 			</div>
 		</div>
 
-		<div id="listar_compras" style="margin-top: 5px"></div>
+		<div class="col-md-2" style="">
+			<button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalCliente"> <i class="fa fa-plus"></i> </button>
+		</div>
+	</div>
 
-		<form id="form_compra">
-			<div class="row" style="margin-top: 10px">
-				<div class="col-md-7 col-7">
-					<div class="form-group">
-						<select class="form-select" name="saida" id="saida" required>
-							<option value="">Forma de Pgto</option>
-							<?php
-							$query_pgto = $pdo->query("SELECT * FROM formas_pgto order by id asc");
-							$res_pgto = $query_pgto->fetchAll(PDO::FETCH_ASSOC);
-							foreach ($res_pgto as $pgto) {
-								echo "<option value='{$pgto['id']}'>{$pgto['nome']}</option>";
+	<div id="listar_vendas" style="margin-top: -10px">
+
+	</div>
+
+	<form id="form_venda">
+
+		<div class="row" style="margin-top: 10px">
+			<div class="col-md-7">
+				<div class="form-group">
+
+					<select class="form-select" name="saida" id="saida" style="width:100%;" required>
+						<option value="">Forma de Pgto</option>
+						<?php
+						$query = $pdo->query("SELECT * FROM formas_pgto order by id asc");
+						$res = $query->fetchAll(PDO::FETCH_ASSOC);
+						for ($i = 0; $i < @count($res); $i++) {
+							foreach ($res[$i] as $key => $value) {
 							}
-							?>
-						</select>
-					</div>
-				</div>
-				<div class="col-md-5 col-5">
-					<div class="form-group">
-						<input type="text" class="form-control" id="valor_pago" name="valor_pago" placeholder="Valor Pago" onkeyup="FormaPg()">
-					</div>
+
+						?>
+							<option value="<?php echo $res[$i]['id'] ?>"><?php echo $res[$i]['nome'] ?></option>
+
+						<?php } ?>
+
+					</select>
 				</div>
 			</div>
 
-			<div class="row mt-2">
-				<div class="col-md-7 col-7">
-					<label class="form-label small">Desconto <a id="desc_reais" class="desconto_link_ativo" href="#" onclick="tipoDesc('reais')">R$</a> / <a id="desc_p" class="desconto_link_inativo" href="#" onclick="tipoDesc('%')">%</a></label>
-					<input type="number" class="form-control" id="desconto" name="desconto" placeholder="R$" onkeyup="listarCompras()">
-				</div>
-				<div class="col-md-5 col-5">
-					<label class="form-label small">Troco Para</label>
-					<input type="number" class="form-control" id="troco" name="troco" placeholder="R$" onkeyup="listarCompras()">
+			<div class="col-md-5">
+				<div class="form-group">
+					<input type="text" class="form-control" id="valor_pago" name="valor_pago" placeholder="Valor Pago" onkeyup="FormaPg()">
 				</div>
 			</div>
+		</div>
 
-			<div class="row mt-2">
-				<div class="col-md-7 col-7">
-					<label class="form-label small">Data Pgto</label>
-					<input type="date" class="form-control" id="data2" name="data2" value="<?php echo date('Y-m-d'); ?>">
-				</div>
-				<div class="col-md-5 col-5">
-					<label class="form-label small">Frete</label>
-					<input type="text" class="form-control" id="frete" name="frete" placeholder="R$" onkeyup="listarCompras()">
-				</div>
+
+		<div class="row" style="margin-top: -10px">
+			<div class="col-md-7 ">
+				<label>Desconto <a id="desc_reais" class="desconto_link_ativo" href="#" onclick="tipoDesc('reais')">R$</a> / <a id="desc_p" class="desconto_link_inativo" href="#" onclick="tipoDesc('%')">%</a></label>
+				<input style="margin-top: -5px" type="number" class="form-control" id="desconto" name="desconto" placeholder="R$" onkeyup="listarVendas()">
 			</div>
 
-			<div id="div_pgto2" class="mt-2">
+			<div class="col-md-5 ">
+				<label>Troco Para</label>
+				<input style="margin-top: -5px" type="number" class="form-control" id="troco" name="troco" placeholder="R$" onkeyup="listarVendas()">
+			</div>
+		</div>
+
+
+		<div class="row" style="margin-top: -5px">
+			<div class="col-md-7 ">
+				<label>Data Pagamento</label>
+				<input style="margin-top: -5px" type="date" class="form-control" id="data2" name="data2">
+
 			</div>
 
-			<div class="d-grid gap-2 mt-3">
-				<button id="btn_compra" type="submit" class="btn btn-success">Fechar Compra</button>
-				<button id="btn_limpar" onclick="limparCompra()" type="button" class="btn btn-secondary">Limpar Compra</button>
-				<div class="text-center">
-					<img id="img_loading" src="../img/loading.gif" width="40px" style="display:none">
+			<div class="col-md-5 ">
+				<label>Frete</label>
+				<input style="margin-top: -5px" type="text" class="form-control" id="frete" name="frete" placeholder="Frete se Houver" onkeyup="listarVendas()">
+			</div>
+
+		</div>
+
+
+
+		<div id="div_pgto2">
+			<span><b>Total Restante: <span class="text-danger">R$ <span id="total_restante"></span></span></b></span>
+
+
+			<div class="row" style="">
+				<div class="col-md-6" style="padding-right: 1px">
+					<label>Data Pagamento 2</label>
+					<input style="font-size: 12px !important;" type="date" class="form-control" id="data_restante" name="data_restante">
 				</div>
+				<div class="col-md-6" style="padding-left: 1px">
+					<label>Pgto Restante</label>
+					<select class="form-select" name="forma_pgto2" id="forma_pgto2" style="width:100%; font-size: 12px !important;">
+						<option value="" disabled selected>Forma de Pgtoa</option>
+						<?php
+						$query = $pdo->query("SELECT * FROM formas_pgto order by id asc");
+						$res = $query->fetchAll(PDO::FETCH_ASSOC);
+						for ($i = 0; $i < @count($res); $i++) {
+						?>
+							<option value="<?php echo $res[$i]['id'] ?>"><?php echo $res[$i]['nome'] ?> </option>
+						<?php } ?>
+					</select>
+				</div>
+
+
 			</div>
 
-			<div id="mensagem" class="text-center mt-2 small"></div>
-			<input type="hidden" name="cliente" id="cliente_input">
-			<input type="hidden" name="tipo_desconto" id="tipo_desconto" value="reais">
-			<input type="hidden" name="subtotal_compra" id="subtotal_compra"> <input type="hidden" name="ids_itens" id="ids_itens">
-			<input type="hidden" name="valor_restante" id="valor_restante">
-		</form>
-	</div>
+		</div>
 
-	<div class="pdv-produtos-grid">
-		<?php
-		$query_mat = $pdo->query("SELECT * from materiais order by nome asc");
-		$res_mat = $query_mat->fetchAll(PDO::FETCH_ASSOC);
-		if (count($res_mat) > 0) {
-			foreach ($res_mat as $mat) {
-				$id_prod = $mat['id'];
-				$nome_prod = $mat['nome'];
-		?>
-				<a href="#" class="produto-item" onclick="addCompra(<?php echo $id_prod; ?>, '<?php echo addslashes($nome_prod); ?>')">
-					<div class="r3_counter_box">
-						<div class="stats">
-							<h5><strong><?php echo $nome_prod ?></strong></h5>
-						</div>
-					</div>
-				</a>
-		<?php
-			}
-		} else {
-			echo '<p class="text-muted w-100 text-center">Nenhum produto cadastrado.</p>';
-		}
-		?>
-	</div>
+
+
+		<div class="row">
+
+			<div class="col-md-12" style="margin-top: 10px" align="right">
+				<button id="btn_limpar" onclick="limparVenda()" type="button" class="btn btn-secondary">Limpar Venda</button>
+
+				<button id="btn_venda" type="submit" class="btn btn-success">Fechar Venda</button>
+				<img id="img_loading" src="../img/loading.gif" width="40px" style="display:none">
+			</div>
+		</div>
+
+		<br>
+		<small>
+			<div id="mensagem" align="center"></div>
+		</small>
+
+		<input type="hidden" name="cliente" id="cliente_input">
+
+		<input type="hidden" name="tipo_desconto" id="tipo_desconto" value="reais">
+
+		<input type="hidden" name="subtotal_venda" id="subtotal_venda">
+
+		<input type="hidden" name="ids_itens" id="ids_itens">
+
+		<input type="hidden" name="valor_restante" id="valor_restante">
+
+	</form>
+
 
 </div>
+
+
+
+
 
 <!-- Modal Cliente -->
 <div class="modal fade" id="modalCliente" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
 	<div class="modal-dialog modal-lg">
 		<div class="modal-content">
 			<div class="modal-header bg-primary text-white">
-				<h4 class="modal-title" id="exampleModalLabel">Adicionar Fornecedor</h4>
+				<h4 class="modal-title" id="exampleModalLabel">Adicionar Cliente</h4>
 				<button id="btn-fechar-cliente" aria-label="Close" class="btn-close" data-bs-toggle="modal" data-bs-target="#modalForm" type="button"><span class="text-white" aria-hidden="true">&times;</span></button>
 			</div>
 			<form id="form-cliente">
@@ -427,7 +385,7 @@ if (@$compras == 'ocultar') {
 					</div>
 
 					<div class="col-md-4" style="margin-top: 22px">
-						<a onclick="addCompra('', '', '', '')" href="#" class="btn btn-primary">Adicionar</a>
+						<a onclick="addVenda('', '', '', '')" href="#" class="btn btn-primary">Adicionar</a>
 					</div>
 
 					<input type="hidden" id="id_do_p">
@@ -444,16 +402,16 @@ if (@$compras == 'ocultar') {
 
 
 
+
 <script type="text/javascript">
-	var pag = "<?= $pag ?>";
-	var itens = 0; // <<<<<<< 1. DECLARAÇÃO DA VARIÁVEL GLOBAL
+	var pag = "<?= $pag ?>"
 </script>
 <script src="js/ajax.js"></script>
 
 <script type="text/javascript">
 	$(document).ready(function() {
 		$('#div_pgto2').hide();
-		listarCompras()
+		listarVendas()
 
 		$('.sel2').select2({
 			dropdownParent: $('#modalForm')
@@ -467,51 +425,107 @@ if (@$compras == 'ocultar') {
 </script>
 
 <script type="text/javascript">
-	$("#form_compra").submit(function(event) {
-		event.preventDefault();
+	$("#form_venda").submit(function(event) {
+    // Previne o comportamento padrão do formulário
+    event.preventDefault();
 
-		// VALIDAÇÃO DE ITENS (agora vai funcionar)
-		if (itens == 0) {
-			alert('É obrigatório adicionar pelo menos um item para fechar a compra!');
-			$('#mensagem').text('Adicione pelo menos um item para continuar.').addClass('text-danger');
-			return;
-		}
+    // Oculta os botões e exibe o indicador de carregamento
+    $("#btn_venda").hide();
+    $("#btn_limpar").hide();
+    $("#img_loading").show();
 
-		var $btn = $('#btn_compra');
-		$btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm"></span> Salvando...');
+    // Verifica se a data e o cliente são válidos
+    var data = $("#data2").val();
+    var cliente = $("#cliente").val();
+    var data_atual = "<?= $data_atual ?>";
 
-		$('#mensagem').text('').removeClass('text-danger');
-		var formData = new FormData(this);
+    if (data > data_atual && cliente == "") {
+        alert('Você precisa selecionar um cliente para essa venda!');
+        $("#img_loading").hide();
+        $("#btn_venda").show();
+        return;
+    }
 
-		$.ajax({
-			url: 'paginas/' + pag + '/salvar.php', // Adicionado pag para consistência
-			type: 'POST',
-			data: formData,
-			cache: false,
-			contentType: false,
-			processData: false,
-			success: function(mensagem) {
-				if (mensagem.trim() == "Salvo com Sucesso") {
-					alert('Compra Salva com Sucesso!');
-					limparCompra();
-				} else {
-					alert(mensagem);
-				}
-			},
-			error: function() {
-				alert('Ocorreu um erro ao processar a requisição.');
-			}
-		}).always(function() {
-			$btn.prop('disabled', false).html('Fechar Compra');
-		});
-	});
+    // Cria um objeto FormData com os dados do formulário
+    var formData = new FormData(this);
+
+    // Envia a requisição AJAX
+    $.ajax({
+        url: 'paginas/' + pag + "/salvar.php",
+        type: 'POST',
+        data: formData,
+        cache: false,
+        contentType: false,
+        processData: false,
+
+        success: function(mensagem) {
+            // Processa a resposta do servidor
+            var msg = mensagem.split("-");
+
+            $('#mensagem').text('');
+            $('#mensagem').removeClass();
+
+            if (msg[0].trim() == "Salvo com Sucesso") {
+                $("#img_loading").hide();
+
+                // Limpa os campos do formulário
+                $('#desconto').val('');
+                $('#troco').val('');
+                $('#cliente').val('').change();
+                $('#cliente_input').val('');
+                $('#data').val('<?= $data_atual ?>');
+
+                // Atualiza as listas de vendas e produtos
+                listar();
+                listarVendas();
+
+                // Verifica se a impressão automática está habilitada
+                var imp_auto = "<?= $impressao_automatica ?>";
+                if (imp_auto == 'Sim') {
+                    window.open('rel/comprovante_pdf.php?id=' + msg[1]);
+                } else {
+                    alert('Venda Efetuada!');
+                    $('#div_pgto2').hide();
+                }
+            } else {
+                // Exibe mensagem de erro
+                alert(msg[0]);
+                $("#btn_venda").show();
+                $("#img_loading").hide();
+                $("#btn_limpar").show();
+            }
+
+            // Restaura os botões
+            $("#btn_venda").show();
+            $("#btn_limpar").show();
+        },
+
+        error: function(xhr, status, error) {
+            // Trata erros de requisição AJAX
+            $("#img_loading").hide();
+            $("#btn_venda").show();
+            $("#btn_limpar").show();
+
+            // Exibe detalhes do erro no console
+            console.error("Erro na requisição AJAX:");
+            console.error("Status: " + status);
+            console.error("Erro: " + error);
+            console.error("Resposta do servidor: " + xhr.responseText);
+
+            // Exibe uma mensagem de erro para o usuário
+            alert("Ocorreu um erro ao processar a requisição. Por favor, tente novamente.\nDetalhes: " + error);
+        }
+    });
+});
 
 	function buscar() {
 		var busca = $('#txt_buscar').val();
 		listar('', busca)
 	}
 
-	function addCompra(id_material, produto) {
+	function addVenda(id_material, produto) {
+
+		console.log("Clicado");
 
 		if (id_material == "") {
 			var id_material = $('#id_do_p').val();
@@ -531,7 +545,6 @@ if (@$compras == 'ocultar') {
 			return;
 		}
 
-		console.log(id_material);
 		$.ajax({
 			url: 'paginas/' + pag + "/inserir_item.php",
 			method: 'POST',
@@ -543,7 +556,7 @@ if (@$compras == 'ocultar') {
 
 			success: function(mensagem) {
 				if (mensagem.trim() == "Inserido com Sucesso") {
-					listarCompras();
+					listarVendas();
 
 				} else {
 					alert(mensagem)
@@ -555,13 +568,13 @@ if (@$compras == 'ocultar') {
 
 	}
 
-	function listarCompras() {
+	function listarVendas() {
 		var desconto = $("#desconto").val();
 		var frete = $("#frete").val();
 		var troco = $("#troco").val();
 		var tipo_desconto = $("#tipo_desconto").val();
 		$.ajax({
-			url: 'paginas/' + pag + "/listar_compras.php",
+			url: 'paginas/' + pag + "/listar_vendas.php",
 			method: 'POST',
 			data: {
 				desconto,
@@ -572,37 +585,36 @@ if (@$compras == 'ocultar') {
 			dataType: "html",
 
 			success: function(result) {
-				$("#listar_compras").html(result);
+				$("#listar_vendas").html(result);
 			}
 		});
 
 		FormaPg()
 	}
 
-	function limparCompra() {
-		$("#fornecedor").val('').change();
+	function limparVenda() {
+		$("#cliente").val('').change();
 		$("#quantidade").val('1');
 		$("#desconto").val('');
 		$("#troco").val('');
 		$("#frete").val('');
 		$("#data").val('<?= $data_atual ?>');
-		$("#valor_pago").val('');
-		$("#valor_restante").val('');
-		$("#subtotal_compra").val('0.00');
+		$("#cliente_input").val('');
 		$('#div_pgto2').hide();
+		listarVendas()
 
 		$("#btn_limpar").hide();
-
 		$.ajax({
-			url: 'paginas/' + pag + "/limpar_compra.php",
+			url: 'paginas/' + pag + "/limpar_venda.php",
 			method: 'POST',
 			data: {},
 			dataType: "html",
+
 			success: function(result) {
-				listarCompras();
-				FormaPg();
+				listarVendas();
 			}
 		});
+
 	}
 </script>
 
@@ -681,7 +693,7 @@ if (@$compras == 'ocultar') {
 		}
 
 		$("#tipo_desconto").val(p);
-		listarCompras();
+		listarVendas();
 	}
 
 
@@ -691,7 +703,7 @@ if (@$compras == 'ocultar') {
 		var subtotal_venda = $('#subtotal_venda').val();
 
 		console.log("Valor pago: " + valor_pago);
-		console.log("Subtotal: " + subtotal_venda);
+	console.log("Subtotal: "+ subtotal_venda);
 
 		if (parseFloat(valor_pago) < parseFloat(subtotal_venda)) {
 			$('#div_pgto2').show();

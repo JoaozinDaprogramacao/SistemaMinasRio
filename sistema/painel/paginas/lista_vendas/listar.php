@@ -246,7 +246,7 @@ echo <<<HTML
 
 					<a class="btn btn-dark btn-sm" href="#" onclick="arquivo('{$id}', '{$descricao}')" title="Inserir / Ver Arquivos"><i class="fa fa-file-o"></i></a>
 
-					<a class="btn btn-primary btn-sm" href="rel/comprovante.php?id={$id}&imprimir=Não" target="_blank" title="Ver Comprovante"><i class="fa fa-file-pdf-o"></i></a>
+					<a class="btn btn-primary btn-sm" href="rel/comprovante_pdf.php?id=?id={$id}&imprimir=Não" target="_blank" title="Ver Comprovante"><i class="fa fa-file-pdf-o"></i></a>
 				</td>  
 			</tr> 
 HTML;

@@ -27,7 +27,7 @@ if($estoque <= 0 and $tem_estoque == 'Sim'){
 $pdo->query("UPDATE $tabela SET quantidade = '$nova_quant', total = '$novo_total' WHERE id = '$id' ");
 
 
-echo 'Excluído com Sucesso';
+echo 'Atualizado com Sucesso';
 
 if($tem_estoque == 'Sim'){
 	$novo_estoque = $estoque - 1;
