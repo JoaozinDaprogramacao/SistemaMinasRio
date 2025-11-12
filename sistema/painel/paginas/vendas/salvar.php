@@ -9,10 +9,11 @@ $id_usuario = $_SESSION['id'];
 $data_atual = date('Y-m-d');
 
 // --- 1. CAPTURA E LIMPEZA DOS DADOS DO FORMULÁRIO ---
+// (Merge das variáveis de ambas as branches, priorizando 'feature')
 $id_venda_edicao = intval($_POST['id_venda_edicao'] ?? 0);
 $cliente = $_POST['cliente'] ?? '';
 $desconto = floatval(str_replace(',', '.', $_POST['desconto'] ?? '0'));
-$saida = $_POST['saida'] ?? '';
+$saida = $_POST['saida'] ?? ''; // forma_pagamento_id
 $data = $_POST['data2'] ?? $data_atual;
 if (empty($data)) {
     $data = $data_atual;
@@ -21,10 +22,12 @@ $frete = floatval(str_replace(',', '.', $_POST['frete'] ?? '0'));
 $tipo_desconto = $_POST['tipo_desconto'] ?? 'reais';
 $subtotal_venda = floatval(str_replace(',', '.', $_POST['subtotal_venda'] ?? '0'));
 $valor_pago = floatval(str_replace(',', '.', $_POST['valor_pago'] ?? '0'));
-$ids_itens_str = $_POST['ids_itens'] ?? '';
-$valor_restante = floatval(str_replace(',', '.', $_POST['valor_restante'] ?? '0'));
+$ids_itens_str = $_POST['ids_itens'] ?? ''; // 'feature' usa 'ids_itens_str'
+$valor_restante = floatval(str_replace(',', '.', $_POST['valor_restante'] ?? '0')); // 'feature' usa 'valor_restante'
 $data_restante = $_POST['data_restante'] ?? $data_atual;
 $forma_pgto2 = $_POST['forma_pgto2'] ?? "";
+
+// --- Início da Lógica da Branch 'feature/crud-vendas' (superior) ---
 
 // --- 2. VALIDAÇÕES CRÍTICAS ---
 if (empty($cliente) && $id_venda_edicao == 0) {
@@ -49,18 +52,20 @@ if ($total_final <= 0) {
     exit();
 }
 
-// --- 4. LÓGICA PRINCIPAL ---
+// --- 4. LÓGICA PRINCIPAL (COM TRANSAÇÃO) ---
 $pdo->beginTransaction();
 try {
     if ($id_venda_edicao > 0) {
         // MODO DE EDIÇÃO
-        // ... (lógica de UPDATE e DELETE que já está correta) ...
+        // 4.1. Retorna itens antigos ao estoque
         $query_itens_antigos = $pdo->prepare("SELECT material, quantidade FROM itens_venda WHERE id_venda_real = :id");
         $query_itens_antigos->execute([':id' => $id_venda_edicao]);
         $itens_antigos = $query_itens_antigos->fetchAll(PDO::FETCH_ASSOC);
         foreach ($itens_antigos as $item) {
             $pdo->prepare("UPDATE materiais SET estoque = estoque + :qtd WHERE id = :id_mat")->execute([':qtd' => $item['quantidade'], ':id_mat' => $item['material']]);
         }
+        
+        // 4.2. Abate novos itens do estoque (com verificação)
         foreach ($ids_itens as $id_item_temp) {
             $stmt = $pdo->prepare('SELECT iv.material, iv.quantidade, m.estoque, m.nome FROM itens_venda iv JOIN materiais m ON iv.material = m.id WHERE iv.id = :id');
             $stmt->execute([':id' => $id_item_temp]);
@@ -70,9 +75,13 @@ try {
             }
             $pdo->prepare("UPDATE materiais SET estoque = estoque - :qtd WHERE id = :id_mat")->execute([':qtd' => $item_novo['quantidade'], ':id_mat' => $item_novo['material']]);
         }
+        
+        // 4.3. Atualiza a Venda
         $status_pagamento = ($valor_pago >= $total_final) ? 'Pago' : (($valor_pago > 0) ? 'Parcialmente Pago' : 'Aguardando Pagamento');
         $stmt_update = $pdo->prepare("UPDATE vendas SET cliente_id = :cliente_id, vendedor_id = :vendedor_id, data_venda = :data_venda, subtotal = :subtotal, tipo_desconto = :tipo_desconto, desconto = :desconto, frete = :frete, valor_total = :valor_total, valor_pago = :valor_pago, forma_pagamento_id = :forma_pagamento_id, status_pagamento = :status_pagamento WHERE id = :id");
         $stmt_update->execute([':cliente_id' => $cliente, ':vendedor_id' => $id_usuario, ':data_venda' => $data . ' ' . date('H:i:s'), ':subtotal' => $subtotal_venda, ':tipo_desconto' => ($tipo_desconto == '%' ? '%' : 'valor'), ':desconto' => $desconto, ':frete' => $frete, ':valor_total' => $total_final, ':valor_pago' => $valor_pago, ':forma_pagamento_id' => $saida, ':status_pagamento' => $status_pagamento, ':id' => $id_venda_edicao]);
+        
+        // 4.4. Limpa registros financeiros e de itens antigos
         $stmt_old_id = $pdo->prepare("SELECT id_venda FROM itens_venda WHERE id_venda_real = ? LIMIT 1");
         $stmt_old_id->execute([$id_venda_edicao]);
         $old_receber_id = $stmt_old_id->fetchColumn();
@@ -81,10 +90,12 @@ try {
             $pdo->prepare("DELETE FROM pagar WHERE id_ref = ?")->execute([$old_receber_id]);
         }
         $pdo->prepare("DELETE FROM itens_venda WHERE id_venda_real = :id")->execute([':id' => $id_venda_edicao]);
+        
         $id_venda_real = $id_venda_edicao;
+
     } else {
         // MODO DE CRIAÇÃO
-        // ... (lógica de INSERT que já está correta) ...
+        // 4.1. Abate itens do estoque (com verificação)
         foreach ($ids_itens as $id_item_temp) {
             $stmt = $pdo->prepare('SELECT iv.material, iv.quantidade, m.estoque, m.nome FROM itens_venda iv JOIN materiais m ON iv.material = m.id WHERE iv.id = :id');
             $stmt->execute([':id' => $id_item_temp]);
@@ -94,6 +105,8 @@ try {
             }
             $pdo->prepare("UPDATE materiais SET estoque = estoque - :qtd WHERE id = :id_mat")->execute([':qtd' => $item_novo['quantidade'], ':id_mat' => $item_novo['material']]);
         }
+        
+        // 4.2. Insere a nova Venda
         $status_pagamento = ($valor_pago >= $total_final) ? 'Pago' : (($valor_pago > 0) ? 'Parcialmente Pago' : 'Aguardando Pagamento');
         $stmt_vendas = $pdo->prepare("INSERT INTO vendas SET cliente_id = :cliente_id, vendedor_id = :vendedor_id, data_venda = :data_venda, subtotal = :subtotal, tipo_desconto = :tipo_desconto, desconto = :desconto, frete = :frete, valor_total = :valor_total, valor_pago = :valor_pago, forma_pagamento_id = :forma_pagamento_id, status_pagamento = :status_pagamento");
         $stmt_vendas->execute([':cliente_id' => $cliente, ':vendedor_id' => $id_usuario, ':data_venda' => $data . ' ' . date('H:i:s'), ':subtotal' => $subtotal_venda, ':tipo_desconto' => ($tipo_desconto == '%' ? '%' : 'valor'), ':desconto' => $desconto, ':frete' => $frete, ':valor_total' => $total_final, ':valor_pago' => $valor_pago, ':forma_pagamento_id' => $saida, ':status_pagamento' => $status_pagamento]);
@@ -102,7 +115,7 @@ try {
 
     // --- 5. LÓGICA COMUM (EXECUTADA TANTO NA CRIAÇÃO QUANTO NA EDIÇÃO) ---
 
-    // A. INSERE EM `detalhes_materiais` (COM A CORREÇÃO)
+    // A. INSERE EM `detalhes_materiais` (log de movimentação)
     foreach ($ids_itens as $id_item_temp) {
         $stmt = $pdo->prepare('SELECT material, quantidade, valor FROM itens_venda WHERE id = :id');
         $stmt->execute(['id' => $id_item_temp]);
@@ -121,32 +134,32 @@ try {
         }
     }
 
-    // B. INSERE EM `receber` (com a correção do 'usuario_pgto')
+    // B. INSERE EM `receber` (Contas a Receber)
     $usuario_pgto = 0; // Valor padrão para o usuário que pagou
 
     if ($valor_restante > 0) {
-        // CORREÇÃO: Adicionado 'usuario_pgto = :user_pgto'
+        // Lança a entrada
         $stmt_rec1 = $pdo->prepare("INSERT INTO receber SET descricao = :desc, valor = :val, vencimento = :venc, data_lanc = CURDATE(), usuario_lanc = :user, pago = 'Não', cliente = :cli, referencia = 'Venda', forma_pgto = :pgto, usuario_pgto = :user_pgto");
         $stmt_rec1->execute([':desc' => 'Venda #' . $id_venda_real . ' (Entrada)', ':val' => $valor_pago, ':venc' => $data, ':user' => $id_usuario, ':cli' => $cliente, ':pgto' => $saida, ':user_pgto' => $usuario_pgto]);
         $id_venda_receber = $pdo->lastInsertId();
 
-        // CORREÇÃO: Adicionado 'usuario_pgto = :user_pgto'
+        // Lança o valor restante
         $stmt_rec2 = $pdo->prepare("INSERT INTO receber SET descricao = :desc, valor = :val, vencimento = :venc, data_lanc = CURDATE(), usuario_lanc = :user, pago = 'Não', cliente = :cli, referencia = 'Venda', forma_pgto = :pgto, id_ref = :id_ref, usuario_pgto = :user_pgto");
         $stmt_rec2->execute([':desc' => 'Venda #' . $id_venda_real . ' (Restante)', ':val' => $valor_restante, ':venc' => $data_restante, ':user' => $id_usuario, ':cli' => $cliente, ':pgto' => $forma_pgto2, ':id_ref' => $id_venda_receber, ':user_pgto' => $usuario_pgto]);
     } else {
-        // CORREÇÃO: Adicionado 'usuario_pgto = :user_pgto'
+        // Lança o valor total
         $stmt_rec_total = $pdo->prepare("INSERT INTO receber SET descricao = :desc, valor = :val, vencimento = :venc, data_lanc = CURDATE(), usuario_lanc = :user, pago = 'Não', cliente = :cli, referencia = 'Venda', forma_pgto = :pgto, usuario_pgto = :user_pgto");
         $stmt_rec_total->execute([':desc' => 'Venda #' . $id_venda_real, ':val' => $total_final, ':venc' => $data, ':user' => $id_usuario, ':cli' => $cliente, ':pgto' => $saida, ':user_pgto' => $usuario_pgto]);
         $id_venda_receber = $pdo->lastInsertId();
     }
 
-    // C. VINCULA OS ITENS TEMPORÁRIOS
+    // C. VINCULA OS ITENS TEMPORÁRIOS à Venda
     $in_clause = implode(',', array_fill(0, count($ids_itens), '?'));
     $stmt_link = $pdo->prepare("UPDATE itens_venda SET id_venda = ?, id_venda_real = ? WHERE id IN ($in_clause) AND funcionario = ?");
     $params = array_merge([$id_venda_receber, $id_venda_real], $ids_itens, [$id_usuario]);
     $stmt_link->execute($params);
 
-    // D. INSERE EM `pagar` (comissão)
+    // D. INSERE EM `pagar` (Comissão do Vendedor)
     $query_comissao = $pdo->query("SELECT comissao FROM usuarios WHERE id = '$id_usuario'");
     $comissao = $query_comissao->fetchColumn() ?? 0;
     if ($comissao > 0) {
@@ -161,8 +174,11 @@ try {
     // Confirma a transação, salvando tudo no banco
     $pdo->commit();
     echo 'Salvo com Sucesso-' . ($id_venda_edicao > 0 ? $id_venda_edicao : $id_venda_receber);
+
 } catch (Exception $e) {
     // Se qualquer passo falhar, desfaz todas as operações
     $pdo->rollBack();
+    // Mensagem de erro (parte comum pós-merge)
     echo 'Erro ao salvar: ' . $e->getMessage();
 }
+?>
