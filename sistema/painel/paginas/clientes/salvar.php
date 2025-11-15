@@ -52,7 +52,6 @@ $campos_comuns = [
 $campos_fisica = [
     'data de nascimento'  => $data_nasc,
     'CPF'                 => $cpf,
-    'RG'                  => $rg,
 ];
 
 $campos_juridica = [

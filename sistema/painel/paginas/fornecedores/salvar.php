@@ -33,6 +33,7 @@ $tipo_pessoa = $_POST['tipo_pessoa'] ?? '';
 $tipo_fornecedor = $_POST['tipo_fornecedor'] ?? '';
 
 // 1) Definição de campos obrigatórios por tipo
+// 1) Definição de campos obrigatórios por tipo
 $campos_comuns = [
     'nome do atacadista' => $nome_atacadista,
     'contato' => $contato,
@@ -45,14 +46,12 @@ $campos_comuns = [
     'plano de pagamento' => $plano_pagamento,
     'forma de pagamento' => $forma_pagamento,
     'prazo de pagamento' => $prazo_pagamento,
-    'email' => $email,
     'tipo de pessoa' => $tipo_pessoa,
     'tipo de fornecedor' => $tipo_fornecedor,
 ];
 
 $campos_fisica = [
     'CPF' => $cpf,
-    'RG' => $rg,
 ];
 
 $campos_juridica = [
