@@ -9,9 +9,9 @@ $cliente = @$_POST['p3'];
 
 // Se as datas estiverem vazias, não aplicar filtro de data
 if (empty($dataInicial) || empty($dataFinal)) {
-    $filtro_data = "";
+  $filtro_data = "";
 } else {
-    $filtro_data = "WHERE data BETWEEN '$dataInicial' AND '$dataFinal'";
+  $filtro_data = "WHERE data BETWEEN '$dataInicial' AND '$dataFinal'";
 }
 
 // Definir a variável $tipo_data
@@ -19,11 +19,11 @@ $tipo_data = 'data'; // Substitua pelo nome da coluna que você deseja usar para
 
 // Valores padrão para datas, caso não sejam fornecidos
 if ($dataInicial == "") {
-    $dataInicial = date('Y-m-01'); // Início do mês atual
+  $dataInicial = date('Y-m-01'); // Início do mês atual
 }
 
 if ($dataFinal == "") {
-    $dataFinal = date('Y-m-t'); // Final do mês atual
+  $dataFinal = date('Y-m-t'); // Final do mês atual
 }
 
 // Inicializa a cláusula WHERE
@@ -32,45 +32,46 @@ $params = [];
 
 // Adiciona filtro de cliente
 if (!empty($cliente)) {
-    $where[] = "atacadista = :cliente";
-    $params[':cliente'] = $cliente;
+  $where[] = "atacadista = :cliente";
+  $params[':cliente'] = $cliente;
 }
 
 // Combina as condições do WHERE
 $filtrar = '';
 if (count($where) > 0) {
-    $filtrar = ' WHERE ' . implode(' AND ', $where); // Adiciona espaço antes de WHERE
+  $filtrar = ' WHERE ' . implode(' AND ', $where); // Adiciona espaço antes de WHERE
 }
 
 // Consulta SQL com filtros
-$sql = "SELECT * FROM $tabela" . $filtrar . " ORDER BY id DESC"; 
+$sql = "SELECT * FROM $tabela" . $filtrar . " ORDER BY id DESC";
 
 // Função para debug da query
-function debugQuery($query, $params) {
-    $keys = array();
-    $values = $params;
-    
-    // Ordena os parâmetros pelo tamanho do nome
-    krsort($params);
-    
-    foreach ($params as $key => $value) {
-        // Remove os dois pontos dos placeholders
-        $clean_key = str_replace(':', '', $key);
-        
-        // Trata diferentes tipos de dados
-        if (is_string($value)) {
-            $value = "'" . addslashes($value) . "'";
-        } elseif (is_null($value)) {
-            $value = 'NULL';
-        } elseif (is_bool($value)) {
-            $value = $value ? 'TRUE' : 'FALSE';
-        }
-        
-        // Substitui os placeholders na query
-        $query = str_replace(':' . $clean_key, $value, $query);
+function debugQuery($query, $params)
+{
+  $keys = array();
+  $values = $params;
+
+  // Ordena os parâmetros pelo tamanho do nome
+  krsort($params);
+
+  foreach ($params as $key => $value) {
+    // Remove os dois pontos dos placeholders
+    $clean_key = str_replace(':', '', $key);
+
+    // Trata diferentes tipos de dados
+    if (is_string($value)) {
+      $value = "'" . addslashes($value) . "'";
+    } elseif (is_null($value)) {
+      $value = 'NULL';
+    } elseif (is_bool($value)) {
+      $value = $value ? 'TRUE' : 'FALSE';
     }
-    
-    return $query;
+
+    // Substitui os placeholders na query
+    $query = str_replace(':' . $clean_key, $value, $query);
+  }
+
+  return $query;
 }
 
 // Debug da query antes da execução
@@ -81,8 +82,8 @@ $query = $pdo->prepare($sql);
 $query->execute($params);
 $res = $query->fetchAll(PDO::FETCH_ASSOC);
 $linhas = @count($res);
-if($linhas > 0){
-echo <<<HTML
+if ($linhas > 0) {
+  echo <<<HTML
 
 	<table class="table table-bordered text-nowrap border-bottom dt-responsive" id="tabela">
 	<thead> 
@@ -97,11 +98,11 @@ echo <<<HTML
 	<tbody>	
 HTML;
 
-for($i=0; $i<$linhas; $i++){
-	// --- DADOS BÁSICOS ---
+  for ($i = 0; $i < $linhas; $i++) {
+    // --- DADOS BÁSICOS ---
     $id = $res[$i]['id'];
     $atacadista = $res[$i]['atacadista'];
-    
+
     // --- NOVOS DADOS DO ROMANEIO (ALTERADO) ---
     // Captura de todos os campos da tabela romaneio_venda
     $data_db = $res[$i]['data'];
@@ -120,7 +121,7 @@ for($i=0; $i<$linhas; $i++){
     $data_input = date('Y-m-d', strtotime($data_db));
     // Formata o vencimento também, tratando se for nulo
     $vencimento_input = $vencimento_db ? date('Y-m-d', strtotime($vencimento_db)) : '';
-    
+
     // Formatação de data para exibição na tabela (DD/MM/YYYY)
     $data_exibicao = date('d/m/Y', strtotime($data_db));
 
@@ -128,7 +129,7 @@ for($i=0; $i<$linhas; $i++){
     $query_nome_fornecedor = $pdo->query("SELECT nome FROM clientes WHERE id = '$atacadista'");
     $fornecedor_nome_array = $query_nome_fornecedor->fetch(PDO::FETCH_ASSOC);
     $fornecedor_nome = $fornecedor_nome_array ? $fornecedor_nome_array['nome'] : "Não encontrado";
-    
+
     // Preparar strings para passar para JS de forma segura
     $nota_fiscal_js = htmlspecialchars($nota_fiscal, ENT_QUOTES);
     $descricao_a_js = htmlspecialchars($descricao_a, ENT_QUOTES);
@@ -136,7 +137,7 @@ for($i=0; $i<$linhas; $i++){
 
 
 
-echo <<<HTML
+    echo <<<HTML
 <tr style="">
 <td align="center">
 <div class="custom-checkbox custom-control">
@@ -167,11 +168,9 @@ echo <<<HTML
 </td>
 </tr>
 HTML;
-
-}
-
-}else{
-	echo 'Não possui nenhum cadastro!';
+  }
+} else {
+  echo 'Não possui nenhum cadastro!';
 }
 
 
@@ -192,38 +191,38 @@ HTML;
 
 
 <script type="text/javascript">
-  
-
   function mostrar(id) {
-  $.ajax({
-    url: 'paginas/romaneio_venda/buscar_dados.php',
-    method: 'POST',
-    data: { id: id },
-    dataType: 'json',
-    success: function(dados) {
-      // CORREÇÃO: Acessar os dados dentro do objeto 'romaneio'
-      console.log("ID: " + dados.romaneio.id); 
-      $('#id_dados').text(dados.romaneio.id);
-      
-      // Formatando a data para o padrão brasileiro (opcional, mas recomendado)
-      let dataFormatada = new Date(dados.romaneio.data).toLocaleDateString('pt-BR');
-      let vencimentoFormatado = new Date(dados.romaneio.vencimento).toLocaleDateString('pt-BR');
+    $.ajax({
+      url: 'paginas/romaneio_venda/buscar_dados.php',
+      method: 'POST',
+      data: {
+        id: id
+      },
+      dataType: 'json',
+      success: function(dados) {
+        // CORREÇÃO: Acessar os dados dentro do objeto 'romaneio'
+        console.log("ID: " + dados.romaneio.id);
+        $('#id_dados').text(dados.romaneio.id);
 
-      $('#data_dados').text(dataFormatada);
-      $('#cliente_dados').text(dados.romaneio.nome_cliente); // CORREÇÃO: O nome da chave é 'nome_cliente'
-      $('#nota_fiscal_dados').text(dados.romaneio.nota_fiscal || '-'); // Usar || '-' para campos vazios
-      $('#plano_pgto_dados').text(dados.romaneio.nome_plano); // CORREÇÃO: Usar 'nome_plano' para mostrar o texto
-      $('#vencimento_dados').text(vencimentoFormatado);
-      
-      // Os loops para produtos, comissões e materiais já estavam corretos,
-      // pois eles estão no nível principal do JSON.
-      // Apenas um pequeno ajuste no nome da chave em materiais.
+        // Formatando a data para o padrão brasileiro (opcional, mas recomendado)
+        let dataFormatada = new Date(dados.romaneio.data).toLocaleDateString('pt-BR');
+        let vencimentoFormatado = new Date(dados.romaneio.vencimento).toLocaleDateString('pt-BR');
 
-      // Produtos
-      let htmlProdutos = '<table class="table table-striped"><thead><tr><th>Produto</th><th>Qtd</th><th>Tipo Cx</th><th>Preço KG</th><th>Preço Unit</th><th>Valor</th></tr></thead><tbody>';
-      if (dados.produtos && dados.produtos.length > 0) {
-        dados.produtos.forEach(function(item) {
-          htmlProdutos += `<tr>
+        $('#data_dados').text(dataFormatada);
+        $('#cliente_dados').text(dados.romaneio.nome_cliente); // CORREÇÃO: O nome da chave é 'nome_cliente'
+        $('#nota_fiscal_dados').text(dados.romaneio.nota_fiscal || '-'); // Usar || '-' para campos vazios
+        $('#plano_pgto_dados').text(dados.romaneio.nome_plano); // CORREÇÃO: Usar 'nome_plano' para mostrar o texto
+        $('#vencimento_dados').text(vencimentoFormatado);
+
+        // Os loops para produtos, comissões e materiais já estavam corretos,
+        // pois eles estão no nível principal do JSON.
+        // Apenas um pequeno ajuste no nome da chave em materiais.
+
+        // Produtos
+        let htmlProdutos = '<table class="table table-striped"><thead><tr><th>Produto</th><th>Qtd</th><th>Tipo Cx</th><th>Preço KG</th><th>Preço Unit</th><th>Valor</th></tr></thead><tbody>';
+        if (dados.produtos && dados.produtos.length > 0) {
+          dados.produtos.forEach(function(item) {
+            htmlProdutos += `<tr>
             <td>${item.nome_produto || '-'}</td>
             <td>${item.quant || '0'}</td>
             <td>${item.tipo_caixa_completo || '-'}</td>
@@ -231,19 +230,19 @@ HTML;
             <td>R$ ${parseFloat(item.preco_unit || 0).toFixed(2).replace('.', ',')}</td>
             <td>R$ ${parseFloat(item.valor || 0).toFixed(2).replace('.', ',')}</td>
           </tr>`;
-        });
-      } else {
-        htmlProdutos += '<tr><td colspan="6" class="text-center">Nenhum produto encontrado.</td></tr>';
-      }
-      htmlProdutos += '</tbody></table>';
-      $('#itens_dados').html(htmlProdutos);
-      
-      // Comissões
-      let htmlComissoes = '<table class="table table-striped"><thead><tr><th>Descrição</th><th>Qtd Cx</th><th>Tipo Cx</th><th>Preço KG</th><th>Preço Unit</th><th>Valor</th></tr></thead><tbody>';
-      if (dados.comissoes && dados.comissoes.length > 0) {
-        dados.comissoes.forEach(function(item) {
-          // No seu JSON, o nome vem como null, a descrição é um número. Adicionei uma lógica para exibir algo útil.
-          htmlComissoes += `<tr>
+          });
+        } else {
+          htmlProdutos += '<tr><td colspan="6" class="text-center">Nenhum produto encontrado.</td></tr>';
+        }
+        htmlProdutos += '</tbody></table>';
+        $('#itens_dados').html(htmlProdutos);
+
+        // Comissões
+        let htmlComissoes = '<table class="table table-striped"><thead><tr><th>Descrição</th><th>Qtd Cx</th><th>Tipo Cx</th><th>Preço KG</th><th>Preço Unit</th><th>Valor</th></tr></thead><tbody>';
+        if (dados.comissoes && dados.comissoes.length > 0) {
+          dados.comissoes.forEach(function(item) {
+            // No seu JSON, o nome vem como null, a descrição é um número. Adicionei uma lógica para exibir algo útil.
+            htmlComissoes += `<tr>
             <td>${item.nome_produto || `Comissão ID ${item.descricao}` || '-'}</td>
             <td>${item.quant_caixa || '0'}</td>
             <td>${item.tipo_caixa_completo || '-'}</td>
@@ -251,284 +250,289 @@ HTML;
             <td>R$ ${parseFloat(item.preco_unit || 0).toFixed(2).replace('.', ',')}</td>
             <td>R$ ${parseFloat(item.valor || 0).toFixed(2).replace('.', ',')}</td>
           </tr>`;
-        });
-      } else {
-        htmlComissoes += '<tr><td colspan="6" class="text-center">Nenhuma comissão encontrada.</td></tr>';
-      }
-      htmlComissoes += '</tbody></table>';
-      $('#comissoes_dados').html(htmlComissoes);
-      
-      // Materiais
-      let htmlMateriais = '<table class="table table-striped"><thead><tr><th>Observações</th><th>Material</th><th>Qtd</th><th>Preço Unit</th><th>Valor</th></tr></thead><tbody>';
-      if (dados.materiais && dados.materiais.length > 0) {
-        dados.materiais.forEach(function(item) {
-          htmlMateriais += `<tr>
+          });
+        } else {
+          htmlComissoes += '<tr><td colspan="6" class="text-center">Nenhuma comissão encontrada.</td></tr>';
+        }
+        htmlComissoes += '</tbody></table>';
+        $('#comissoes_dados').html(htmlComissoes);
+
+        // Materiais
+        let htmlMateriais = '<table class="table table-striped"><thead><tr><th>Observações</th><th>Material</th><th>Qtd</th><th>Preço Unit</th><th>Valor</th></tr></thead><tbody>';
+        if (dados.materiais && dados.materiais.length > 0) {
+          dados.materiais.forEach(function(item) {
+            htmlMateriais += `<tr>
             <td>${item.observacoes || '-'}</td>
             <td>${item.nome_material || '-'}</td>
             <td>${item.quant || '0'}</td> <td>R$ ${parseFloat(item.preco_unit || 0).toFixed(2).replace('.', ',')}</td>
             <td>R$ ${parseFloat(item.valor || 0).toFixed(2).replace('.', ',')}</td>
           </tr>`;
-        });
-      } else {
-        htmlMateriais += '<tr><td colspan="5" class="text-center">Nenhum material encontrado.</td></tr>';
+          });
+        } else {
+          htmlMateriais += '<tr><td colspan="5" class="text-center">Nenhum material encontrado.</td></tr>';
+        }
+        htmlMateriais += '</tbody></table>';
+        $('#materiais_dados').html(htmlMateriais);
+
+        // Valores finais - CORREÇÃO: Acessar de 'dados.romaneio'
+        $('#adicional_dados').text('R$ ' + parseFloat(dados.romaneio.adicional || 0).toFixed(2).replace('.', ','));
+        $('#descricao_a_dados').text(dados.romaneio.descricao_a);
+        $('#desconto_dados').text('R$ ' + parseFloat(dados.romaneio.desconto || 0).toFixed(2).replace('.', ','));
+        $('#descricao_d_dados').text(dados.romaneio.descricao_d);
+        $('#total_liquido_dados').text('R$ ' + parseFloat(dados.romaneio.total_liquido || 0).toFixed(2).replace('.', ','));
+
+        $('#modalDados').modal('show');
+      },
+      error: function(xhr, status, error) {
+        // É uma boa prática mostrar um erro para o usuário também
+        console.error('Erro na requisição AJAX:', status, error);
+        console.error('Resposta do servidor:', xhr.responseText);
+        alert('Ocorreu um erro ao buscar os dados. Verifique o console para mais detalhes.');
       }
-      htmlMateriais += '</tbody></table>';
-      $('#materiais_dados').html(htmlMateriais);
-      
-      // Valores finais - CORREÇÃO: Acessar de 'dados.romaneio'
-      $('#adicional_dados').text('R$ ' + parseFloat(dados.romaneio.adicional || 0).toFixed(2).replace('.', ','));
-      $('#descricao_a_dados').text(dados.romaneio.descricao_a);
-      $('#desconto_dados').text('R$ ' + parseFloat(dados.romaneio.desconto || 0).toFixed(2).replace('.', ','));
-      $('#descricao_d_dados').text(dados.romaneio.descricao_d);
-      $('#total_liquido_dados').text('R$ ' + parseFloat(dados.romaneio.total_liquido || 0).toFixed(2).replace('.', ','));
-      
-      $('#modalDados').modal('show');
-    },
-    error: function(xhr, status, error) {
-      // É uma boa prática mostrar um erro para o usuário também
-      console.error('Erro na requisição AJAX:', status, error);
-      console.error('Resposta do servidor:', xhr.responseText);
-      alert('Ocorreu um erro ao buscar os dados. Verifique o console para mais detalhes.');
+    });
+  }
+
+  function imprimir(id) {
+    window.open('rel/gerar_pdf_romaneio.php?id=' + id, '_blank');
+  }
+
+
+  function selecionar(id) {
+
+    var ids = $('#ids').val();
+
+    if ($('#seletor-' + id).is(":checked") == true) {
+      var novo_id = ids + id + '-';
+      $('#ids').val(novo_id);
+    } else {
+      var retirar = ids.replace(id + '-', '');
+      $('#ids').val(retirar);
     }
-  });
-}
-	function imprimir(id) {
-		window.open('rel/gerar_pdf_romaneio.php?id=' + id, '_blank');
-	}
 
+    var ids_final = $('#ids').val();
+    if (ids_final == "") {
+      $('#btn-deletar').hide();
+    } else {
+      $('#btn-deletar').show();
+    }
+  }
 
-	function selecionar(id){
+  function deletarSel() {
+    var ids = $('#ids').val();
+    var id = ids.split("-");
 
-		var ids = $('#ids').val();
+    for (i = 0; i < id.length - 1; i++) {
+      excluirMultiplos(id[i]);
+    }
 
-		if($('#seletor-'+id).is(":checked") == true){
-			var novo_id = ids + id + '-';
-			$('#ids').val(novo_id);
-		}else{
-			var retirar = ids.replace(id + '-', '');
-			$('#ids').val(retirar);
-		}
+    setTimeout(() => {
+      listar();
+    }, 1000);
 
-		var ids_final = $('#ids').val();
-		if(ids_final == ""){
-			$('#btn-deletar').hide();
-		}else{
-			$('#btn-deletar').show();
-		}
-	}
+    limparCampos();
+  }
 
-	function deletarSel(){
-		var ids = $('#ids').val();
-		var id = ids.split("-");
-		
-		for(i=0; i<id.length-1; i++){
-			excluirMultiplos(id[i]);			
-		}
-
-		setTimeout(() => {
-		  	listar();	
-		}, 1000);
-
-		limparCampos();
-	}
-
-	function relatorio() {
-		window.open('rel/romaneio_venda_rel.php', '_blank');
-	}
-
+  function relatorio() {
+    window.open('rel/romaneio_venda_rel.php', '_blank');
+  }
 </script>
 
 <script type="text/javascript">
-    $(document).ready(function() {
-        $('#tabela').DataTable({
-            "destroy": true,
-            "language": {
-                // "url": "//cdn.datatables.net/plug-ins/1.13.2/i18n/pt-BR.json"
-            },
-            "ordering": false,
-            "stateSave": true
-        });
-
-        // Seus outros listeners
+  $(document).ready(function() {
+    $('#tabela').DataTable({
+      "destroy": true,
+      "language": {
+        // "url": "//cdn.datatables.net/plug-ins/1.13.2/i18n/pt-BR.json"
+      },
+      "ordering": false,
+      "stateSave": true
     });
 
-    // Helper para formatar números
-    function formatarNumeroBR(valor) {
-        if (valor === null || valor === undefined || valor === '') return '0,00';
-        let num = parseFloat(valor);
-        if (isNaN(num)) return '0,00';
-        return num.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    }
-
-    /**
-     * Função EDITAR: CORRIGIDA para garantir que os options dos selects existam
-     */
-    // Dentro do seu arquivo romaneio.js (ou similar)
-
-    function editar(id) {
-  console.debug('=== editar() iniciado para ID:', id);
-
-  // 1) Limpa e prepara
-  f();
-  $('#titulo_inserir').text(`Editar Romaneio de Venda Nº ${id}`);
-  $('#id').val(id);
-
-  // 2) Busca dados
-  $.ajax({
-    url: 'paginas/romaneio_venda/buscar_dados.php',
-    type: 'POST',
-    dataType: 'json',
-    data: { id },
-    success(res) {
-      if (!res || !res.romaneio) {
-        alert('Não foi possível carregar os dados.');
-        return;
-      }
-      const r = res.romaneio;
-
-      // 3) Abre modal
-      $('#modalForm').modal('show');
-
-      // 4) Aguarda DOM
-      setTimeout(() => {
-        // 4.1) Desativa o onchange embutido DO SELECT
-        $('#plano_pgto').removeAttr('onchange');
-
-        // ----- Cabeçalho -----
-        $('input[name="data"]').val(r.data?.split(' ')[0] || '');
-        $('input[name="vencimento"]').val(r.vencimento?.split(' ')[0] || '');
-        $('input[name="nota_fiscal"]').val(r.nota_fiscal || '');
-        $('#quant_dias').val(r.quant_dias || 0);
-
-        // ----- Plano Pgto (nome → ID) -----
-        const normalize = s => s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
-        const target = normalize(r.nome_plano || '');
-        let planoId = '';
-        $('#plano_pgto option').each(function() {
-          if (normalize($(this).text()) === target) {
-            planoId = this.value;
-            return false;
-          }
-        });
-        $('#plano_pgto').val(planoId);
-
-
-        $('#cliente_modal').val(r.atacadista || '').trigger('change');
-
-        // ----- Produtos -----
-        $('#linha-container_1').empty();
-        if (res.produtos?.length) {
-          res.produtos.forEach((item, idx) => {
-            console.debug('addNewLine1 para produto', idx);
-            addNewLine1();
-            const $ln = $('#linha-container_1 .linha_1').eq(idx);
-            $ln.find('.quant_caixa_1').val(item.quant||'');
-            $ln.find('.produto_1')   .val(item.variedade||'');
-            $ln.find('.preco_kg_1')  .val(item.preco_kg
-                                          ? parseFloat(item.preco_kg).toFixed(2).replace('.',',')
-                                          :'0,00');
-            $ln.find('.tipo_cx_1')   .val(item.tipo_caixa||'');
-            $ln.find('.preco_unit_1').val(item.preco_unit
-                                          ? parseFloat(item.preco_unit).toFixed(2).replace('.',',')
-                                          :'0,00');
-            $ln.find('.valor_1')     .val(item.valor
-                                          ? parseFloat(item.valor).toFixed(2).replace('.',',')
-                                          :'0,00');
-            calcularValores($ln.get(0));
-          });
-          $('#desc-avista').val(r.desc_avista);
-        } else {
-          console.debug('sem produtos: addNewLine1');
-          addNewLine1();
-        }
-
-        // ----- Comissões -----
-        $('#linha-container_2').empty();
-        if (res.comissoes?.length) {
-          res.comissoes.forEach((item, idx) => {
-            console.debug('addNewLine2 para comissão', idx);
-            addNewLine2();
-            const $ln = $('#linha-container_2 .linha_2').eq(idx);
-            $ln.find('.desc_2')       .val(item.descricao||'');
-            $ln.find('.quant_caixa_2').val(item.quant_caixa||'');
-            $ln.find('.preco_kg_2')   .val(item.preco_kg
-                                          ? parseFloat(item.preco_kg).toFixed(2).replace('.',',')
-                                          :'0,00');
-            $ln.find('.tipo_cx_2')    .val(item.tipo_caixa||'');
-            $ln.find('.preco_unit_2') .val(item.preco_unit
-                                          ? parseFloat(item.preco_unit).toFixed(2).replace('.',',')
-                                          :'0,00');
-            $ln.find('.valor_2')      .val(item.valor
-                                          ? parseFloat(item.valor).toFixed(2).replace('.',',')
-                                          :'0,00');
-            calcularValores2($ln.get(0));
-          });
-        } else {
-          console.debug('sem comissões: addNewLine2');
-          addNewLine2();
-        }
-
-        // ----- Materiais -----
-        $('#linha-container_3').empty();
-        if (res.materiais?.length) {
-          res.materiais.forEach((item, idx) => {
-            console.debug('addNewLine3 para material', idx);
-            addNewLine3();
-            const $ln = $('#linha-container_3 .linha_3').eq(idx);
-            $ln.find('.obs_3')       .val(item.observacoes||'');
-            $ln.find('.material')    .val(item.descricao||'');
-            $ln.find('.quant_3')     .val(item.quant||'');
-            $ln.find('.preco_unit_3').val(item.preco_unit
-                                          ? parseFloat(item.preco_unit).toFixed(2).replace('.',',')
-                                          :'0,00');
-            $ln.find('.valor_3')     .val(item.valor
-                                          ? parseFloat(item.valor).toFixed(2).replace('.',',')
-                                          :'0,00');
-            calcularValores3($ln.get(0));
-          });
-        } else {
-          console.debug('sem materiais: addNewLine3');
-          addNewLine3();
-        }
-
-        
-        $('#valor_adicional').val(r.adicional.toFixed(2).replace('.',','));
-        $('#descricao_adicional').val(r.descricao_a);
-
-        $('#valor_desconto').val(r.desconto.toFixed(2).replace('.',','));
-        $('#descricao_desconto').val(r.descricao_d);
-        
-        // 5) Recalcula TUDO manualmente
-        calculaTotais();
-        calculaTotais2();
-        calculaTotais3();
-      }, 100);
-    },
-    error(err) {
-      console.error('Erro ao buscar dados (venda):', err);
-      alert('Não foi possível carregar detalhes. Veja o console.');
-    }
+    // Seus outros listeners
   });
-}
+
+  // Helper para formatar números
+  function formatarNumeroBR(valor) {
+    if (valor === null || valor === undefined || valor === '') return '0,00';
+    let num = parseFloat(valor);
+    if (isNaN(num)) return '0,00';
+    return num.toLocaleString('pt-BR', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    });
+  }
+
+  /**
+   * Função EDITAR: CORRIGIDA para garantir que os options dos selects existam
+   */
+  // Dentro do seu arquivo romaneio.js (ou similar)
+
+  function editar(id) {
+    console.debug('=== editar() iniciado para ID:', id);
+
+    // 1) Limpa e prepara
+    limparCampos();
+    $('#titulo_inserir').text(`Editar Romaneio de Venda Nº ${id}`);
+    $('#id').val(id);
+
+    // 2) Busca dados
+    $.ajax({
+      url: 'paginas/romaneio_venda/buscar_dados.php',
+      type: 'POST',
+      dataType: 'json',
+      data: {
+        id
+      },
+      success(res) {
+        if (!res || !res.romaneio) {
+          alert('Não foi possível carregar os dados.');
+          return;
+        }
+        const r = res.romaneio;
+
+        // 3) Abre modal
+        $('#modalForm').modal('show');
+
+        // 4) Aguarda DOM
+        setTimeout(() => {
+          // 4.1) Desativa o onchange embutido DO SELECT
+          $('#plano_pgto').removeAttr('onchange');
+
+          // ----- Cabeçalho -----
+          $('input[name="data"]').val(r.data?.split(' ')[0] || '');
+          $('input[name="vencimento"]').val(r.vencimento?.split(' ')[0] || '');
+          $('input[name="nota_fiscal"]').val(r.nota_fiscal || '');
+          $('#quant_dias').val(r.quant_dias || 0);
+
+          // ----- Plano Pgto (nome → ID) -----
+          const normalize = s => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+          const target = normalize(r.nome_plano || '');
+          let planoId = '';
+          $('#plano_pgto option').each(function() {
+            if (normalize($(this).text()) === target) {
+              planoId = this.value;
+              return false;
+            }
+          });
+          $('#plano_pgto').val(planoId);
+
+
+          $('#cliente_modal').val(r.atacadista || '').trigger('change');
+
+          // ----- Produtos -----
+          $('#linha-container_1').empty();
+          if (res.produtos?.length) {
+            res.produtos.forEach((item, idx) => {
+              console.debug('addNewLine1 para produto', idx);
+              addNewLine1();
+              const $ln = $('#linha-container_1 .linha_1').eq(idx);
+              $ln.find('.quant_caixa_1').val(item.quant || '');
+              $ln.find('.produto_1').val(item.variedade || '');
+              $ln.find('.preco_kg_1').val(item.preco_kg ?
+                parseFloat(item.preco_kg).toFixed(2).replace('.', ',') :
+                '0,00');
+              $ln.find('.tipo_cx_1').val(item.tipo_caixa || '');
+              $ln.find('.preco_unit_1').val(item.preco_unit ?
+                parseFloat(item.preco_unit).toFixed(2).replace('.', ',') :
+                '0,00');
+              $ln.find('.valor_1').val(item.valor ?
+                parseFloat(item.valor).toFixed(2).replace('.', ',') :
+                '0,00');
+              calcularValores($ln.get(0));
+            });
+            $('#desc-avista').val(r.desc_avista);
+          } else {
+            console.debug('sem produtos: addNewLine1');
+            addNewLine1();
+          }
+
+          // ----- Comissões -----
+          $('#linha-container_2').empty();
+          if (res.comissoes?.length) {
+            res.comissoes.forEach((item, idx) => {
+              console.debug('addNewLine2 para comissão', idx);
+              addNewLine2();
+              const $ln = $('#linha-container_2 .linha_2').eq(idx);
+              $ln.find('.desc_2').val(item.descricao || '');
+              $ln.find('.quant_caixa_2').val(item.quant_caixa || '');
+              $ln.find('.preco_kg_2').val(item.preco_kg ?
+                parseFloat(item.preco_kg).toFixed(2).replace('.', ',') :
+                '0,00');
+              $ln.find('.tipo_cx_2').val(item.tipo_caixa || '');
+              $ln.find('.preco_unit_2').val(item.preco_unit ?
+                parseFloat(item.preco_unit).toFixed(2).replace('.', ',') :
+                '0,00');
+              $ln.find('.valor_2').val(item.valor ?
+                parseFloat(item.valor).toFixed(2).replace('.', ',') :
+                '0,00');
+              calcularValores2($ln.get(0));
+            });
+          } else {
+            console.debug('sem comissões: addNewLine2');
+            addNewLine2();
+          }
+
+          // ----- Materiais -----
+          $('#linha-container_3').empty();
+          if (res.materiais?.length) {
+            res.materiais.forEach((item, idx) => {
+              console.debug('addNewLine3 para material', idx);
+              addNewLine3();
+              const $ln = $('#linha-container_3 .linha_3').eq(idx);
+              $ln.find('.obs_3').val(item.observacoes || '');
+              $ln.find('.material').val(item.descricao || '');
+              $ln.find('.quant_3').val(item.quant || '');
+              $ln.find('.preco_unit_3').val(item.preco_unit ?
+                parseFloat(item.preco_unit).toFixed(2).replace('.', ',') :
+                '0,00');
+              $ln.find('.valor_3').val(item.valor ?
+                parseFloat(item.valor).toFixed(2).replace('.', ',') :
+                '0,00');
+              calcularValores3($ln.get(0));
+            });
+          } else {
+            console.debug('sem materiais: addNewLine3');
+            addNewLine3();
+          }
+
+
+          $('#valor_adicional').val(r.adicional.toFixed(2).replace('.', ','));
+          $('#descricao_adicional').val(r.descricao_a);
+
+          $('#valor_desconto').val(r.desconto.toFixed(2).replace('.', ','));
+          $('#descricao_desconto').val(r.descricao_d);
+
+          // 5) Recalcula TUDO manualmente
+          calculaTotais();
+          calculaTotais2();
+          calculaTotais3();
+        }, 100);
+      },
+      error(err) {
+        console.error('Erro ao buscar dados (venda):', err);
+        alert('Não foi possível carregar detalhes. Veja o console.');
+      }
+    });
+  }
 
 
 
 
 
-    /**
-     * Função ADICIONAR LINHA DE PRODUTO: CORRIGIDA para usar os campos corretos
-     */
-    function adicionarLinhaProduto(item = {}) {
-        // CORREÇÃO 1: Usando item.tipo_caixa para o VALUE e item.tipo_caixa_completo para o TEXTO.
-        const optionTipoCaixa = item.tipo_caixa 
-            ? `<option value="${item.tipo_caixa}" selected>${item.tipo_caixa_completo}</option>` 
-            : '<option value="">Selecione...</option>';
+  /**
+   * Função ADICIONAR LINHA DE PRODUTO: CORRIGIDA para usar os campos corretos
+   */
+  function adicionarLinhaProduto(item = {}) {
+    // CORREÇÃO 1: Usando item.tipo_caixa para o VALUE e item.tipo_caixa_completo para o TEXTO.
+    const optionTipoCaixa = item.tipo_caixa ?
+      `<option value="${item.tipo_caixa}" selected>${item.tipo_caixa_completo}</option>` :
+      '<option value="">Selecione...</option>';
 
-        const optionVariedade = item.variedade
-            ? `<option value="${item.variedade}" selected>${item.nome_produto}</option>`
-            : '<option value="">Selecione Variedade...</option>';
+    const optionVariedade = item.variedade ?
+      `<option value="${item.variedade}" selected>${item.nome_produto}</option>` :
+      '<option value="">Selecione Variedade...</option>';
 
-        const linha = `
+    const linha = `
             <tr>
                 <td><input type="number" step="1" name="produto_quant[]" class="form-control" value="${item.quant || ''}" required></td>
                 <td>
@@ -547,16 +551,16 @@ HTML;
                 <td><button type="button" class="btn btn-danger btn-sm" onclick="removerLinha(this)">-</button></td>
             </tr>
         `;
-        $('#tbodyProdutos').append(linha);
-    }
+    $('#tbodyProdutos').append(linha);
+  }
 
-    // Função para adicionar linha de comissão (também corrigida)
-    function adicionarLinhaComissao(item = {}) {
-         const optionTipoCaixa = item.tipo_caixa 
-            ? `<option value="${item.tipo_caixa}" selected>${item.tipo_caixa_completo}</option>` 
-            : '<option value="">Selecione...</option>';
+  // Função para adicionar linha de comissão (também corrigida)
+  function adicionarLinhaComissao(item = {}) {
+    const optionTipoCaixa = item.tipo_caixa ?
+      `<option value="${item.tipo_caixa}" selected>${item.tipo_caixa_completo}</option>` :
+      '<option value="">Selecione...</option>';
 
-        const linha = `
+    const linha = `
              <tr>
                 <td><input type="text" name="comissao_desc[]" class="form-control" value="${item.descricao || ''}"></td>
                 <td><input type="number" step="1" name="comissao_quant[]" class="form-control" value="${item.quant_caixa || ''}"></td>
@@ -564,14 +568,18 @@ HTML;
                 <td><button type="button" class="btn btn-danger btn-sm" onclick="removerLinha(this)">-</button></td>
             </tr>
         `;
-        $('#tbodyComissoes').append(linha);
-    }
-    
-    // Função para adicionar linha de material (sem alterações necessárias aqui)
-    function adicionarLinhaMaterial(item = {}) { /* ... sua função aqui ... */ }
-    function removerLinha(botao) { /* ... sua função aqui ... */ }
+    $('#tbodyComissoes').append(linha);
+  }
 
-    // Suas outras funções (mostrar, imprimir, selecionar, etc.)
-    // ...
+  // Função para adicionar linha de material (sem alterações necessárias aqui)
+  function adicionarLinhaMaterial(item = {}) {
+    /* ... sua função aqui ... */
+  }
 
+  function removerLinha(botao) {
+    /* ... sua função aqui ... */
+  }
+
+  // Suas outras funções (mostrar, imprimir, selecionar, etc.)
+  // ...
 </script>
