@@ -277,7 +277,7 @@ if (@$fornecedores == 'ocultar') {
 						</div>
 						<div class="col-md-6 mb-2">
 							<label>IE</label>
-							<input type="text" class="form-control" id="ie" name="ie" placeholder="IE do Fornecedor" onkeyup="mascara_ie('ie')" maxlength="11">
+							<input type="text" class="form-control" id="ie" name="ie" placeholder="IE do Fornecedor" maxlength="13">
 						</div>
 					</div>
 
