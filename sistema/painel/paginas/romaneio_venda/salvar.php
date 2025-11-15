@@ -137,86 +137,96 @@ $romaneios_array = explode(',', $romaneios_selecionados);
 // --- 1) soma do total bruto de produtos ---
 $total_bruto = 0;
 foreach ($valor_1 as $v) {
-    $total_bruto += floatval(str_replace(',', '.', $v));
+	$total_bruto += floatval(str_replace(',', '.', $v));
 }
 
 // --- 2) soma das comissões ---
 $total_comissao = 0;
 if (!empty($_POST['valor_2'])) {
-    foreach ($_POST['valor_2'] as $v2) {
-        $total_comissao += floatval(str_replace(',', '.', $v2));
-    }
+	foreach ($_POST['valor_2'] as $v2) {
+		$total_comissao += floatval(str_replace(',', '.', $v2));
+	}
 }
 
 // --- 3) soma dos materiais ---
 $total_materiais = 0;
 if (!empty($_POST['valor_3'])) {
-    foreach ($_POST['valor_3'] as $v3) {
-        $total_materiais += floatval(str_replace(',', '.', $v3));
-    }
+	foreach ($_POST['valor_3'] as $v3) {
+		$total_materiais += floatval(str_replace(',', '.', $v3));
+	}
 }
 
 // --- 4) adicional fixo ---
 $valor_adicional = floatval(str_replace(',', '.', $adicional));
 
 // --- 5) desconto fixo ---
-$valor_desconto   = floatval(str_replace(',', '.', $desconto));
+$valor_desconto	= floatval(str_replace(',', '.', $desconto));
 
 // --- 6) desconto à vista (%) sobre o total bruto ---
-$perc_avista      = floatval(str_replace(',', '.', $desc_avista));
+$perc_avista		= floatval(str_replace(',', '.', $desc_avista));
 $valor_desc_avista = $total_bruto * ($perc_avista / 100);
 
 // --- 7) total líquido final ---
 $total_liquido = $total_bruto
-               + $total_comissao
-               + $total_materiais
-               + $valor_adicional
-               - $valor_desconto
-               - $valor_desc_avista;
+				+ $total_comissao
+				+ $total_materiais
+				+ $valor_adicional
+				- $valor_desconto
+				- $valor_desc_avista;
 
 // validação básica
 if ($total_bruto <= 0) {
-    $erros[] = "O total bruto deve ser maior que zero";
+	$erros[] = "O total bruto deve ser maior que zero";
+}
+
+// *** MUDANÇA 1: Adicionada verificação de erros final antes do TRY ***
+// Se houver erros FINAIS (como total_bruto), retorna
+if (!empty($erros)) {
+	echo json_encode([
+		'status' => 'erro',
+		'mensagem' => implode("<br>", $erros)
+	], JSON_UNESCAPED_UNICODE);
+	exit;
 }
 
 
 try {
-    $pdo->beginTransaction();
+	$pdo->beginTransaction();
 
-    if ($id == "") {
-        // 2a) Incluir desc_avista no INSERT
-        $query = $pdo->prepare("INSERT INTO $tabela SET 
-            atacadista      = :atacadista, 
-            data            = :data, 
-            nota_fiscal     = :nota_fiscal, 
-            plano_pgto      = :plano_pgto, 
-            vencimento      = :vencimento, 
-            total_liquido   = :total_liquido, 
-            quant_dias      = :quant_dias,
-            adicional       = :adicional,
-            descricao_a     = :descricao_a,
-            desconto        = :desconto,
-            descricao_d     = :descricao_d,
-            desc_avista     = :desc_avista
-        ");
-    } else {
-        // 2b) E no UPDATE
-        $query = $pdo->prepare("UPDATE $tabela SET 
-            atacadista      = :atacadista, 
-            data            = :data, 
-            nota_fiscal     = :nota_fiscal, 
-            plano_pgto      = :plano_pgto, 
-            vencimento      = :vencimento, 
-            total_liquido   = :total_liquido, 
-            quant_dias      = :quant_dias,
-            adicional       = :adicional,
-            descricao_a     = :descricao_a,
-            desconto        = :desconto,
-            descricao_d     = :descricao_d,
-            desc_avista     = :desc_avista
-          WHERE id = :id");
-        $query->bindValue(":id", $id);
-    }
+	if ($id == "") {
+		// 2a) Incluir desc_avista no INSERT
+		$query = $pdo->prepare("INSERT INTO $tabela SET 
+			atacadista	 = :atacadista, 
+			data			 = :data, 
+			nota_fiscal	 = :nota_fiscal, 
+			plano_pgto	 = :plano_pgto, 
+			vencimento	 = :vencimento, 
+			total_liquido	 = :total_liquido, 
+			quant_dias	 = :quant_dias,
+			adicional		 = :adicional,
+			descricao_a	 = :descricao_a,
+			desconto		 = :desconto,
+			descricao_d	 = :descricao_d,
+			desc_avista	 = :desc_avista
+		");
+	} else {
+		// 2b) E no UPDATE
+		$query = $pdo->prepare("UPDATE $tabela SET 
+			atacadista	 = :atacadista, 
+			data			 = :data, 
+			nota_fiscal	 = :nota_fiscal, 
+			plano_pgto	 = :plano_pgto, 
+			vencimento	 = :vencimento, 
+			total_liquido	 = :total_liquido, 
+			quant_dias	 = :quant_dias,
+			adicional		 = :adicional,
+			descricao_a	 = :descricao_a,
+			desconto		 = :desconto,
+			descricao_d	 = :descricao_d,
+			desc_avista	 = :desc_avista
+		  WHERE id = :id");
+		$query->bindValue(":id", $id);
+	}
 
 	// Bind dos valores comuns
 	$query->bindValue(":atacadista", $atacadista);
@@ -230,7 +240,7 @@ try {
 	$query->bindValue(":descricao_a", $descricao_a);
 	$query->bindValue(":desconto", $desconto);
 	$query->bindValue(":descricao_d", $descricao_d);
-    $query->bindValue(":desc_avista", $desc_avista, PDO::PARAM_INT);
+	$query->bindValue(":desc_avista", $desc_avista, PDO::PARAM_INT); // Assumindo que é um valor numérico
 
 	$query->execute();
 
@@ -319,57 +329,56 @@ try {
 		$pdo->prepare("DELETE FROM linha_observacao WHERE id_romaneio = ?")->execute([$romaneio_venda_id]);
 	}
 
-	// Inserir linhas de observação
 // Inserir linhas de observação
 foreach ($obs_3 as $key => $observacao) {
-    if (!empty($observacao) || !empty($material[$key])) {
-        // 1) Inserção da observação
-        $query = $pdo->prepare("
-            INSERT INTO linha_observacao (
-                id_romaneio,
-                observacoes,
-                descricao,
-                quant,
-                preco_unit,
-                valor
-            ) VALUES (?, ?, ?, ?, ?, ?)
-        ");
-        $query->execute([
-            $romaneio_venda_id,
-            $observacao,
-            $material[$key] ?? null,
-            $quant_3[$key] ?? 0,
-            str_replace(',', '.', $preco_unit_3[$key] ?? 0),
-            str_replace(',', '.', $valor_3[$key] ?? 0)
-        ]);
+	if (!empty($observacao) || !empty($material[$key])) {
+		// 1) Inserção da observação
+		$query = $pdo->prepare("
+			INSERT INTO linha_observacao (
+				id_romaneio,
+				observacoes,
+				descricao,
+				quant,
+				preco_unit,
+				valor
+			) VALUES (?, ?, ?, ?, ?, ?)
+		");
+		$query->execute([
+			$romaneio_venda_id,
+			$observacao,
+			$material[$key] ?? null,
+			$quant_3[$key] ?? 0,
+			str_replace(',', '.', $preco_unit_3[$key] ?? 0),
+			str_replace(',', '.', $valor_3[$key] ?? 0)
+		]);
 
-        // 2) Atualizar estoque do material
-        $matId = (int)$material[$key];
-        $qtdUsada = (int)$quant_3[$key];
+		// 2) Atualizar estoque do material
+		$matId = (int)$material[$key];
+		$qtdUsada = (int)$quant_3[$key];
 
-        // (a) Opcional: checar se o material tem controle de estoque e se há saldo suficiente
-        $check = $pdo->prepare("SELECT tem_estoque, estoque FROM materiais WHERE id = ?");
-        $check->execute([$matId]);
-        $row = $check->fetch(PDO::FETCH_ASSOC);
+		// (a) Opcional: checar se o material tem controle de estoque e se há saldo suficiente
+		$check = $pdo->prepare("SELECT tem_estoque, estoque FROM materiais WHERE id = ?");
+		$check->execute([$matId]);
+		$row = $check->fetch(PDO::FETCH_ASSOC);
 
-        if ($row && strtoupper($row['tem_estoque']) === 'SIM') {
-            if ($row['estoque'] < $qtdUsada) {
-                throw new Exception("Estoque insuficiente para o material ID {$matId}");
-            }
-        }
+		if ($row && strtoupper($row['tem_estoque']) === 'SIM') {
+			if ($row['estoque'] < $qtdUsada) {
+				throw new Exception("Estoque insuficiente para o material ID {$matId}");
+			}
+		}
 
-        // (b) Debitar do estoque
-        $upd = $pdo->prepare("UPDATE materiais
-                              SET estoque = estoque - ?
-                              WHERE id = ?");
-        $upd->execute([$qtdUsada, $matId]);
+		// (b) Debitar do estoque
+		$upd = $pdo->prepare("UPDATE materiais
+								SET estoque = estoque - ?
+								WHERE id = ?");
+		$upd->execute([$qtdUsada, $matId]);
 
-        // (c) (Opcional) incrementar contador de vendas
-        $upd2 = $pdo->prepare("UPDATE materiais
-                               SET vendas = vendas + ?
-                               WHERE id = ?");
-        $upd2->execute([$qtdUsada, $matId]);
-    }
+		// (c) (Opcional) incrementar contador de vendas
+		$upd2 = $pdo->prepare("UPDATE materiais
+								SET vendas = vendas + ?
+								WHERE id = ?");
+		$upd2->execute([$qtdUsada, $matId]);
+	}
 }
 
 
@@ -383,45 +392,47 @@ foreach ($obs_3 as $key => $observacao) {
 $descricao_receber = "Venda Romaneio Nº " . $romaneio_venda_id;
 
 // Esta variável já foi calculada no início, mas vamos usar o valor final aqui.
-$total_liquido_final = floatval(str_replace(',', '.', $_POST['valor_liquido']));
+// CUIDADO: O POST original pode não existir. É mais seguro usar a variável $total_liquido calculada
+// $total_liquido_final = floatval(str_replace(',', '.', $_POST['valor_liquido']));
+$total_liquido_final = $total_liquido; // Usando a variável já calculada
 
 
 if ($id != "") {
-    // Se está EDITANDO, ATUALIZA a conta a receber existente
-    $check_receber = $pdo->prepare("SELECT id FROM receber WHERE id_ref = ? AND referencia = 'Romaneio Venda'");
-    $check_receber->execute([$romaneio_venda_id]);
-    
-    if ($check_receber->rowCount() > 0) {
-        $query_receber = $pdo->prepare("UPDATE receber SET 
-            cliente = :cliente,
-            valor = :valor,
-            vencimento = :vencimento,
-            pago = 'Não',
-            data_pgto = NULL,
-            usuario_pgto = 0  -- <-- ADICIONADO AQUI
-            WHERE id_ref = :id_ref AND referencia = 'Romaneio Venda'");
-    } else {
-        $id = ""; // Força a lógica de inserção se não encontrar um registro para atualizar
-    }
+	// Se está EDITANDO, ATUALIZA a conta a receber existente
+	$check_receber = $pdo->prepare("SELECT id FROM receber WHERE id_ref = ? AND referencia = 'Romaneio Venda'");
+	$check_receber->execute([$romaneio_venda_id]);
+	
+	if ($check_receber->rowCount() > 0) {
+		$query_receber = $pdo->prepare("UPDATE receber SET 
+			cliente = :cliente,
+			valor = :valor,
+			vencimento = :vencimento,
+			pago = 'Não',
+			data_pgto = NULL,
+			usuario_pgto = 0	-- <-- ADICIONADO AQUI
+			WHERE id_ref = :id_ref AND referencia = 'Romaneio Venda'");
+	} else {
+		$id = ""; // Força a lógica de inserção se não encontrar um registro para atualizar
+	}
 }
 
 if ($id == "") {
-    // Se é NOVO (ou não encontrou na edição), INSERE uma nova conta a receber
-    $query_receber = $pdo->prepare("INSERT INTO receber SET 
-        descricao = :descricao,
-        cliente = :cliente,
-        valor = :valor,
-        vencimento = :vencimento,
-        data_lanc = CURDATE(),
-        usuario_lanc = :usuario_lanc,
-        pago = 'Não',
-        referencia = 'Romaneio Venda',
-        id_ref = :id_ref,
-        usuario_pgto = 0  -- <-- ADICIONADO AQUI
-    ");
-    
-    $query_receber->bindValue(":descricao", $descricao_receber);
-    $query_receber->bindValue(":usuario_lanc", $id_usuario);
+	// Se é NOVO (ou não encontrou na edição), INSERE uma nova conta a receber
+	$query_receber = $pdo->prepare("INSERT INTO receber SET 
+		descricao = :descricao,
+		cliente = :cliente,
+		valor = :valor,
+		vencimento = :vencimento,
+		data_lanc = CURDATE(),
+		usuario_lanc = :usuario_lanc,
+		pago = 'Não',
+		referencia = 'Romaneio Venda',
+		id_ref = :id_ref,
+		usuario_pgto = 0	-- <-- ADICIONADO AQUI
+	");
+	
+	$query_receber->bindValue(":descricao", $descricao_receber);
+	$query_receber->bindValue(":usuario_lanc", $id_usuario);
 }
 
 // Bind dos valores comuns para INSERT e UPDATE
@@ -443,26 +454,23 @@ $query_receber->execute();
 		'mensagem' => 'Romaneio salvo com sucesso!'
 	]);
 
+// *** MUDANÇA 2: Blocos CATCH modificados para retornar o erro exato ***
+
 } catch (PDOException $e) {
 	$pdo->rollBack();
-	$mensagem_erro = 'Erro ao salvar: ';
-	
-	if (strpos($e->getMessage(), 'foreign key constraint')) {
-		$mensagem_erro .= 'Um dos itens selecionados não existe mais no sistema';
-	} else {
-		$mensagem_erro .= 'Não foi possível salvar o romaneio';
-	}
-	
-	error_log("Erro PDO: " . $e->getMessage());
+	error_log("Erro PDO: " . $e->getMessage()); // Loga o erro real
 	echo json_encode([
 		'status' => 'erro',
-		'mensagem' => $mensagem_erro . ' (Debug: ' . $e->getMessage() . ')'
-	]);
+		'mensagem' => 'Erro de Banco de Dados (Debug): ' . $e->getMessage() // Retorna o erro real
+	], JSON_UNESCAPED_UNICODE);
+
 } catch (Exception $e) {
 	$pdo->rollBack();
-	error_log("Erro genérico: " . $e->getMessage());
+	// Monta uma mensagem de erro mais detalhada para debug
+	$error_message = $e->getMessage() . " no arquivo " . $e->getFile() . " na linha " . $e->getLine();
+	error_log("Erro genérico: " . $error_message); // Loga o erro real
 	echo json_encode([
 		'status' => 'erro',
-		'mensagem' => 'Erro inesperado ao salvar o romaneio'
-	]);
+		'mensagem' => 'Erro Inesperado (Debug): ' . $error_message // Retorna o erro real
+	], JSON_UNESCAPED_UNICODE);
 }
