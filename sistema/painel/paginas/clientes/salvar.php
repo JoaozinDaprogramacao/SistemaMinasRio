@@ -10,9 +10,10 @@ session_start();
 $id_usuario = $_SESSION['id'] ?? null;
 
 // Recebe dados do formulário
-$nome            = $_POST['nome_cliente']    ?? '';
+$nome            = $_POST['nome_cliente']   ?? '';
 $email           = $_POST['email']           ?? '';
 $contato         = $_POST['contato']         ?? '';
+$contato2        = $_POST['contato2']        ?? ''; // <-- ALTERAÇÃO: Capturado
 $data_nasc       = $_POST['data_nasc']       ?? null;
 $cpf             = $_POST['cpf']             ?? '';
 $rg              = $_POST['rg']              ?? '';
@@ -35,29 +36,29 @@ $id              = $_POST['id']              ?? null;
 
 // 1) Definição de campos obrigatórios por tipo
 $campos_comuns = [
-    'nome'                => $nome,
-    'email'               => $email,
-    'contato'             => $contato,
-    'CEP'                 => $cep,
-    'endereço'            => $endereco,
-    'número'              => $numero,
-    'bairro'              => $bairro,
-    'cidade'              => $cidade,
-    'UF'                  => $uf,
-    'plano de pagamento'  => $plano_pagamento,
-    'forma de pagamento'  => $forma_pagamento,
-    'prazo de pagamento'  => $prazo_pagamento,
+    'nome'               => $nome,
+    'email'              => $email,
+    'contato'            => $contato, // contato2 é opcional
+    'CEP'                => $cep,
+    'endereço'           => $endereco,
+    'número'             => $numero,
+    'bairro'             => $bairro,
+    'cidade'             => $cidade,
+    'UF'                 => $uf,
+    'plano de pagamento' => $plano_pagamento,
+    'forma de pagamento' => $forma_pagamento,
+    'prazo de pagamento' => $prazo_pagamento,
 ];
 
 $campos_fisica = [
-    'data de nascimento'  => $data_nasc,
-    'CPF'                 => $cpf,
+    'data de nascimento' => $data_nasc,
+    'CPF'                => $cpf,
 ];
 
 $campos_juridica = [
-    'razão social'        => $razao_social,
-    'CNPJ'                => $cnpj,
-    'IE'                  => $ie,
+    'razão social'       => $razao_social,
+    'CNPJ'               => $cnpj,
+    'IE'                 => $ie,
 ];
 
 // 2) Monta o array de obrigatórios conforme tipo
@@ -90,28 +91,51 @@ if (!empty($email)) {
     }
 }
 
-// 5) Validação de contato único
+// 5) Validação de contato 1 único (checa ambas as colunas)
+// <-- ALTERAÇÃO: Bloco 5 e 5b
 if (!empty($contato)) {
-    $stmt = $pdo->prepare("SELECT id FROM $tabela WHERE contato = ? LIMIT 1");
-    $stmt->execute([$contato]);
+    // Checa se o 'contato' (Telefone 1) já existe na coluna 'contato' OU 'contato2'
+    $stmt = $pdo->prepare("SELECT id FROM $tabela WHERE (contato = :valor OR contato2 = :valor) LIMIT 1");
+    $stmt->execute([':valor' => $contato]);
     $res = $stmt->fetch();
     if ($res && $res['id'] != $id) {
-        echo 'Telefone/Celular já cadastrado!';
+        echo 'O Telefone 1 (Celular) já está cadastrado em outro cliente!';
         exit;
     }
 }
 
+// 5b) Validação de contato 2 único (se preenchido)
+if (!empty($contato2)) {
+    // Checa se os telefones são iguais
+    if ($contato === $contato2) {
+        echo 'Os telefones 1 e 2 não podem ser iguais!';
+        exit;
+    }
+    
+    // Checa se o 'contato2' (Telefone 2) já existe na coluna 'contato' OU 'contato2'
+    $stmt = $pdo->prepare("SELECT id FROM $tabela WHERE (contato = :valor OR contato2 = :valor) LIMIT 1");
+    $stmt->execute([':valor' => $contato2]);
+    $res = $stmt->fetch();
+    if ($res && $res['id'] != $id) {
+        echo 'O Telefone 2 já está cadastrado em outro cliente!';
+        exit;
+    }
+}
+// <-- FIM DA ALTERAÇÃO (Validação)
+
+
 // 6) Montagem do SQL (INSERT ou UPDATE)
 if (empty($id)) {
+    // <-- ALTERAÇÃO: Adicionado contato2 e :contato2
     $sql = "INSERT INTO $tabela (
-                nome, email, contato, data_cad,
+                nome, email, contato, contato2, data_cad,
                 endereco, numero, bairro, cidade, uf, cep, complemento,
                 tipo_pessoa, cpf, rg, data_nasc,
                 razao_social, cnpj, ie, site,
                 plano_pagamento, forma_pagamento, prazo_pagamento,
                 usuario
             ) VALUES (
-                :nome, :email, :contato, CURDATE(),
+                :nome, :email, :contato, :contato2, CURDATE(),
                 :endereco, :numero, :bairro, :cidade, :uf, :cep, :complemento,
                 :tipo_pessoa, :cpf, :rg, :data_nasc,
                 :razao_social, :cnpj, :ie, :site,
@@ -119,10 +143,12 @@ if (empty($id)) {
                 :usuario
             )";
 } else {
+    // <-- ALTERAÇÃO: Adicionado contato2 = :contato2
     $sql = "UPDATE $tabela SET
                 nome = :nome,
                 email = :email,
                 contato = :contato,
+                contato2 = :contato2,
                 endereco = :endereco,
                 numero = :numero,
                 bairro = :bairro,
@@ -151,6 +177,7 @@ $stmt = $pdo->prepare($sql);
 $stmt->bindValue(':nome', $nome);
 $stmt->bindValue(':email', $email);
 $stmt->bindValue(':contato', $contato);
+$stmt->bindValue(':contato2', $contato2); // <-- ALTERAÇÃO: Adicionado
 $stmt->bindValue(':endereco', $endereco);
 $stmt->bindValue(':numero', $numero);
 $stmt->bindValue(':bairro', $bairro);
@@ -179,3 +206,4 @@ if (!empty($id)) {
 $stmt->execute();
 
 echo 'Salvo com Sucesso';
+?>
