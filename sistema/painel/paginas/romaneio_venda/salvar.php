@@ -114,8 +114,8 @@ $plano_pgto = $_POST['plano_pgto'];
 $nota_fiscal = $_POST['nota_fiscal'];
 $vencimento = $_POST['vencimento'];
 $quant_dias = $_POST['quant_dias'] ?: 0;
-$adicional = $_POST['valor_adicional'] ?: 0;
-$descricao_a = $_POST['descricao_adicional'] ?: '';
+$adicional = $_POST['valor_adicional'] ?? 0;
+$descricao_a = $_POST['descricao_adicional'] ?? '';
 $desconto = $_POST['valor_desconto'] ?: 0;
 $descricao_d = $_POST['descricao_desconto'] ?: '';
 
@@ -179,7 +179,6 @@ if ($total_bruto <= 0) {
 	$erros[] = "O total bruto deve ser maior que zero";
 }
 
-// *** MUDANÇA 1: Adicionada verificação de erros final antes do TRY ***
 // Se houver erros FINAIS (como total_bruto), retorna
 if (!empty($erros)) {
 	echo json_encode([
@@ -329,9 +328,12 @@ try {
 		$pdo->prepare("DELETE FROM linha_observacao WHERE id_romaneio = ?")->execute([$romaneio_venda_id]);
 	}
 
-// Inserir linhas de observação
+// ==========================================================
+// INÍCIO: LÓGICA DE OBSERVAÇÃO E ESTOQUE (MODIFICADA)
+// ==========================================================
 foreach ($obs_3 as $key => $observacao) {
 	if (!empty($observacao) || !empty($material[$key])) {
+		
 		// 1) Inserção da observação
 		$query = $pdo->prepare("
 			INSERT INTO linha_observacao (
@@ -353,33 +355,56 @@ foreach ($obs_3 as $key => $observacao) {
 		]);
 
 		// 2) Atualizar estoque do material
-		$matId = (int)$material[$key];
-		$qtdUsada = (int)$quant_3[$key];
+		$matId = (int)($material[$key] ?? 0); // Garantir que $matId seja 0 se não estiver definido
+		$qtdUsada = (int)($quant_3[$key] ?? 0); // Garantir que $qtdUsada seja 0 se não estiver definido
 
-		// (a) Opcional: checar se o material tem controle de estoque e se há saldo suficiente
-		$check = $pdo->prepare("SELECT tem_estoque, estoque FROM materiais WHERE id = ?");
+		// Se não há material selecionado ou a quantidade é zero, não há o que debitar do estoque.
+		if ($matId <= 0 || $qtdUsada <= 0) {
+			continue; // Pula para a próxima iteração do loop
+		}
+
+		// (a) Buscar dados do material (nome e controle de estoque)
+        // *** MUDANÇA 1: Adicionado 'nome' ao SELECT ***
+		$check = $pdo->prepare("SELECT nome, tem_estoque, estoque FROM materiais WHERE id = ?");
 		$check->execute([$matId]);
 		$row = $check->fetch(PDO::FETCH_ASSOC);
 
-		if ($row && strtoupper($row['tem_estoque']) === 'SIM') {
-			if ($row['estoque'] < $qtdUsada) {
-				throw new Exception("Estoque insuficiente para o material ID {$matId}");
-			}
+        // Se o material não for encontrado, não faz nada
+        if (!$row) {
+            continue;
+        }
+
+        // (b) Incrementar vendas (sempre incrementa, mesmo sem controle de estoque)
+		$upd2 = $pdo->prepare("UPDATE materiais
+								SET vendas = vendas + ?
+								WHERE id = ?");
+		$upd2->execute([$qtdUsada, $matId]);
+
+		// (c) Se o material NÃO tiver controle de estoque, pula o resto
+		if (strtoupper($row['tem_estoque']) !== 'SIM') {
+			continue;
 		}
 
-		// (b) Debitar do estoque
+		// (d) Checar se há saldo suficiente
+		if ($row['estoque'] < $qtdUsada) {
+            // *** MUDANÇA 2: Armazenar o nome do material ***
+            $nomeMaterial = $row['nome'] ?? "ID {$matId}"; // Fallback para ID se o nome for nulo
+			
+            // *** MUDANÇA 3: Usar o nome do material na mensagem de erro ***
+			throw new Exception("Estoque insuficiente para o material: '{$nomeMaterial}'");
+		}
+
+		// (e) Debitar do estoque (só executa se passou na checagem de 'SIM')
 		$upd = $pdo->prepare("UPDATE materiais
 								SET estoque = estoque - ?
 								WHERE id = ?");
 		$upd->execute([$qtdUsada, $matId]);
 
-		// (c) (Opcional) incrementar contador de vendas
-		$upd2 = $pdo->prepare("UPDATE materiais
-								SET vendas = vendas + ?
-								WHERE id = ?");
-		$upd2->execute([$qtdUsada, $matId]);
 	}
 }
+// ==========================================================
+// FIM: LÓGICA DE OBSERVAÇÃO E ESTOQUE
+// ==========================================================
 
 
 
@@ -390,10 +415,6 @@ foreach ($obs_3 as $key => $observacao) {
 
 // Prepara os dados para a tabela 'receber'
 $descricao_receber = "Venda Romaneio Nº " . $romaneio_venda_id;
-
-// Esta variável já foi calculada no início, mas vamos usar o valor final aqui.
-// CUIDADO: O POST original pode não existir. É mais seguro usar a variável $total_liquido calculada
-// $total_liquido_final = floatval(str_replace(',', '.', $_POST['valor_liquido']));
 $total_liquido_final = $total_liquido; // Usando a variável já calculada
 
 
@@ -409,7 +430,7 @@ if ($id != "") {
 			vencimento = :vencimento,
 			pago = 'Não',
 			data_pgto = NULL,
-			usuario_pgto = 0	-- <-- ADICIONADO AQUI
+			usuario_pgto = 0
 			WHERE id_ref = :id_ref AND referencia = 'Romaneio Venda'");
 	} else {
 		$id = ""; // Força a lógica de inserção se não encontrar um registro para atualizar
@@ -428,7 +449,7 @@ if ($id == "") {
 		pago = 'Não',
 		referencia = 'Romaneio Venda',
 		id_ref = :id_ref,
-		usuario_pgto = 0	-- <-- ADICIONADO AQUI
+		usuario_pgto = 0
 	");
 	
 	$query_receber->bindValue(":descricao", $descricao_receber);
@@ -454,23 +475,22 @@ $query_receber->execute();
 		'mensagem' => 'Romaneio salvo com sucesso!'
 	]);
 
-// *** MUDANÇA 2: Blocos CATCH modificados para retornar o erro exato ***
-
 } catch (PDOException $e) {
 	$pdo->rollBack();
 	error_log("Erro PDO: " . $e->getMessage()); // Loga o erro real
 	echo json_encode([
 		'status' => 'erro',
-		'mensagem' => 'Erro de Banco de Dados (Debug): ' . $e->getMessage() // Retorna o erro real
+		'mensagem' => 'Erro de Banco de Dados: ' . $e->getMessage() // Retorna o erro do BD
 	], JSON_UNESCAPED_UNICODE);
 
 } catch (Exception $e) {
 	$pdo->rollBack();
-	// Monta uma mensagem de erro mais detalhada para debug
-	$error_message = $e->getMessage() . " no arquivo " . $e->getFile() . " na linha " . $e->getLine();
-	error_log("Erro genérico: " . $error_message); // Loga o erro real
+	// Loga o erro real (completo)
+	error_log("Erro genérico: " . $e->getMessage() . " no arquivo " . $e->getFile() . " na linha " . $e->getLine());
+	
+	// Retorna apenas a mensagem de erro principal para o usuário
 	echo json_encode([
 		'status' => 'erro',
-		'mensagem' => 'Erro Inesperado (Debug): ' . $error_message // Retorna o erro real
+		'mensagem' => $e->getMessage() // Ex: "Estoque insuficiente para o material: 'Lona'"
 	], JSON_UNESCAPED_UNICODE);
 }
