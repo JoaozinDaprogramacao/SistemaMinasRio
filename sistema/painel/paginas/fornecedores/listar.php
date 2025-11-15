@@ -64,6 +64,7 @@ HTML;
 		$email = addslashes($res[$i]['email']);
 
 		$tipo_pessoa = addslashes($res[$i]['tipo_pessoa']);
+		$tipo_fornecedor = addslashes($res[$i]['tipo_fornecedor']);
 		$data_cad    = $res[$i]['data_cadastro'];    // do banco
 
 		// Formata as datas para “DD/MM/AAAA”
@@ -114,7 +115,8 @@ HTML;
 	<a class="btn btn-info btn-sm" href="#"  title="Editar Dados" onclick="editar(
     '{$id}', '{$nome}', '{$razao_social}', '{$cnpj}', '{$ie}', '{$cpf}', 
     '{$rg}', '{$rua}', '{$numero}', '{$bairro}', '{$cidade}', '{$cep}', '{$uf}', '{$complemento}', 
-    '{$contato}', '{$site}', '{$plano_pgto_value}', '{$prazo_pgto_value}', '{$forma_pagamento_value}', '{$email}'
+    '{$contato}', '{$site}', '{$plano_pgto_value}', '{$prazo_pgto_value}', '{$forma_pagamento_value}', '{$email}',
+    '{$tipo_fornecedor}'
 )"><i class="fa fa-edit "></i></a>
 
 	<div class="dropdown" style="display: inline-block;">                      
@@ -128,6 +130,7 @@ HTML;
 						<a class="btn btn-primary btn-sm" href="#"
        onclick="mostrar(
          '{$tipo_pessoa}',
+		 '{$tipo_fornecedor}',
          '{$nome}',
          '{$razao_social}',
          '{$cnpj}',
@@ -184,7 +187,7 @@ HTML;
 	});
 </script>
 <script type="text/javascript">
-	function editar(id, nome, razao_social, cnpj, ie, cpf, rg, rua, numero, bairro, cidade, cep, uf, complemento, contato, site, plano_pgto, prazo_pgto, forma_pgto, email) {
+	function editar(id, nome, razao_social, cnpj, ie, cpf, rg, rua, numero, bairro, cidade, cep, uf, complemento, contato, site, plano_pgto, prazo_pgto, forma_pgto, email, tipo_fornecedor) {
 
 		$('#mensagem').text('');
 		$('#titulo_inserir').text('Editar Registro');
@@ -208,7 +211,18 @@ HTML;
 		$('#plano_pagamento').val(plano_pgto);
 		$('#prazo_pagamento').val(prazo_pgto);
 		$('#forma_pagamento').val(forma_pgto);
-		$('#email').val(email); 	
+		$('#email').val(email);
+
+		// Lógica para marcar o Tipo de Fornecedor
+		if (tipo_fornecedor == 'diversos') {
+			$('#radio_diversos').prop('checked', true);
+			$('#radio_produtor').prop('checked', false);
+		} else {
+			$('#radio_produtor').prop('checked', true);
+			$('#radio_diversos').prop('checked', false);
+		}
+
+		// Lógica para marcar o Tipo de Pessoa (já existente)
 		if (cpf != "") {
 			// Caso CPF esteja preenchido, seleciona "Pessoa Física" e dispara o evento
 			$('#radio_pessoa_fisica').prop('checked', true).trigger('change');
@@ -233,7 +247,7 @@ HTML;
 		const cnpjFields = document.getElementById("cnpj_fields");
 		const cnpjTitle = document.getElementById("cnpj_title");
 
-	
+
 		if (cnpjRadio.checked) {
 			fisicaFields.classList.add("d-none");
 			cnpjFields.classList.remove("d-none");
@@ -264,97 +278,108 @@ HTML;
 
 
 	function mostrar(
-    tipoPessoa,
-    nomeAtacadista,
-    razaoSocial,
-    cnpj,
-    ie,
-    cpf,
-    rg,
-    rua,
-    numero,
-    complemento,
-    bairro,
-    cidade,
-    uf,
-    cep,
-    contato,
-    email,
-    site,
-    planoPagamento,
-    formaPagamento,
-    prazoPagamento,
-    dataCadastro
-  ) {
-    $('#titulo_dados').text(nomeAtacadista);
-    $('#tipo_pessoa_dados').text(tipoPessoa);
-    $('#nome_atacadista_dados').text(nomeAtacadista);
-    $('#razao_social_dados').text(razaoSocial);
-    $('#cnpj_dados').text(cnpj);
-    $('#ie_dados').text(ie);
-    $('#cpf_dados').text(cpf);
-    $('#rg_dados').text(rg);
-    $('#rua_dados').text(rua);
-    $('#numero_dados').text(numero);
-    $('#complemento_dados').text(complemento);
-    $('#bairro_dados').text(bairro);
-    $('#cidade_dados').text(cidade);
-    $('#uf_dados').text(uf);
-    $('#cep_dados').text(cep);
-    $('#contato_dados').text(contato);
-    $('#email_dados').text(email);
-    $('#site_dados').text(site);
-    $('#plano_pagamento_dados').text(planoPagamento);
-    $('#forma_pagamento_dados').text(formaPagamento);
-    $('#prazo_pagamento_dados').text(prazoPagamento + ' dias');
-    $('#data_cadastro_dados').text(dataCadastro);
+		tipoPessoa,
+		tipoFornecedor,
+		nomeAtacadista,
+		razaoSocial,
+		cnpj,
+		ie,
+		cpf,
+		rg,
+		rua,
+		numero,
+		complemento,
+		bairro,
+		cidade,
+		uf,
+		cep,
+		contato,
+		email,
+		site,
+		planoPagamento,
+		formaPagamento,
+		prazoPagamento,
+		dataCadastro
+	) {
 
-    $('#modalDados').modal('show');
-  }
+		// Formata os valores para exibição
+		var tipoPessoaFormatado = (tipoPessoa == 'cnpj') ? 'CNPJ' : 'Pessoa Física';
+		var tipoFornFormatado = (tipoFornecedor == 'diversos') ? 'Diversos' : 'Produtor';
 
-  function limparCampos() {
 
-console.log('entrou limparCampos');
-// Campos ocultos e básicos
-$('#id').val('');
-$('#ids').val('');
-$('#mensagem').text('');
-$('#btn-deletar').hide();
+		$('#titulo_dados').text(nomeAtacadista);
+		$('#tipo_pessoa_dados').text(tipoPessoaFormatado);
+		$('#tipo_fornecedor_dados').text(tipoFornFormatado); // <-- ADICIONADO
+		$('#nome_atacadista_dados').text(nomeAtacadista);
+		$('#razao_social_dados').text(razaoSocial);
+		$('#cnpj_dados').text(cnpj);
+		$('#ie_dados').text(ie);
+		$('#cpf_dados').text(cpf);
+		$('#rg_dados').text(rg);
+		$('#rua_dados').text(rua);
+		$('#numero_dados').text(numero);
+		$('#complemento_dados').text(complemento);
+		$('#bairro_dados').text(bairro);
+		$('#cidade_dados').text(cidade);
+		$('#uf_dados').text(uf);
+		$('#cep_dados').text(cep);
+		$('#contato_dados').text(contato);
+		$('#email_dados').text(email);
+		$('#site_dados').text(site);
+		$('#plano_pagamento_dados').text(planoPagamento);
+		$('#forma_pagamento_dados').text(formaPagamento);
+		$('#prazo_pagamento_dados').text(prazoPagamento + ' dias');
+		$('#data_cadastro_dados').text(dataCadastro);
 
-// Radios de tipo de pessoa — volta para Pessoa Física
-$('#radio_pessoa_fisica').prop('checked', true);
-$('#radio_cnpj').prop('checked', false);
+		$('#modalDados').modal('show');
+	}
 
-// Dados Gerais / Jurídicos / Pessoais
-$('#nome_atacadista').val('');
-$('#razao_social').val('');
-$('#cnpj').val('');
-$('#ie').val('');
-$('#cpf').val('');
-$('#rg').val('');
+	function limparCampos() {
 
-// Endereço
-$('#cep').val('');
-$('#rua').val('');
-$('#numero').val('');
-$('#bairro').val('');
-$('#cidade').val('');
-$('#uf').val('');
-$('#complemento').val('');
+		console.log('entrou limparCampos');
+		// Campos ocultos e básicos
+		$('#id').val('');
+		$('#ids').val('');
+		$('#mensagem').text('');
+		$('#btn-deletar').hide();
 
-// Contato e site
-$('#contato').val('');
-$('#email').val('');
-$('#site').val('');
+		// Radios de tipo de pessoa — volta para Pessoa Física
+		$('#radio_pessoa_fisica').prop('checked', true);
+		$('#radio_cnpj').prop('checked', false);
 
-// Planos e prazos
-$('#plano_pagamento').val('0').trigger('change');
-$('#forma_pagamento').val('0').trigger('change');
-$('#prazo_pagamento').val('');
+		$('#radio_produtor').prop('checked', true);
+		$('#radio_diversos').prop('checked', false);
 
-// Reajusta visibilidade de campos conforme tipo de pessoa
-atualizarVisibilidade();
-}
+		// Dados Gerais / Jurídicos / Pessoais
+		$('#nome_atacadista').val('');
+		$('#razao_social').val('');
+		$('#cnpj').val('');
+		$('#ie').val('');
+		$('#cpf').val('');
+		$('#rg').val('');
+
+		// Endereço
+		$('#cep').val('');
+		$('#rua').val('');
+		$('#numero').val('');
+		$('#bairro').val('');
+		$('#cidade').val('');
+		$('#uf').val('');
+		$('#complemento').val('');
+
+		// Contato e site
+		$('#contato').val('');
+		$('#email').val('');
+		$('#site').val('');
+
+		// Planos e prazos
+		$('#plano_pagamento').val('0').trigger('change');
+		$('#forma_pagamento').val('0').trigger('change');
+		$('#prazo_pagamento').val('');
+
+		// Reajusta visibilidade de campos conforme tipo de pessoa
+		atualizarVisibilidade();
+	}
 
 
 	function selecionar(id) {
