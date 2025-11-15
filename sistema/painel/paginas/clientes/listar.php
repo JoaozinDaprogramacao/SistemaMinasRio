@@ -19,19 +19,18 @@ $linhas = @count($res);
 if ($linhas > 0) {
 	echo <<<HTML
 
-	<table class="table table-bordered text-nowrap border-bottom dt-responsive" id="tabela">
-	<thead> 
-	<tr> 
-	<th align="center" width="5%" class="text-center">Selecionar</th>
-	<th>Atacadista</th>	
-	<th class="esc">Plano PGTO</th>			
-	<th class="esc">Prazo PGTO</th>
-	<th class="esc">Forma de Recebimento</th>
-	<th>E-mail</th>
-	<th>Ações</th>
-	</tr> 
-	</thead> 
-	<tbody>	
+    <table class="table table-bordered text-nowrap border-bottom dt-responsive" id="tabela">
+    <thead> 
+    <tr> 
+    <th align="center" width="5%" class="text-center">Selecionar</th>
+    <th>Cliente</th> <th class="esc">Plano PGTO</th> 
+    <th class="esc">Prazo PGTO</th>
+    <th class="esc">Forma de Recebimento</th>
+    <th>E-mail</th>
+    <th>Ações</th>
+    </tr> 
+    </thead> 
+    <tbody> 
 HTML;
 
 	for ($i = 0; $i < $linhas; $i++) {
@@ -50,6 +49,7 @@ HTML;
 		$uf = $res[$i]['uf'];
 		$complemento = addslashes($res[$i]['complemento']);
 		$contato = addslashes($res[$i]['contato']);
+		$contato2 = addslashes($res[$i]['contato2']); // <-- ALTERAÇÃO 1: Buscar contato2
 		$site = addslashes($res[$i]['site']);
 
 		$plano_pgto = $res[$i]['plano_pagamento'];
@@ -114,48 +114,49 @@ HTML;
 <td class="esc">{$forma_pagamento}</td>
 <td class="esc">{$email}</td>
 <td>
-	<a class="btn btn-info btn-sm" href="#"  title="Editar Dados" onclick="editar(
+    <a class="btn btn-info btn-sm" href="#"  title="Editar Dados" onclick="editar(
     '{$id}', '{$nome}', '{$data_nasc}', '{$razao_social}', '{$cnpj}', '{$ie}', '{$cpf}', 
     '{$rg}', '{$rua}', '{$numero}', '{$bairro}', '{$cidade}', '{$cep}', '{$uf}', '{$complemento}', 
-    '{$contato}', '{$site}', '{$plano_pgto_value}', '{$prazo_pgto_value}', '{$forma_pagamento_value}', '{$email}'
+    '{$contato}', '{$contato2}', '{$site}', '{$plano_pgto_value}', '{$prazo_pgto_value}', '{$forma_pagamento_value}', '{$email}'
 )"><i class="fa fa-edit "></i></a>
 
-	<div class="dropdown" style="display: inline-block;">                      
-                        <a class="btn btn-danger btn-sm" href="#" aria-expanded="false" aria-haspopup="true" data-bs-toggle="dropdown" class="dropdown"><i class="fa fa-trash "></i> </a>
-                        <div  class="dropdown-menu tx-13">
-                        <div class="dropdown-item-text botao_excluir">
-                        <p>Confirmar Exclusão? <a href="#" onclick="excluir('{$id}')"><span class="text-danger">Sim</span></a></p>
-                        </div>
-                        </div>
-                        </div>
+    <div class="dropdown" style="display: inline-block;"> 
+        <a class="btn btn-danger btn-sm" href="#" aria-expanded="false" aria-haspopup="true" data-bs-toggle="dropdown" class="dropdown"><i class="fa fa-trash "></i> </a>
+        <div  class="dropdown-menu tx-13">
+            <div class="dropdown-item-text botao_excluir">
+            <p>Confirmar Exclusão? <a href="#" onclick="excluir('{$id}')"><span class="text-danger">Sim</span></a></p>
+            </div>
+        </div>
+    </div>
 
-						<a class="btn btn-primary btn-sm" href="#"
-       onclick="mostrar(
-         '{$nome}',
-         '{$tipo_pessoa}',
-         '{$cpf}',
-         '{$razao_social}',
-         '{$ie}',
-         '{$rg}',
-         '{$data_nascF}',
-         '{$data_cadF}',
-         '{$contato}',
-         '{$email}',
-         '{$site}',
-         '{$rua}',
-         '{$numero}',
-         '{$complemento}',
-         '{$bairro}',
-         '{$cidade}',
-         '{$uf}',
-         '{$cep}',
-         '{$plano_pgto}',
-         '{$forma_pagamento}',
-         '{$prazo_pgto}'
-       )"
-       title="Mostrar Dados">
-      <i class="fa fa-info-circle"></i>
-    </a>
+    <a class="btn btn-primary btn-sm" href="#"
+    onclick="mostrar(
+       '{$nome}',
+       '{$tipo_pessoa}',
+       '{$cpf}',
+       '{$razao_social}',
+       '{$ie}',
+       '{$rg}',
+       '{$data_nascF}',
+       '{$data_cadF}',
+       '{$contato}',
+       '{$contato2}',
+       '{$email}',
+       '{$site}',
+       '{$rua}',
+       '{$numero}',
+       '{$complemento}',
+       '{$bairro}',
+       '{$cidade}',
+       '{$uf}',
+       '{$cep}',
+       '{$plano_pgto}',
+       '{$forma_pagamento}',
+       '{$prazo_pgto}'
+    )"
+    title="Mostrar Dados">
+   <i class="fa fa-info-circle"></i>
+  </a>
 
 </td>
 </tr>
@@ -187,18 +188,19 @@ HTML;
 	});
 </script>
 <script type="text/javascript">
-	function editar(id, nome, data_nascF, razao_social, cnpj, ie, cpf, rg, rua, numero, bairro, cidade, cep, uf, complemento, contato, site, plano_pgto, prazo_pgto, forma_pgto, email) {
+	// <-- ALTERAÇÃO 4.1: Adicionado 'contato2' nos parâmetros
+	function editar(id, nome, data_nascF, razao_social, cnpj, ie, cpf, rg, rua, numero, bairro, cidade, cep, uf, complemento, contato, contato2, site, plano_pgto, prazo_pgto, forma_pgto, email) {
 
 		$('#mensagem').text('');
 		$('#titulo_inserir').text('Editar Registro');
 
-		console.log("Nome: " + nome);
-		console.log("data: " + data_nascF);
+		// console.log("Nome: " + nome);
+		// console.log("data: " + data_nascF);
 
 		$('#id').val(id);
 		$('#nome_cliente').val(nome);
 		$('#data_nasc').val(data_nascF);
-		$('#razao_social').val(data_nascF);
+		$('#razao_social').val(razao_social); // <-- CORREÇÃO: Estava data_nascF
 		$('#cnpj').val(cnpj);
 		$('#ie').val(ie);
 		$('#cpf').val(cpf);
@@ -211,11 +213,12 @@ HTML;
 		$('#uf').val(uf);
 		$('#complemento').val(complemento);
 		$('#contato').val(contato);
+		$('#contato2').val(contato2); // <-- ALTERAÇÃO 4.2: Preencher campo
 		$('#site').val(site);
 		$('#plano_pagamento').val(plano_pgto);
 		$('#prazo_pagamento').val(prazo_pgto);
 		$('#forma_pagamento').val(forma_pgto);
-		$('#email').val(email); 	
+		$('#email').val(email);
 		if (cpf != "") {
 			// Caso CPF esteja preenchido, seleciona "Pessoa Física" e dispara o evento
 			$('#radio_pessoa_fisica').prop('checked', true).trigger('change');
@@ -233,10 +236,10 @@ HTML;
 
 	function atualizarVisibilidade() {
 		const pessoaFisicaRadio = document.getElementById("radio_pessoa_fisica");
-					const cnpjRadio = document.getElementById("radio_cnpj");
-					const fisicaFields = document.getElementById("fisica_fields");
-					const cnpjFields = document.getElementById("cnpj_fields");
-					const cnpjTitle = document.getElementById("cnpj_title");
+		const cnpjRadio = document.getElementById("radio_cnpj");
+		const fisicaFields = document.getElementById("fisica_fields");
+		const cnpjFields = document.getElementById("cnpj_fields");
+		const cnpjTitle = document.getElementById("cnpj_title");
 
 		if (cnpjRadio.checked) {
 			fisicaFields.classList.add("d-none");
@@ -252,104 +255,109 @@ HTML;
 
 
 
-
+	// <-- ALTERAÇÃO 4.3: Adicionado 'contato2' nos parâmetros
 	function mostrar(
-    nome,
-    pessoa,
-    cpf,
-    razao_social,
-    ie,
-    rg,
-    data_nasc,
-    data_cad,
-    contato,
-    email,
-    site,
-    endereco,
-    numero,
-    complemento,
-    bairro,
-    cidade,
-    uf,
-    cep,
-    plano,
-    forma,
-    prazo
-  ) {
-    $('#titulo_dados').text(nome);
-    $('#nome_dados').text(nome);
-    $('#pessoa_dados').text(pessoa);
-    $('#cpf_dados').text(cpf);
-    $('#razao_social_dados').text(razao_social);
-    $('#ie_dados').text(ie);
-    $('#rg_dados').text(rg);
-    $('#data_nasc_dados').text(data_nasc);
-    $('#data_cad_dados').text(data_cad);
-    $('#contato_dados').text(contato);
-    $('#email_dados').text(email);
-    $('#site_dados').text(site);
-    $('#endereco_dados').text(endereco);
-    $('#numero_dados').text(numero);
-    $('#complemento_dados').text(complemento);
-    $('#bairro_dados').text(bairro);
-    $('#cidade_dados').text(cidade);
-    $('#uf_dados').text(uf);
-    $('#cep_dados').text(cep);
-    $('#plano_pagamento_dados').text(plano);
-    $('#forma_pagamento_dados').text(forma);
-    $('#prazo_pagamento_dados').text(prazo);
+		nome,
+		pessoa,
+		cpf,
+		razao_social,
+		ie,
+		rg,
+		data_nasc,
+		data_cad,
+		contato,
+		contato2,
+		email,
+		site,
+		endereco,
+		numero,
+		complemento,
+		bairro,
+		cidade,
+		uf,
+		cep,
+		plano,
+		forma,
+		prazo
+	) {
+		$('#titulo_dados').text(nome);
+		$('#nome_dados').text(nome);
+		$('#pessoa_dados').text(pessoa);
+		$('#cpf_dados').text(cpf);
+		$('#razao_social_dados').text(razao_social);
+		$('#ie_dados').text(ie);
+		$('#rg_dados').text(rg);
+		$('#data_nasc_dados').text(data_nasc);
+		$('#data_cad_dados').text(data_cad);
+		$('#contato_dados').text(contato);
+		$('#contato2_dados').text(contato2); // <-- ALTERAÇÃO 4.4: Preencher
+		$('#email_dados').text(email);
+		$('#site_dados').text(site);
+		$('#endereco_dados').text(endereco);
+		$('#numero_dados').text(numero);
+		$('#complemento_dados').text(complemento);
+		$('#bairro_dados').text(bairro);
+		$('#cidade_dados').text(cidade);
+		$('#uf_dados').text(uf);
+		$('#cep_dados').text(cep);
+		$('#plano_pagamento_dados').text(plano);
+		$('#forma_pagamento_dados').text(forma);
+		$('#prazo_pagamento_dados').text(prazo);
 
-    $('#modalDados').modal('show');
-  }
+		$('#modalDados').modal('show');
+	}
 
-  function limparCampos() {
-    // Campos ocultos e básicos
-    $('#id').val('');
-    $('#ids').val('');
-    $('#btn-deletar').hide();
-    $('#mensagem').text('');
+	function limparCampos() {
+		// Campos ocultos e básicos
+		$('#id').val('');
+		$('#ids').val('');
+		$('#btn-deletar').hide();
+		$('#mensagem').text('');
 
-    // Radios de tipo de pessoa — volta para Pessoa Física
-    $('#radio_pessoa_fisica').prop('checked', true);
-    $('#radio_juridica').prop('checked', false);
+		// Radios de tipo de pessoa — volta para Pessoa Física
+		$('#radio_pessoa_fisica').prop('checked', true);
+		$('#radio_cnpj').prop('checked', false); // <-- CORREÇÃO: Estava 'radio_juridica'
 
-    // Dados Gerais
-    $('#nome_cliente').val('');
-    $('#email').val('');
-    $('#contato').val('');
+		// Dados Gerais
+		$('#nome_cliente').val('');
+		$('#email').val('');
+		$('#contato').val('');
+		$('#contato2').val(''); // <-- ALTERAÇÃO 4.5: Limpar campo
 
-    // Endereço
-    $('#cep').val('');
-    $('#rua').val('');
-    $('#numero').val('');
-    $('#bairro').val('');
-    $('#cidade').val('');
-    $('#uf').val('');
-    $('#complemento').val('');
+		// Endereço
+		$('#cep').val('');
+		$('#rua').val('');
+		$('#numero').val('');
+		$('#bairro').val('');
+		$('#cidade').val('');
+		$('#uf').val('');
+		$('#complemento').val('');
 
-    // Pessoa Física
-    $('#data_nasc').val('');
-    $('#cpf').val('');
-    $('#rg').val('');
+		// Pessoa Física
+		$('#data_nasc').val('');
+		$('#cpf').val('');
+		$('#rg').val('');
 
-    // Pessoa Jurídica
-    $('#razao_social').val('');
-    $('#cnpj').val('');
-    $('#ie').val('');
+		// Pessoa Jurídica
+		$('#razao_social').val('');
+		$('#cnpj').val('');
+		$('#ie').val('');
 
-    // Planos e prazos
-    $('#plano_pagamento').val('0').trigger('change');
-    $('#forma_pagamento').val('0').trigger('change');
-    $('#prazo_pagamento').val('');
+		// Planos e prazos
+		$('#plano_pagamento').val('0').trigger('change');
+		$('#forma_pagamento').val('0').trigger('change');
+		$('#prazo_pagamento').val('');
 
-    // Site (não obrigatório, mas limpamos)
-    $('#site').val('');
+		// Site (não obrigatório, mas limpamos)
+		$('#site').val('');
 
-    // Reajusta visibilidade de campos conforme tipo de pessoa
-    if (typeof atualizarVisibilidadeClientes === 'function') {
-        atualizarVisibilidadeClientes();
-    }
-}
+		// Reajusta visibilidade de campos conforme tipo de pessoa
+		// <-- CORREÇÃO: Estava 'atualizarVisibilidadeClientes'
+		if (typeof atualizarVisibilidade === 'function') {
+			atualizarVisibilidade();
+		}
+	}
+
 	function selecionar(id) {
 
 		var ids = $('#ids').val();

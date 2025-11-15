@@ -308,13 +308,19 @@ if (@$clientes == 'ocultar') {
 							<input type="text" class="form-control" id="rg" name="rg" placeholder="RG do Fornecedor" onkeyup="mascara_rg('rg')" maxlength="10">
 						</div>
 					</div>
-
 					<div class="row" id="fisica_fields">
 						<h5 class="mb-3 w-100">Dados de Contato</h5>
+
 						<div class="col-md-6 mb-2">
 							<label>Telefone/Celular</label>
 							<input type="text" class="form-control" id="contato" name="contato" placeholder="xx xxxxxxxxx" onkeyup="mascara_celular('contato')" maxlength="15">
 						</div>
+
+						<div class="col-md-6 mb-2">
+							<label>Telefone 2 (Opcional)</label>
+							<input type="text" class="form-control" id="contato2" name="contato2" placeholder="xx xxxxxxxxx" onkeyup="mascara_celular('contato2')" maxlength="15">
+						</div>
+
 						<div class="col-md-6 mb-2">
 							<label>E-mail</label>
 							<input type="email" class="form-control" id="email" name="email" placeholder="E-mail do fornecedor" maxlength="64">
@@ -323,6 +329,7 @@ if (@$clientes == 'ocultar') {
 							<label>Site</label>
 							<input type="text" class="form-control" id="site" name="site" placeholder="Site do fornecedor">
 						</div>
+
 						<div class="col-md-4 mb-2 col-6">
 							<label>Plano de Pagamento</label>
 							<select class="sel2 form-control" name="plano_pagamento" id="plano_pagamento" style="width:100%">
@@ -475,6 +482,10 @@ if (@$clientes == 'ocultar') {
 						<tr>
 							<td class="bg-warning">Contato</td>
 							<td><span id="contato_dados"></span></td>
+						</tr>
+						<tr>
+							<td class="bg-warning">Segundo Contato</td>
+							<td><span id="contato2_dados"></span></td>
 						</tr>
 						<tr>
 							<td class="bg-warning">E-mail</td>

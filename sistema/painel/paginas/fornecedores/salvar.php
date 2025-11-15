@@ -24,6 +24,7 @@ $cep = $_POST['cep'] ?? '';
 $uf = $_POST['uf'] ?? '';
 $complemento = $_POST['complemento'] ?? '';
 $contato = $_POST['contato'] ?? '';
+$contato2 = $_POST['contato2'] ?? ''; // <-- ALTERAÇÃO: Captura o novo telefone
 $site = $_POST['site'] ?? '';
 $plano_pagamento = $_POST['plano_pagamento'] ?? null;
 $forma_pagamento = $_POST['forma_pagamento'] ?? null;
@@ -33,10 +34,9 @@ $tipo_pessoa = $_POST['tipo_pessoa'] ?? '';
 $tipo_fornecedor = $_POST['tipo_fornecedor'] ?? '';
 
 // 1) Definição de campos obrigatórios por tipo
-// 1) Definição de campos obrigatórios por tipo
 $campos_comuns = [
     'nome do atacadista' => $nome_atacadista,
-    'contato' => $contato,
+    'contato' => $contato, // 'contato2' não é obrigatório, por isso não entra aqui
     'rua' => $rua,
     'número' => $numero,
     'bairro' => $bairro,
@@ -90,16 +90,38 @@ if ($email !== '') {
     }
 }
 
-// 5) Validação de contato único
+// 5) Validação de contato 1 único (checa ambas as colunas)
+// <-- ALTERAÇÃO: Bloco de validação (5) e (5b) melhorado
 if ($contato !== '') {
-    $stmt = $pdo->prepare("SELECT id FROM $tabela WHERE contato = ? LIMIT 1");
-    $stmt->execute([$contato]);
+    // Checa se o 'contato' (Telefone 1) já existe na coluna 'contato' OU 'contato2'
+    $stmt = $pdo->prepare("SELECT id FROM $tabela WHERE (contato = :valor OR contato2 = :valor) LIMIT 1");
+    $stmt->execute([':valor' => $contato]);
     $ex = $stmt->fetch();
     if ($ex && $ex['id'] != $id) {
-        echo 'Telefone já cadastrado!';
+        echo 'O Telefone 1 já está cadastrado em outro fornecedor!';
         exit;
     }
 }
+
+// 5b) Validação de contato 2 único (se preenchido)
+if ($contato2 !== '') {
+    // Checa se os telefones são iguais
+    if ($contato === $contato2) {
+        echo 'Os telefones 1 e 2 não podem ser iguais!';
+        exit;
+    }
+    
+    // Checa se o 'contato2' (Telefone 2) já existe na coluna 'contato' OU 'contato2'
+    $stmt = $pdo->prepare("SELECT id FROM $tabela WHERE (contato = :valor OR contato2 = :valor) LIMIT 1");
+    $stmt->execute([':valor' => $contato2]);
+    $ex = $stmt->fetch();
+    if ($ex && $ex['id'] != $id) {
+        echo 'O Telefone 2 já está cadastrado em outro fornecedor!';
+        exit;
+    }
+}
+// <-- FIM DA ALTERAÇÃO (Validação)
+
 
 // 6) Monta query de INSERT ou UPDATE
 if (empty($id)) {
@@ -121,6 +143,7 @@ if (empty($id)) {
                 uf = :uf,
                 complemento = :complemento,
                 contato = :contato,
+                contato2 = :contato2,
                 site = :site,
                 plano_pagamento = :plano_pagamento,
                 forma_pagamento = :forma_pagamento,
@@ -144,6 +167,7 @@ if (empty($id)) {
                 uf = :uf,
                 complemento = :complemento,
                 contato = :contato,
+                contato2 = :contato2,
                 site = :site,
                 plano_pagamento = :plano_pagamento,
                 forma_pagamento = :forma_pagamento,
@@ -171,6 +195,7 @@ $stmt->bindValue(':cep', $cep);
 $stmt->bindValue(':uf', $uf);
 $stmt->bindValue(':complemento', $complemento);
 $stmt->bindValue(':contato', $contato);
+$stmt->bindValue(':contato2', $contato2); // <-- ALTERAÇÃO: Adicionado
 $stmt->bindValue(':site', $site);
 $stmt->bindValue(':plano_pagamento', $plano_pagamento);
 $stmt->bindValue(':forma_pagamento', $forma_pagamento);

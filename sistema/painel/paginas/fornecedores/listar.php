@@ -19,19 +19,19 @@ $linhas = @count($res);
 if ($linhas > 0) {
 	echo <<<HTML
 
-	<table class="table table-bordered text-nowrap border-bottom dt-responsive" id="tabela">
-	<thead> 
-	<tr> 
-	<th align="center" width="5%" class="text-center">Selecionar</th>
-	<th>Atacadista</th>	
-	<th class="esc">Plano PGTO</th>			
-	<th class="esc">Prazo PGTO</th>
-	<th class="esc">Forma de Recebimento</th>
-	<th>E-mail</th>
-	<th>Ações</th>
-	</tr> 
-	</thead> 
-	<tbody>	
+    <table class="table table-bordered text-nowrap border-bottom dt-responsive" id="tabela">
+    <thead> 
+    <tr> 
+    <th align="center" width="5%" class="text-center">Selecionar</th>
+    <th>Atacadista</th> 
+    <th class="esc">Plano PGTO</th> 
+    <th class="esc">Prazo PGTO</th>
+    <th class="esc">Forma de Recebimento</th>
+    <th>E-mail</th>
+    <th>Ações</th>
+    </tr> 
+    </thead> 
+    <tbody> 
 HTML;
 
 	for ($i = 0; $i < $linhas; $i++) {
@@ -50,6 +50,7 @@ HTML;
 		$uf = $res[$i]['uf'];
 		$complemento = addslashes($res[$i]['complemento']);
 		$contato = addslashes($res[$i]['contato']);
+		$contato2 = addslashes($res[$i]['contato2']); // <-- ALTERAÇÃO 1: Buscar contato2
 		$site = addslashes($res[$i]['site']);
 
 		$plano_pgto = $res[$i]['plano_pagamento'];
@@ -65,7 +66,7 @@ HTML;
 
 		$tipo_pessoa = addslashes($res[$i]['tipo_pessoa']);
 		$tipo_fornecedor = addslashes($res[$i]['tipo_fornecedor']);
-		$data_cad    = $res[$i]['data_cadastro'];    // do banco
+		$data_cad    = $res[$i]['data_cadastro'];  // do banco
 
 		// Formata as datas para “DD/MM/AAAA”
 		$data_cadF  = $data_cad  ? implode('/', array_reverse(explode('-', $data_cad)))  : '';
@@ -112,49 +113,50 @@ HTML;
 <td class="esc">{$forma_pagamento}</td>
 <td class="esc">{$email}</td>
 <td>
-	<a class="btn btn-info btn-sm" href="#"  title="Editar Dados" onclick="editar(
+    <a class="btn btn-info btn-sm" href="#"  title="Editar Dados" onclick="editar(
     '{$id}', '{$nome}', '{$razao_social}', '{$cnpj}', '{$ie}', '{$cpf}', 
     '{$rg}', '{$rua}', '{$numero}', '{$bairro}', '{$cidade}', '{$cep}', '{$uf}', '{$complemento}', 
-    '{$contato}', '{$site}', '{$plano_pgto_value}', '{$prazo_pgto_value}', '{$forma_pagamento_value}', '{$email}',
+    '{$contato}', '{$contato2}', '{$site}', '{$plano_pgto_value}', '{$prazo_pgto_value}', '{$forma_pagamento_value}', '{$email}',
     '{$tipo_fornecedor}'
 )"><i class="fa fa-edit "></i></a>
 
-	<div class="dropdown" style="display: inline-block;">                      
-                        <a class="btn btn-danger btn-sm" href="#" aria-expanded="false" aria-haspopup="true" data-bs-toggle="dropdown" class="dropdown"><i class="fa fa-trash "></i> </a>
-                        <div  class="dropdown-menu tx-13">
-                        <div class="dropdown-item-text botao_excluir">
-                        <p>Confirmar Exclusão? <a href="#" onclick="excluir('{$id}')"><span class="text-danger">Sim</span></a></p>
-                        </div>
-                        </div>
-                        </div>
-						<a class="btn btn-primary btn-sm" href="#"
-       onclick="mostrar(
-         '{$tipo_pessoa}',
-		 '{$tipo_fornecedor}',
-         '{$nome}',
-         '{$razao_social}',
-         '{$cnpj}',
-         '{$ie}',
-         '{$cpf}',
-         '{$rg}',
-         '{$rua}',
-         '{$numero}',
-         '{$complemento}',
-         '{$bairro}',
-         '{$cidade}',
-         '{$uf}',
-         '{$cep}',
-         '{$contato}',
-         '{$email}',
-         '{$site}',
-         '{$plano_pgto}',
-         '{$forma_pagamento}',
-         '{$prazo_pgto}',
-         '{$data_cadF}'
-       )"
-       title="Mostrar Dados">
-      <i class="fa fa-info-circle"></i>
-    </a>
+    <div class="dropdown" style="display: inline-block;"> 
+        <a class="btn btn-danger btn-sm" href="#" aria-expanded="false" aria-haspopup="true" data-bs-toggle="dropdown" class="dropdown"><i class="fa fa-trash "></i> </a>
+        <div  class="dropdown-menu tx-13">
+            <div class="dropdown-item-text botao_excluir">
+            <p>Confirmar Exclusão? <a href="#" onclick="excluir('{$id}')"><span class="text-danger">Sim</span></a></p>
+            </div>
+        </div>
+    </div>
+    <a class="btn btn-primary btn-sm" href="#"
+    onclick="mostrar(
+       '{$tipo_pessoa}',
+       '{$tipo_fornecedor}',
+       '{$nome}',
+       '{$razao_social}',
+       '{$cnpj}',
+       '{$ie}',
+       '{$cpf}',
+       '{$rg}',
+       '{$rua}',
+       '{$numero}',
+       '{$complemento}',
+       '{$bairro}',
+       '{$cidade}',
+       '{$uf}',
+       '{$cep}',
+       '{$contato}',
+       '{$contato2}', // <-- ALTERAÇÃO 3: Passar contato2 para 'mostrar'
+       '{$email}',
+       '{$site}',
+       '{$plano_pgto}',
+       '{$forma_pagamento}',
+       '{$prazo_pgto}',
+       '{$data_cadF}'
+    )"
+    title="Mostrar Dados">
+   <i class="fa fa-info-circle"></i>
+  </a>
 
 
 </td>
@@ -187,7 +189,8 @@ HTML;
 	});
 </script>
 <script type="text/javascript">
-	function editar(id, nome, razao_social, cnpj, ie, cpf, rg, rua, numero, bairro, cidade, cep, uf, complemento, contato, site, plano_pgto, prazo_pgto, forma_pgto, email, tipo_fornecedor) {
+	// <-- ALTERAÇÃO 4.1: Adicionar 'contato2' na assinatura da função
+	function editar(id, nome, razao_social, cnpj, ie, cpf, rg, rua, numero, bairro, cidade, cep, uf, complemento, contato, contato2, site, plano_pgto, prazo_pgto, forma_pgto, email, tipo_fornecedor) {
 
 		$('#mensagem').text('');
 		$('#titulo_inserir').text('Editar Registro');
@@ -207,6 +210,7 @@ HTML;
 		$('#uf').val(uf);
 		$('#complemento').val(complemento);
 		$('#contato').val(contato);
+		$('#contato2').val(contato2); // <-- ALTERAÇÃO 4.2: Preencher o campo contato2
 		$('#site').val(site);
 		$('#plano_pagamento').val(plano_pgto);
 		$('#prazo_pagamento').val(prazo_pgto);
@@ -276,7 +280,7 @@ HTML;
 	}
 
 
-
+	// <-- ALTERAÇÃO 4.3: Adicionar 'contato2' na assinatura da função
 	function mostrar(
 		tipoPessoa,
 		tipoFornecedor,
@@ -294,6 +298,7 @@ HTML;
 		uf,
 		cep,
 		contato,
+		contato2, // <-- Adicionado
 		email,
 		site,
 		planoPagamento,
@@ -324,6 +329,7 @@ HTML;
 		$('#uf_dados').text(uf);
 		$('#cep_dados').text(cep);
 		$('#contato_dados').text(contato);
+		$('#contato2_dados').text(contato2); // <-- ALTERAÇÃO 4.4: Preencher o campo no modal 'mostrar'
 		$('#email_dados').text(email);
 		$('#site_dados').text(site);
 		$('#plano_pagamento_dados').text(planoPagamento);
@@ -369,6 +375,7 @@ HTML;
 
 		// Contato e site
 		$('#contato').val('');
+		$('#contato2').val(''); // <-- ALTERAÇÃO 4.5: Limpar o campo contato2
 		$('#email').val('');
 		$('#site').val('');
 
