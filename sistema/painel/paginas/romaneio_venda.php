@@ -1,4 +1,3 @@
-
 <?php
 $pag = 'romaneio_venda';
 
@@ -11,28 +10,28 @@ if (@$produtos == 'ocultar') {
 
 <script src="js/ajax.js"></script>
 <script>
-function mascara_decimal(el) {
-  // el pode ser this (o próprio <input>) ou um seletor jQuery
-  var $el = $(el);
-  var v   = $el.val() || '';
-  
-  // 1) tira tudo que não for dígito
-  v = v.replace(/\D/g, '');
-  // 2) se vazio, vira "0"
-  if (v === '') v = '0';
-  // 3) garante no mínimo 3 dígitos
-  while (v.length < 3) v = '0' + v;
-  // 4) separa reais / centavos
-  var inteiro  = v.slice(0, -2);
-  var centavos = v.slice(-2);
-  // 5) separador de milhares (opcional)
-  inteiro = inteiro.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-  // 6) atualiza campo
-  $el.val(inteiro + ',' + centavos);
+	function mascara_decimal(el) {
+		// el pode ser this (o próprio <input>) ou um seletor jQuery
+		var $el = $(el);
+		var v = $el.val() || '';
 
-  // 7) recálculo de totais
-  if (typeof calculaTotais === 'function') calculaTotais();
-}
+		// 1) tira tudo que não for dígito
+		v = v.replace(/\D/g, '');
+		// 2) se vazio, vira "0"
+		if (v === '') v = '0';
+		// 3) garante no mínimo 3 dígitos
+		while (v.length < 3) v = '0' + v;
+		// 4) separa reais / centavos
+		var inteiro = v.slice(0, -2);
+		var centavos = v.slice(-2);
+		// 5) separador de milhares (opcional)
+		inteiro = inteiro.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+		// 6) atualiza campo
+		$el.val(inteiro + ',' + centavos);
+
+		// 7) recálculo de totais
+		if (typeof calculaTotais === 'function') calculaTotais();
+	}
 </script>
 
 
@@ -51,31 +50,31 @@ function mascara_decimal(el) {
 			</div>
 		</div>
 
-		        
+
 		<div class="row g-2 mb-3 mt-1 align-items-center">
-				<!-- Filtro de Atacadista -->
-				<div class="col-auto">
-					<select name="cliente" id="cliente" class="form-select form-select-sm" onchange="buscar()">
-						<option value="">Cliente</option>
-						<?php
-						$query = $pdo->query("SELECT * FROM clientes ORDER BY id DESC");
-						$res = $query->fetchAll(PDO::FETCH_ASSOC);
-						for ($i = 0; $i < @count($res); $i++) {
-							echo '<option value="' . $res[$i]['id'] . '">' . $res[$i]['nome'] . ' - ' . $res[$i]['cpf'] . '</option>';
-						}
-						?>
-					</select>
+			<!-- Filtro de Atacadista -->
+			<div class="col-auto">
+				<select name="cliente" id="cliente" class="form-select form-select-sm" onchange="buscar()">
+					<option value="">Cliente</option>
+					<?php
+					$query = $pdo->query("SELECT * FROM clientes ORDER BY id DESC");
+					$res = $query->fetchAll(PDO::FETCH_ASSOC);
+					for ($i = 0; $i < @count($res); $i++) {
+						echo '<option value="' . $res[$i]['id'] . '">' . $res[$i]['nome'] . ' - ' . $res[$i]['cpf'] . '</option>';
+					}
+					?>
+				</select>
 
-				</div>
-					<!-- Filtro de Data Inicial -->
-				<div class="col-auto">
-					<input type="date" name="dataInicial" id="dataInicial" class="form-control form-control-sm" onchange="buscar()">
-				</div>
+			</div>
+			<!-- Filtro de Data Inicial -->
+			<div class="col-auto">
+				<input type="date" name="dataInicial" id="dataInicial" class="form-control form-control-sm" onchange="buscar()">
+			</div>
 
-				<!-- Filtro de Data Final -->
-				<div class="col-auto">
-					<input type="date" name="dataFinal" id="dataFinal" class="form-control form-control-sm" onchange="buscar()">
-				</div>
+			<!-- Filtro de Data Final -->
+			<div class="col-auto">
+				<input type="date" name="dataFinal" id="dataFinal" class="form-control form-control-sm" onchange="buscar()">
+			</div>
 		</div>
 
 
@@ -136,7 +135,7 @@ function mascara_decimal(el) {
 									<label class="form-label">Data</label>
 									<input type="date" class="form-control form-control-sm data_atual" name="data" value="<?= date('Y-m-d'); ?>" onchange="calcularVencimento()">
 								</div>
-								
+
 								<div class="col-md-6">
 									<label class="form-label">Plano Pgto</label>
 									<select id="plano_pgto" name="plano_pgto" class="form-select form-select-sm sel2" onchange="calculaTotais()">
@@ -177,7 +176,7 @@ function mascara_decimal(el) {
 											LEFT JOIN fornecedores f ON rc.fornecedor = f.id 
 											ORDER BY rc.data DESC");
 										$res = $query->fetchAll(PDO::FETCH_ASSOC);
-										
+
 										foreach ($res as $row) {
 											$data_formatada = date('d/m/Y', strtotime($row['data']));
 											$total_formatado = number_format($row['total_liquido'], 2, ',', '.');
@@ -235,13 +234,13 @@ function mascara_decimal(el) {
 
 								$stmt = $pdo->query($query_sql);
 								$produtos_com_categorias = $stmt->fetchAll(PDO::FETCH_ASSOC);
-								
+
 								if (count($produtos_com_categorias) > 0) {
 									foreach ($produtos_com_categorias as $item) { ?>
 										<option value="<?php echo $item['id_produto']; ?>">
 											<?php echo htmlspecialchars($item['nome_produto']) . ' - ' . htmlspecialchars($item['nome_categoria']); ?>
 										</option>
-									<?php }
+								<?php }
 								} ?>
 							</select>
 						</div>
@@ -265,11 +264,11 @@ function mascara_decimal(el) {
 										$queryUnidade = $pdo->query("SELECT unidade FROM unidade_medida WHERE id = $id_unidade");
 										$resUnidade = $queryUnidade->fetch(PDO::FETCH_ASSOC);
 										$unidade = $resUnidade['unidade'] ?? 'N/D'; // N/D caso não encontre a unidade
-										?>
+								?>
 										<option value="<?php echo $res[$i]['id'] ?>">
 											<?php echo $res[$i]['tipo'] . ' ' . $unidade ?>
 										</option>
-									<?php }
+								<?php }
 								} ?>
 							</select>
 						</div>
@@ -354,11 +353,11 @@ function mascara_decimal(el) {
 										$queryUnidade = $pdo->query("SELECT unidade FROM unidade_medida WHERE id = $id_unidade");
 										$resUnidade = $queryUnidade->fetch(PDO::FETCH_ASSOC);
 										$unidade = $resUnidade['unidade'] ?? 'N/D'; // N/D caso não encontre a unidade
-										?>
+								?>
 										<option value="<?php echo $res[$i]['id'] ?>">
 											<?php echo $res[$i]['tipo'] . ' ' . $unidade ?>
 										</option>
-									<?php }
+								<?php }
 								} ?>
 							</select>
 						</div>
@@ -395,7 +394,7 @@ function mascara_decimal(el) {
 						</div>
 						<div class="coluna_romaneio">
 							<label for="material">Descrição</label>
-							<select name="material[]"  class="material" onchange="handleInput3(this); calcularValores(this.closest('.linha_3'));">
+							<select name="material[]" class="material" onchange="handleInput3(this); calcularValores(this.closest('.linha_3'));">
 								<option value="">Selecione um Material</option>
 								<?php
 								$query = $pdo->query("SELECT * from materiais order by id asc");
@@ -438,41 +437,42 @@ function mascara_decimal(el) {
 						<div class="resumo-celula">R$ <p id="total_carga">0,00</p>
 						</div>
 					</div>
-		<div class="resumo-linha radio">
-    <div class="radio-group" style="display: block !important;">
-        <!-- Linha 1: Adicional -->
-        <div style="display: flex; gap: 10px; align-items: center;">
-            <label>
-                <input type="checkbox" name="adicional_ativo" id="adicional_ativo" onchange="adicionalAtivado()">
-                Adicional
-            </label>
-            <input type="text" placeholder="Descrição do Adicional" name="descricao_adicional" id="descricao_adicional">
-            <input type="text" placeholder="Valor do Adicional" name="valor_adicional" id="valor_adicional" onkeyup="mascara_decimal(this)">
-        </div>
+					<div class="resumo-linha radio">
+						<div class="radio-group" style="display: block !important;">
+							<!-- Linha 1: Adicional -->
+							<div style="display: flex; gap: 10px; align-items: center;">
+								<label>
+									<input type="checkbox" name="adicional_ativo" id="adicional_ativo" onchange="adicionalAtivado()">
+									Adicional
+								</label>
+								<input type="text" placeholder="Descrição do Adicional" name="descricao_adicional" id="descricao_adicional">
+								<input type="text" placeholder="Valor do Adicional" name="valor_adicional" id="valor_adicional" onkeyup="mascara_decimal(this)">
+							</div>
 
-        <!-- Quebra de linha -->
-        <br>
+							<!-- Quebra de linha -->
+							<br>
 
-        <!-- Linha 2: Desconto -->
-        <div style="display: flex; gap: 10px; align-items: center;">
-            <label>
-                <input type="checkbox" name="desconto_ativo" id="desconto_ativo" onchange="descontoAtivado()">
-                Desconto
-            </label>
-            <input type="text" placeholder="Descrição do Desconto" name="descricao_desconto" id="descricao_desconto">
-            <input type="text" placeholder="Valor do Desconto" name="valor_desconto" id="valor_desconto" onkeyup="mascara_decimal(this)">
-        </div>
-    </div>
-</div>
+							<!-- Linha 2: Desconto -->
+							<div style="display: flex; gap: 10px; align-items: center;">
+								<label>
+									<input type="checkbox" name="desconto_ativo" id="desconto_ativo" onchange="descontoAtivado()">
+									Desconto
+								</label>
+								<input type="text" placeholder="Descrição do Desconto" name="descricao_desconto" id="descricao_desconto">
+								<input type="text" placeholder="Valor do Desconto" name="valor_desconto" id="valor_desconto" onkeyup="mascara_decimal(this)">
+							</div>
+						</div>
+					</div>
 
-<!-- Valor líquido a receber -->
-<div class="resumo-linha">
-    <div class="resumo-celula">VALOR LÍQUIDO A RECEBER</div>
-    <div class="resumo-celula" style="display: flex; gap: 5px;">R$ <p id="total_liquido">0,00</p></div>
-</div>
+					<!-- Valor líquido a receber -->
+					<div class="resumo-linha">
+						<div class="resumo-celula">VALOR LÍQUIDO A RECEBER</div>
+						<div class="resumo-celula" style="display: flex; gap: 5px;">R$ <p id="total_liquido">0,00</p>
+						</div>
+					</div>
 
 				</div>
-			
+
 				<input type="hidden" id="valor_liquido" name="valor_liquido">
 				<input type="hidden" id="id" name="id">
 				<div class="modal-footer d-flex align  justify-content-center align-items-center">
@@ -754,7 +754,8 @@ function mascara_decimal(el) {
 		color: #dc3545 !important;
 	}
 
-	#mensagem-erro, #mensagem-sucesso {
+	#mensagem-erro,
+	#mensagem-sucesso {
 		margin: 10px 0;
 		padding: 10px;
 		border-radius: 4px;
@@ -792,7 +793,8 @@ function mascara_decimal(el) {
 		padding: 15px;
 	}
 
-	.form-control-sm, .form-select-sm {
+	.form-control-sm,
+	.form-select-sm {
 		height: 31px;
 		padding: 0.25rem 0.5rem;
 		font-size: 0.875rem;
@@ -1067,54 +1069,54 @@ function mascara_decimal(el) {
 	});
 </script>
 
-  <script>
-        document.getElementById('relatorio').addEventListener('submit', function(event) {
-            event.preventDefault(); // Impede o envio padrão do formulário
+<script>
+	document.getElementById('relatorio').addEventListener('submit', function(event) {
+		event.preventDefault(); // Impede o envio padrão do formulário
 
-            // Captura os valores dos campos do formulário
-            var dataInicial = $('#dataInicial').val();
-            var dataFinal = $('#dataFinal').val();
-            var cliente = $('#cliente').val();
+		// Captura os valores dos campos do formulário
+		var dataInicial = $('#dataInicial').val();
+		var dataFinal = $('#dataFinal').val();
+		var cliente = $('#cliente').val();
 
-            // Cria um novo objeto FormData
-            var formData = new FormData();
+		// Cria um novo objeto FormData
+		var formData = new FormData();
 
-            // Adiciona campos manualmente ao FormData
-            formData.append('dataInicial', dataInicial);
-            formData.append('dataFinal', dataFinal);
-            formData.append('cliente', cliente);
+		// Adiciona campos manualmente ao FormData
+		formData.append('dataInicial', dataInicial);
+		formData.append('dataFinal', dataFinal);
+		formData.append('cliente', cliente);
 
-            // Envia o FormData via AJAX
-            $.ajax({
-                url: 'rel/romaneio_venda_class.php', // URL do script que processará a requisição
-                type: 'POST',
-                data: formData, // Envia o FormData
-                processData: false, // Impede o jQuery de processar os dados
-                contentType: false, // Impede o jQuery de definir o contentType
-                success: function(mensagem) {
-                    $('#mensagem-baixar').text('');
-                    $('#mensagem-baixar').removeClass();
-                    if (mensagem.trim() == "Baixado com Sucesso") {
-                        $('#btn-fechar-baixar').click();
-                        buscar();
-                    } else {
-                        $('#mensagem-baixar').addClass('text-danger');
-                        $('#mensagem-baixar').text(mensagem);
-                    }
-                },
-                error: function(xhr, status, error) {
-                    console.error('Erro na requisição AJAX:', error);
-                    $('#mensagem-baixar').addClass('text-danger');
-                    $('#mensagem-baixar').text('Erro ao processar a requisição.');
-                }
-            });
-        });
-    </script>
+		// Envia o FormData via AJAX
+		$.ajax({
+			url: 'rel/romaneio_venda_class.php', // URL do script que processará a requisição
+			type: 'POST',
+			data: formData, // Envia o FormData
+			processData: false, // Impede o jQuery de processar os dados
+			contentType: false, // Impede o jQuery de definir o contentType
+			success: function(mensagem) {
+				$('#mensagem-baixar').text('');
+				$('#mensagem-baixar').removeClass();
+				if (mensagem.trim() == "Baixado com Sucesso") {
+					$('#btn-fechar-baixar').click();
+					buscar();
+				} else {
+					$('#mensagem-baixar').addClass('text-danger');
+					$('#mensagem-baixar').text(mensagem);
+				}
+			},
+			error: function(xhr, status, error) {
+				console.error('Erro na requisição AJAX:', error);
+				$('#mensagem-baixar').addClass('text-danger');
+				$('#mensagem-baixar').text('Erro ao processar a requisição.');
+			}
+		});
+	});
+</script>
 
 
 
 <script type="text/javascript">
-	function buscar(){
+	function buscar() {
 		var dataInicial = $('#dataInicial').val();
 		var dataFinal = $('#dataFinal').val();
 		var atacadista = $('#cliente').val();
@@ -1162,7 +1164,7 @@ function mascara_decimal(el) {
 <script type="text/javascript">
 	// Adicione antes do submit do form
 	$('#dataInicialRel').val($('#dataInicial').val());
-	$('#dataFinalRel').val($('#dataFinal').val()); 
+	$('#dataFinalRel').val($('#dataFinal').val());
 	$('#clienteRel').val($('#cliente').val());
 </script>
 
@@ -1171,16 +1173,18 @@ function mascara_decimal(el) {
 		$.ajax({
 			url: 'paginas/romaneio_venda/buscar_cliente.php',
 			type: 'POST',
-			data: {id: id},
+			data: {
+				id: id
+			},
 			dataType: 'json',
 			success: function(dados) {
 				if (dados && !dados.error) {
 					const planoId = parseInt(dados.plano_pagamento);
 					const prazoDias = parseInt(dados.prazo_pagamento);
-					
+
 					document.getElementById('plano_pgto').value = planoId;
 					document.getElementById('quant_dias').value = prazoDias;
-					
+
 					calcularVencimento();
 					calculaTotais();
 				}
@@ -1197,11 +1201,11 @@ function mascara_decimal(el) {
 		const diasInput = document.getElementById('quant_dias');
 		const dataInput = document.querySelector('input[name="data"]');
 		const vencimentoInput = document.querySelector('input[name="vencimento"]');
-		
+
 		if (diasInput && dataInput && dataInput.value) {
 			const dias = parseInt(diasInput.value) || 0;
 			const dataBase = new Date(dataInput.value);
-			
+
 			if (!isNaN(dias) && dataBase instanceof Date && !isNaN(dataBase)) {
 				const dataVencimento = new Date(dataBase);
 				dataVencimento.setDate(dataVencimento.getDate() + dias);
@@ -1218,7 +1222,7 @@ function mascara_decimal(el) {
 			const observer = new MutationObserver(function(mutations) {
 				calcularVencimento();
 			});
-			
+
 			observer.observe(diasInput, {
 				attributes: true,
 				attributeFilter: ['value']
@@ -1232,7 +1236,7 @@ function mascara_decimal(el) {
 
 	function toggleRomaneio(element, id) {
 		const index = romaneiosSelecionados.indexOf(id);
-		
+
 		if (index === -1) {
 			// Adiciona seleção
 			romaneiosSelecionados.push(id);
@@ -1242,106 +1246,108 @@ function mascara_decimal(el) {
 			romaneiosSelecionados.splice(index, 1);
 			element.classList.remove('selecionado');
 		}
-		
+
 		console.log(romaneiosSelecionados);
 
 		// Atualiza input hidden
 		document.getElementById('romaneios_selecionados').value = romaneiosSelecionados.join(',');
-		
+
 		// Exibe os romaneios selecionados
 		console.log('Romaneios selecionados:');
 		romaneiosSelecionados.forEach(romaneio => {
 			console.log(`Romaneio #${romaneio}`);
 		});
-		
+
 		// Carrega dados dos romaneios selecionados
 		carregarDadosRomaneios();
 	}
-function carregarDadosRomaneios() {
-  if (romaneiosSelecionados.length === 0) {
-    console.log('▶ [Romaneio] Nenhum romaneio selecionado – limpando lista.');
-    $('#linha-container_1').empty();
-    calculaTotais();
-    return;
-  }
 
-  console.log('▶ [Romaneio] IDs selecionados:', romaneiosSelecionados);
+	function carregarDadosRomaneios() {
+		if (romaneiosSelecionados.length === 0) {
+			console.log('▶ [Romaneio] Nenhum romaneio selecionado – limpando lista.');
+			$('#linha-container_1').empty();
+			calculaTotais();
+			return;
+		}
 
-  $.ajax({
-    url: 'paginas/romaneio_venda/buscar_produtos_romaneio.php',
-    method: 'POST',
-    data: { ids: romaneiosSelecionados },
-    dataType: 'json',
+		console.log('▶ [Romaneio] IDs selecionados:', romaneiosSelecionados);
 
-    beforeSend: function(jqXHR, settings) {
-      console.groupCollapsed('⏳ [Romaneio] Iniciando requisição AJAX');
-      console.log('URL:         ', settings.url);
-      console.log('Método:      ', settings.type);
-      console.log('Payload:     ', settings.data);
-      console.groupEnd();
-    },
+		$.ajax({
+			url: 'paginas/romaneio_venda/buscar_produtos_romaneio.php',
+			method: 'POST',
+			data: {
+				ids: romaneiosSelecionados
+			},
+			dataType: 'json',
 
-    success: function(response, textStatus, jqXHR) {
-      console.groupCollapsed('✅ [Romaneio] Resposta AJAX recebida');
-      console.log('HTTP Status:  ', jqXHR.status, jqXHR.statusText);
-      console.log('textStatus:   ', textStatus);
-      console.log('Resposta bruta:', response);
+			beforeSend: function(jqXHR, settings) {
+				console.groupCollapsed('⏳ [Romaneio] Iniciando requisição AJAX');
+				console.log('URL:         ', settings.url);
+				console.log('Método:      ', settings.type);
+				console.log('Payload:     ', settings.data);
+				console.groupEnd();
+			},
 
-      // Se o servidor enviou o wrapper { debug, data }
-      var dados = response.data || response;
-      if (response.debug) {
-        console.group('🛠 [Romaneio] Debug do servidor');
-        console.log('IDs recebidos (server):', response.debug.ids_recebidos);
-        console.log('Placeholders SQL:      ', response.debug.placeholders);
-        console.log('SQL completo:          ', response.debug.sql);
-        console.log('Bind values:           ', response.debug.bind_values);
-        console.log('Tempo exec (s):        ', response.debug.duration_sec);
-        console.log('Linhas retornadas:     ', response.debug.row_count);
-        console.groupEnd();
-      }
+			success: function(response, textStatus, jqXHR) {
+				console.groupCollapsed('✅ [Romaneio] Resposta AJAX recebida');
+				console.log('HTTP Status:  ', jqXHR.status, jqXHR.statusText);
+				console.log('textStatus:   ', textStatus);
+				console.log('Resposta bruta:', response);
 
-      console.group('📦 [Romaneio] Produtos retornados');
-      console.log('Total de produtos:', dados.length);
-      console.table(dados);
-      console.groupEnd();
-      console.groupEnd();
+				// Se o servidor enviou o wrapper { debug, data }
+				var dados = response.data || response;
+				if (response.debug) {
+					console.group('🛠 [Romaneio] Debug do servidor');
+					console.log('IDs recebidos (server):', response.debug.ids_recebidos);
+					console.log('Placeholders SQL:      ', response.debug.placeholders);
+					console.log('SQL completo:          ', response.debug.sql);
+					console.log('Bind values:           ', response.debug.bind_values);
+					console.log('Tempo exec (s):        ', response.debug.duration_sec);
+					console.log('Linhas retornadas:     ', response.debug.row_count);
+					console.groupEnd();
+				}
 
-      $('#linha-container_1').empty();
+				console.group('📦 [Romaneio] Produtos retornados');
+				console.log('Total de produtos:', dados.length);
+				console.table(dados);
+				console.groupEnd();
+				console.groupEnd();
 
-      if (!dados || dados.length === 0) {
-        console.warn('⚠️ [Romaneio] Nenhum dado retornado');
-        return;
-      }
+				$('#linha-container_1').empty();
 
-      dados.forEach(function(produto, idx) {
-        console.log(`[Romaneio] Preenchendo linha #${idx}`, produto);
-        let novaLinha = $('#linha-template_1').clone();
-        novaLinha.removeAttr('id').show();
+				if (!dados || dados.length === 0) {
+					console.warn('⚠️ [Romaneio] Nenhum dado retornado');
+					return;
+				}
 
-        novaLinha.find('.quant_caixa_1').val(produto.quant);
-        novaLinha.find('.produto_1').val(produto.variedade);
-        novaLinha.find('.preco_kg_1').val(produto.preco_kg);
-        novaLinha.find('.tipo_cx_1').val(produto.tipo_caixa);
-        novaLinha.find('.preco_unit_1').val(produto.preco_unit);
-        novaLinha.find('.valor_1').val(produto.valor);
+				dados.forEach(function(produto, idx) {
+					console.log(`[Romaneio] Preenchendo linha #${idx}`, produto);
+					let novaLinha = $('#linha-template_1').clone();
+					novaLinha.removeAttr('id').show();
 
-        $('#linha-container_1').append(novaLinha);
-      });
+					novaLinha.find('.quant_caixa_1').val(produto.quant);
+					novaLinha.find('.produto_1').val(produto.variedade);
+					novaLinha.find('.preco_kg_1').val(produto.preco_kg);
+					novaLinha.find('.tipo_cx_1').val(produto.tipo_caixa);
+					novaLinha.find('.preco_unit_1').val(produto.preco_unit);
+					novaLinha.find('.valor_1').val(produto.valor);
 
-      calculaTotais();
-    },
+					$('#linha-container_1').append(novaLinha);
+				});
 
-    error: function(jqXHR, textStatus, errorThrown) {
-      console.group('❌ [Romaneio] Erro na requisição AJAX');
-      console.error('textStatus:  ', textStatus);
-      console.error('HTTP Status: ', jqXHR.status, jqXHR.statusText);
-      console.error('errorThrown: ', errorThrown);
-      console.error('responseText:', jqXHR.responseText);
-      console.groupEnd();
-    }
-  });
-}
+				calculaTotais();
+			},
 
+			error: function(jqXHR, textStatus, errorThrown) {
+				console.group('❌ [Romaneio] Erro na requisição AJAX');
+				console.error('textStatus:  ', textStatus);
+				console.error('HTTP Status: ', jqXHR.status, jqXHR.statusText);
+				console.error('errorThrown: ', errorThrown);
+				console.error('responseText:', jqXHR.responseText);
+				console.groupEnd();
+			}
+		});
+	}
 </script>
 
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
@@ -1349,77 +1355,77 @@ function carregarDadosRomaneios() {
 
 <script type="text/javascript">
 	function limparCampos() {
-    // === NOVAS LINHAS ADICIONADAS AQUI ===
-    // 1. ESCONDE AS MENSAGENS DE FEEDBACK
-    $('#mensagem-sucesso').hide();
-    $('#mensagem-erro').hide();
-    // =====================================
+		// 1. ESCONDE AS MENSAGENS DE FEEDBACK
+		$('#mensagem-sucesso').hide();
+		$('#mensagem-erro').hide();
 
-    // 2. DESABILITA EVENTOS (opcional, mas boa prática)
-    $('#plano_pgto, #cliente_modal, .produto_1, .tipo_cx_1, .desc_2, .material').off('change');
+		// 2. LIMPA O ID (CRUCIAL PARA NÃO EDITAR O 140 SEM QUERER)
+		$('#id').val(''); // <--- ADICIONAR ESTA LINHA
 
-    // 3. LIMPA OS CAMPOS DO FORMULÁRIO PRINCIPAL
-    $('.data_atual').val(new Date().toISOString().split('T')[0]);
-    $('#cliente_modal').val('0').trigger('change');
-    $('#plano_pgto').val('0').trigger('change');
-    $('#nota_fiscal').val('');
-    $('#quant_dias').val('');
-    $('#vencimento').val(new Date().toISOString().split('T')[0]);
-    $('#desc-avista').val('');
+		// 3. DESABILITA EVENTOS
+		$('#plano_pgto, #cliente_modal, .produto_1, .tipo_cx_1, .desc_2, .material').off('change');
 
-    // Limpa checkboxes de adicional/desconto e seus campos
-    $('#adicional_ativo, #desconto_ativo').prop('checked', false);
-    $('#descricao_adicional').val('');
-    $('#valor_adicional').val('0,00');
-    $('#descricao_desconto').val('');
-    $('#valor_desconto').val('0,00');
+		// 4. LIMPA OS CAMPOS DO FORMULÁRIO PRINCIPAL
+		$('.data_atual').val(new Date().toISOString().split('T')[0]);
+		$('#cliente_modal').val('0').trigger('change');
+		$('#plano_pgto').val('0').trigger('change');
+		$('#nota_fiscal').val('');
+		$('#quant_dias').val('');
+		$('#vencimento').val(new Date().toISOString().split('T')[0]);
+		$('#desc-avista').val('');
 
-    // 4. LIMPA ROMANEIOS DE COMPRA
-    romaneiosSelecionados = [];
-    $('.romaneio-item').removeClass('selecionado');
-    $('#romaneios_selecionados').val('');
+		// Limpa checkboxes de adicional/desconto e seus campos
+		$('#adicional_ativo, #desconto_ativo').prop('checked', false);
+		$('#descricao_adicional').val('');
+		$('#valor_adicional').val('0,00');
+		$('#descricao_desconto').val('');
+		$('#valor_desconto').val('0,00');
 
-    // 5. LIMPA TODOS OS CONTÊINERES DE LINHAS DINÂMICAS
-    $('#linha-container_1').empty();
-    $('#linha-container_2').empty();
-    $('#linha-container_3').empty();
+		// 5. LIMPA ROMANEIOS DE COMPRA
+		romaneiosSelecionados = [];
+		$('.romaneio-item').removeClass('selecionado');
+		$('#romaneios_selecionados').val('');
 
-    // 6. RESETA OS TOTAIS VISUAIS PARA ZERO
-    $('#total_caixa').text('0 CXS');
-    $('#total_kg').text('0 KG');
-    $('#total_bruto').text('R$ 0,00');
-    $('#total-desc').text('R$ 0,00');
-    $('#total-geral').text('0,00');
-    $('#total_comissao').text('0,00');
-    $('#total_materiais').text('0,00');
-    $('#total_carga').text('0,00');
-    $('#total_liquido').text('0,00');
-    $('#valor_liquido').val('0,00');
+		// 6. LIMPA TODOS OS CONTÊINERES DE LINHAS DINÂMICAS
+		$('#linha-container_1').empty();
+		$('#linha-container_2').empty();
+		$('#linha-container_3').empty();
 
-    // 7. ADICIONA AS PRIMEIRAS LINHAS VAZIAS NOVAMENTE
-    addNewLine1();
-    addNewLine2();
-    addNewLine3();
+		// 7. RESETA OS TOTAIS VISUAIS PARA ZERO
+		$('#total_caixa').text('0 CXS');
+		$('#total_kg').text('0 KG');
+		$('#total_bruto').text('R$ 0,00');
+		$('#total-desc').text('R$ 0,00');
+		$('#total-geral').text('0,00');
+		$('#total_comissao').text('0,00');
+		$('#total_materiais').text('0,00');
+		$('#total_carga').text('0,00');
+		$('#total_liquido').text('0,00');
+		$('#valor_liquido').val('0,00');
 
-    // 8. REATIVA OS EVENTOS E ATUALIZA OS CÁLCULOS
-    setTimeout(function() {
-        $('#cliente_modal').on('change', function() {
-            buscarDadosCliente($(this).val());
-        });
-        $('#plano_pgto').on('change', calculaTotais);
-        
-        $(document).on('change', '.produto_1, .tipo_cx_1, .desc_2, .material', calculaTotais);
+		// 8. ADICIONA AS PRIMEIRAS LINHAS VAZIAS NOVAMENTE
+		addNewLine1();
+		addNewLine2();
+		addNewLine3();
 
-        calculaTotais();
-    }, 100);
-}
+		// 9. REATIVA OS EVENTOS E ATUALIZA OS CÁLCULOS
+		setTimeout(function() {
+			$('#cliente_modal').on('change', function() {
+				buscarDadosCliente($(this).val());
+			});
+			$('#plano_pgto').on('change', calculaTotais);
 
+			$(document).on('change', '.produto_1, .tipo_cx_1, .desc_2, .material', calculaTotais);
+
+			calculaTotais();
+		}, 100);
+	}
 
 	// Adicione antes do submit do form-romaneio
 	function verificarPlanoAVista() {
 		var planoSelecionado = $('#plano_pgto option:selected').text().trim().toUpperCase();
 		var valorDesconto = $('#desc-avista').val();
-		
+
 		// Verifica ambas as formas de acentuação
 		if (planoSelecionado === 'À VISTA' || planoSelecionado === 'Á VISTA') {
 			if (!valorDesconto || valorDesconto === '0' || valorDesconto === '0,00') {
@@ -1427,7 +1433,7 @@ function carregarDadosRomaneios() {
 				return false;
 			}
 		}
-		
+
 		$('#desc-avista').removeClass('is-invalid');
 		return true;
 	}
@@ -1440,7 +1446,7 @@ function carregarDadosRomaneios() {
 	// O submit existente permanece o mesmo
 	$("#form-romaneio").submit(function() {
 		event.preventDefault();
-		
+
 		if (!verificarPlanoAVista()) {
 			$('#mensagem-erro').html('<ul style="margin: 0; padding-left: 20px;"><li>Para pagamento à vista, o desconto é obrigatório</li></ul>').show();
 			$('html, body').animate({
@@ -1448,20 +1454,20 @@ function carregarDadosRomaneios() {
 			}, 500);
 			return false;
 		}
-		
+
 		var formData = new FormData(this);
-		
+
 		$('#mensagem-erro').hide();
 		$('#mensagem-sucesso').hide();
 		$('#btn-salvar').prop('disabled', true);
-		
+
 		// Scroll para o topo do formulário onde estão as mensagens
 		$('html, body').animate({
 			scrollTop: $("#form-romaneio").offset().top - 100
 		}, 500);
-		
+
 		$('#mensagem-erro').html('Salvando...').show();
-		
+
 		$.ajax({
 			url: 'paginas/romaneio_venda/salvar.php',
 			type: 'POST',
@@ -1471,29 +1477,29 @@ function carregarDadosRomaneios() {
 			success: function(response) {
 				try {
 					const data = typeof response === 'string' ? JSON.parse(response) : response;
-					
+
 					if (data.status === 'sucesso') {
 						$('#mensagem-erro').hide();
 						$('#mensagem-sucesso').html(data.mensagem).show();
-						
+
 						// Limpa todo o formulário incluindo romaneios selecionados
 						limparCampos();
-						
+
 						// Fecha o modal
 						$('#modalForm').modal('hide');
-						
+
 						// Limpa as mensagens
 						$('#mensagem-erro').html('');
 						$('#mensagem-sucesso').html('');
-						
+
 						// Habilita o botão novamente
 						$('#btn-salvar').prop('disabled', false);
-						
+
 						// Atualiza a lista de romaneios
 						buscar(); // Usa a função buscar() que já existe para atualizar a lista
 					} else {
 						$('#btn-salvar').prop('disabled', false);
-						const mensagemFormatada = data.mensagem.split('<br>').map(msg => 
+						const mensagemFormatada = data.mensagem.split('<br>').map(msg =>
 							`<li>${msg}</li>`
 						).join('');
 						$('#mensagem-erro').html(`<ul style="margin: 0; padding-left: 20px;">${mensagemFormatada}</ul>`).show();
@@ -1504,7 +1510,7 @@ function carregarDadosRomaneios() {
 				}
 			}
 		});
-		
+
 		return false;
 	});
 
