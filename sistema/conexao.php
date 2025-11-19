@@ -3,11 +3,7 @@
 //definir fuso horário
 date_default_timezone_set('America/Sao_Paulo');
 
-$url_sistema = "https://$_SERVER[HTTP_HOST]/sistema/";
-$url = explode("//", $url_sistema);
-if($url[1] == 'localhost/sistema/'){
-	$url_sistema = "http://$_SERVER[HTTP_HOST]/SistemaMinasRio/sistema/";
-}
+$url_sistema = "http://$_SERVER[HTTP_HOST]/SistemaMinasRio/sistema/";
 
 $servidor = '127.0.0.1';
 $banco = 'sistemaminasrio';
