@@ -200,6 +200,9 @@ HTML;
       },
       dataType: 'json',
       success: function(dados) {
+        console.log("DADOS COMPLETOS:", dados);
+        console.log("Total Líquido:", dados.romaneio.total_liquido);
+        console.log("Desconto à Vista (BD):", dados.romaneio.desc_avista);
         // CORREÇÃO: Acessar os dados dentro do objeto 'romaneio'
         console.log("ID: " + dados.romaneio.id);
         $('#id_dados').text(dados.romaneio.id);
