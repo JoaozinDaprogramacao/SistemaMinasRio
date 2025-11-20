@@ -37,7 +37,6 @@ $id              = $_POST['id']              ?? null;
 // 1) Definição de campos obrigatórios por tipo
 $campos_comuns = [
     'nome'               => $nome,
-    'email'              => $email,
     'contato'            => $contato, // contato2 é opcional
     'CEP'                => $cep,
     'endereço'           => $endereco,
