@@ -23,7 +23,7 @@ if ($linhas > 0) {
     <thead> 
     <tr> 
     <th align="center" width="5%" class="text-center">Selecionar</th>
-    <th>Atacadista</th> 
+    <th>Fornecedor</th> 
     <th class="esc">Plano PGTO</th> 
     <th class="esc">Prazo PGTO</th>
     <th class="esc">Forma de Recebimento</th>
