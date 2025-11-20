@@ -5,6 +5,9 @@ document.addEventListener("DOMContentLoaded", () => {
     addNewLine3();
 });
 
+// Variável global para controlar se estamos em modo de edição/carregamento
+var carregando_dados = false;
+
 // Função para adicionar uma nova linha de Produtos
 function addNewLine1() {
     const template = document.getElementById("linha-template_1");
@@ -282,7 +285,7 @@ function calculaTotaisFinal() {
     let soma = geralFloat + totalComissaoFloat + totalMateriaisFloat;
 
     totalCarga.textContent = soma.toFixed(2).replace(".", ",");
-    
+
     // Chama a função para atualizar o valor líquido com adicionais/descontos
     atualizarValorLiquido();
 }

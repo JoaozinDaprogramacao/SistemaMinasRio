@@ -373,12 +373,15 @@ HTML;
   function editar(id) {
     console.debug('=== editar() iniciado para ID:', id);
 
-    // 1) Limpa e prepara
+    // 1) ATIVA O BLOQUEIO: Impede que o change do cliente altere o plano
+    carregando_dados = true;
+
+    // 2) Limpa e prepara
     limparCampos();
     $('#titulo_inserir').text(`Editar Romaneio de Venda Nº ${id}`);
     $('#id').val(id);
 
-    // 2) Busca dados
+    // 3) Busca dados
     $.ajax({
       url: 'paginas/romaneio_venda/buscar_dados.php',
       type: 'POST',
@@ -389,25 +392,29 @@ HTML;
       success(res) {
         if (!res || !res.romaneio) {
           alert('Não foi possível carregar os dados.');
+          carregando_dados = false; // Libera em caso de erro
           return;
         }
         const r = res.romaneio;
 
-        // 3) Abre modal
+        // 4) Abre modal
         $('#modalForm').modal('show');
 
-        // 4) Aguarda DOM
+        // 5) Aguarda DOM e preenche
         setTimeout(() => {
-          // 4.1) Desativa o onchange embutido DO SELECT
-          $('#plano_pgto').removeAttr('onchange');
-
-          // ----- Cabeçalho -----
+          // ---------------- CABEÇALHO ----------------
           $('input[name="data"]').val(r.data?.split(' ')[0] || '');
           $('input[name="vencimento"]').val(r.vencimento?.split(' ')[0] || '');
           $('input[name="nota_fiscal"]').val(r.nota_fiscal || '');
           $('#quant_dias').val(r.quant_dias || 0);
 
-          // ----- Plano Pgto (nome → ID) -----
+          // ---------------- CLIENTE ----------------
+          // O trigger('change') vai disparar, mas como carregando_dados = true,
+          // a função buscarDadosCliente (que você ajustou antes) vai ignorar.
+          $('#cliente_modal').val(r.atacadista || '').trigger('change');
+
+          // ---------------- PLANO PGTO ----------------
+          // Normalização para encontrar o ID pelo Nome (sua lógica original)
           const normalize = s => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
           const target = normalize(r.nome_plano || '');
           let planoId = '';
@@ -417,103 +424,92 @@ HTML;
               return false;
             }
           });
-          $('#plano_pgto').val(planoId);
+          // Define o plano REAL salvo no banco (sobrescrevendo qualquer padrão de cliente)
+          $('#plano_pgto').val(planoId).trigger('change');
 
-
-          $('#cliente_modal').val(r.atacadista || '').trigger('change');
-
-          // ----- Produtos -----
+          // ---------------- PRODUTOS ----------------
           $('#linha-container_1').empty();
           if (res.produtos?.length) {
             res.produtos.forEach((item, idx) => {
-              console.debug('addNewLine1 para produto', idx);
               addNewLine1();
               const $ln = $('#linha-container_1 .linha_1').eq(idx);
               $ln.find('.quant_caixa_1').val(item.quant || '');
               $ln.find('.produto_1').val(item.variedade || '');
-              $ln.find('.preco_kg_1').val(item.preco_kg ?
-                parseFloat(item.preco_kg).toFixed(2).replace('.', ',') :
-                '0,00');
+              $ln.find('.preco_kg_1').val(item.preco_kg ? parseFloat(item.preco_kg).toFixed(2).replace('.', ',') : '0,00');
               $ln.find('.tipo_cx_1').val(item.tipo_caixa || '');
-              $ln.find('.preco_unit_1').val(item.preco_unit ?
-                parseFloat(item.preco_unit).toFixed(2).replace('.', ',') :
-                '0,00');
-              $ln.find('.valor_1').val(item.valor ?
-                parseFloat(item.valor).toFixed(2).replace('.', ',') :
-                '0,00');
+              $ln.find('.preco_unit_1').val(item.preco_unit ? parseFloat(item.preco_unit).toFixed(2).replace('.', ',') : '0,00');
+              $ln.find('.valor_1').val(item.valor ? parseFloat(item.valor).toFixed(2).replace('.', ',') : '0,00');
               calcularValores($ln.get(0));
             });
             $('#desc-avista').val(r.desc_avista);
           } else {
-            console.debug('sem produtos: addNewLine1');
             addNewLine1();
           }
 
-          // ----- Comissões -----
+          // ---------------- COMISSÕES ----------------
           $('#linha-container_2').empty();
           if (res.comissoes?.length) {
             res.comissoes.forEach((item, idx) => {
-              console.debug('addNewLine2 para comissão', idx);
               addNewLine2();
               const $ln = $('#linha-container_2 .linha_2').eq(idx);
               $ln.find('.desc_2').val(item.descricao || '');
               $ln.find('.quant_caixa_2').val(item.quant_caixa || '');
-              $ln.find('.preco_kg_2').val(item.preco_kg ?
-                parseFloat(item.preco_kg).toFixed(2).replace('.', ',') :
-                '0,00');
+              $ln.find('.preco_kg_2').val(item.preco_kg ? parseFloat(item.preco_kg).toFixed(2).replace('.', ',') : '0,00');
               $ln.find('.tipo_cx_2').val(item.tipo_caixa || '');
-              $ln.find('.preco_unit_2').val(item.preco_unit ?
-                parseFloat(item.preco_unit).toFixed(2).replace('.', ',') :
-                '0,00');
-              $ln.find('.valor_2').val(item.valor ?
-                parseFloat(item.valor).toFixed(2).replace('.', ',') :
-                '0,00');
+              $ln.find('.preco_unit_2').val(item.preco_unit ? parseFloat(item.preco_unit).toFixed(2).replace('.', ',') : '0,00');
+              $ln.find('.valor_2').val(item.valor ? parseFloat(item.valor).toFixed(2).replace('.', ',') : '0,00');
               calcularValores2($ln.get(0));
             });
           } else {
-            console.debug('sem comissões: addNewLine2');
             addNewLine2();
           }
 
-          // ----- Materiais -----
+          // ---------------- MATERIAIS ----------------
           $('#linha-container_3').empty();
           if (res.materiais?.length) {
             res.materiais.forEach((item, idx) => {
-              console.debug('addNewLine3 para material', idx);
               addNewLine3();
               const $ln = $('#linha-container_3 .linha_3').eq(idx);
               $ln.find('.obs_3').val(item.observacoes || '');
               $ln.find('.material').val(item.descricao || '');
               $ln.find('.quant_3').val(item.quant || '');
-              $ln.find('.preco_unit_3').val(item.preco_unit ?
-                parseFloat(item.preco_unit).toFixed(2).replace('.', ',') :
-                '0,00');
-              $ln.find('.valor_3').val(item.valor ?
-                parseFloat(item.valor).toFixed(2).replace('.', ',') :
-                '0,00');
+              $ln.find('.preco_unit_3').val(item.preco_unit ? parseFloat(item.preco_unit).toFixed(2).replace('.', ',') : '0,00');
+              $ln.find('.valor_3').val(item.valor ? parseFloat(item.valor).toFixed(2).replace('.', ',') : '0,00');
               calcularValores3($ln.get(0));
             });
           } else {
-            console.debug('sem materiais: addNewLine3');
             addNewLine3();
           }
 
-
+          // Adicionais e Descontos
           $('#valor_adicional').val(r.adicional.toFixed(2).replace('.', ','));
           $('#descricao_adicional').val(r.descricao_a);
+          if (r.adicional > 0) {
+            $('#adicional_ativo').prop('checked', true);
+            adicionalAtivado();
+          }
 
           $('#valor_desconto').val(r.desconto.toFixed(2).replace('.', ','));
           $('#descricao_desconto').val(r.descricao_d);
+          if (r.desconto > 0) {
+            $('#desconto_ativo').prop('checked', true);
+            descontoAtivado();
+          }
 
-          // 5) Recalcula TUDO manualmente
+          // Recalcula TUDO
           calculaTotais();
           calculaTotais2();
           calculaTotais3();
-        }, 100);
+
+          // 6) DESATIVA O BLOQUEIO: Agora o usuário pode mexer e os eventos funcionarão
+          carregando_dados = false;
+
+        }, 300); // Aumentei levemente o timeout para garantir que o modal esteja renderizado
       },
       error(err) {
-        console.error('Erro ao buscar dados (venda):', err);
-        alert('Não foi possível carregar detalhes. Veja o console.');
+        console.error('Erro ao buscar dados:', err);
+        alert('Erro ao carregar detalhes.');
+        carregando_dados = false; // Libera em caso de erro
       }
     });
   }
