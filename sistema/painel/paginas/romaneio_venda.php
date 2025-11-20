@@ -1170,6 +1170,11 @@ if (@$produtos == 'ocultar') {
 
 <script type="text/javascript">
 	function buscarDadosCliente(id) {
+		// SE estivermos carregando os dados da edição, NÃO busca o padrão do cliente
+		if (carregando_dados) {
+			return;
+		}
+
 		$.ajax({
 			url: 'paginas/romaneio_venda/buscar_cliente.php',
 			type: 'POST',
@@ -1182,7 +1187,11 @@ if (@$produtos == 'ocultar') {
 					const planoId = parseInt(dados.plano_pagamento);
 					const prazoDias = parseInt(dados.prazo_pagamento);
 
-					document.getElementById('plano_pgto').value = planoId;
+					// Só preenche se tiver retornado algo válido
+					if (planoId > 0) {
+						$('#plano_pgto').val(planoId).trigger('change'); // Use trigger change se usar select2
+					}
+
 					document.getElementById('quant_dias').value = prazoDias;
 
 					calcularVencimento();
