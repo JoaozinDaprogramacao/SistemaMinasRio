@@ -3,6 +3,7 @@ require_once("../../conexao.php");
 
 $id = $_GET['id'];
 
+
 // 1. BUSCAR DADOS DO CABEÇALHO
 $query = $pdo->prepare("SELECT rv.*, c.nome as nome_cliente, p.nome as nome_plano 
     FROM romaneio_venda rv 
@@ -65,6 +66,29 @@ $valor_total_final = $total_liquido_banana
     + $total_comissao
     + $total_materiais;
 
+
+// --- CORREÇÃO DA IMAGEM PARA PDF (BASE64) ---
+// 1. Definimos o caminho físico do arquivo (não a URL)
+// Como seu require está em ../../conexao.php, a pasta img deve estar em ../../img/
+$caminho_fisico = "../../img/logo.jpg";
+
+$logo_src = ""; // Variável final
+
+if (file_exists($caminho_fisico)) {
+    // Lê o conteúdo binário da imagem
+    $dados_imagem = file_get_contents($caminho_fisico);
+    // Pega a extensão (jpg, png, etc)
+    $extensao = pathinfo($caminho_fisico, PATHINFO_EXTENSION);
+    // Cria a string Base64
+    $logo_src = 'data:image/' . $extensao . ';base64,' . base64_encode($dados_imagem);
+} else {
+    // Fallback: Se não achar o arquivo físico, tenta usar a URL antiga (mas provavelmente falhará no PDF)
+    // Note: Você precisará trazer a variável $url_sistema do config ou montá-la novamente se ela não estiver disponível aqui
+    $protocolo = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') ? "https" : "http";
+    $host = $_SERVER['HTTP_HOST'];
+    $url_sistema_fallback = "{$protocolo}://{$host}/SistemaMinasRio/sistema/";
+    $logo_src = $url_sistema_fallback . "img/logo.jpg";
+}
 ?>
 <!DOCTYPE html>
 <html lang="pt-BR">
@@ -191,7 +215,7 @@ $valor_total_final = $total_liquido_banana
     <table>
         <tr>
             <td class="logo-cell" rowspan="3">
-                <img src="<?= $url_sistema ?>img/logo.jpg" alt="Logo">
+                <img src="<?= $logo_src ?>" alt="Logo" style="width: 200px;">
             </td>
             <td class="title-cell" colspan="2">ROMANEIO DE VENDAS</td>
             <td class="rom-label">Rom nº</td>
