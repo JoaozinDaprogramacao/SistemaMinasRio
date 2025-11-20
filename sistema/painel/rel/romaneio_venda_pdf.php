@@ -192,6 +192,7 @@ $valor_total_final = $total_liquido_banana
         <tr>
             <td class="logo-cell" rowspan="3">
                 <img src="<?= $url_sistema ?>img/logo.jpg" alt="Logo">
+                <?= $url_sistema ?>img/logo.jpg
             </td>
             <td class="title-cell" colspan="2">ROMANEIO DE VENDAS</td>
             <td class="rom-label">Rom nº</td>
