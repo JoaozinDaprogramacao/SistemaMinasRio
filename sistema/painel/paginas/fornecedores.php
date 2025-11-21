@@ -73,18 +73,6 @@ if (@$fornecedores == 'ocultar') {
 		$('#' + valor).val(valorAlterado);
 	}
 
-	// Função para aplicar a máscara da IE
-	function mascara_ie(id) {
-		// pega só dígitos e limita a 9
-		let v = $('#' + id).val().replace(/\D/g, '').substring(0, 9);
-
-		// 1) insere ponto depois dos 2 primeiros
-		v = v.replace(/^(\d{2})(\d+)/, '$1.$2');
-		// 2) insere traço antes do dígito verificador (último)
-		v = v.replace(/^(\d{2}\.\d{6})(\d)$/, '$1-$2');
-
-		$('#' + id).val(v);
-	}
 
 	// Função para aplicar a máscara do RG
 	function mascara_rg(valor) {
@@ -281,7 +269,6 @@ if (@$fornecedores == 'ocultar') {
 
 					<hr>
 
-					<!-- Título: Dados Jurídicos -->
 					<h5 class="mb-3 d-none" id="cnpj_title">Dados Jurídicos</h5>
 					<div class="row d-none" id="cnpj_fields">
 						<div class="col-md-6 mb-2">
@@ -292,9 +279,12 @@ if (@$fornecedores == 'ocultar') {
 							<label>CNPJ</label>
 							<input type="text" class="form-control" id="cnpj" name="cnpj" placeholder="CNPJ do Fornecedor" onkeyup="mascara_cnpj('cnpj')" maxlength="14">
 						</div>
+					</div>
+
+					<div class="row">
 						<div class="col-md-6 mb-2">
-							<label>IE</label>
-							<input type="text" class="form-control" id="ie" name="ie" placeholder="IE do Fornecedor" maxlength="13">
+							<label>Inscrição Estadual</label>
+							<input type="text" class="form-control" id="ie" name="ie" placeholder="Inscrição Estadual" maxlength="18">
 						</div>
 					</div>
 
@@ -411,7 +401,6 @@ if (@$fornecedores == 'ocultar') {
 
 					function limparCamposJuridica() {
 						document.getElementById("cnpj").value = "";
-						document.getElementById("ie").value = "";
 						document.getElementById("razao_social").value = "";
 					}
 
