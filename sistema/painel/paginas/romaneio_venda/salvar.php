@@ -12,6 +12,8 @@ ini_set('display_errors', 1);
 // No início do arquivo, após require_once
 header('Content-Type: application/json; charset=utf-8');
 
+
+
 // Campos obrigatórios
 $campos_obrigatorios = [
 	'cliente' => 'cliente',
@@ -500,6 +502,21 @@ try {
 		'status' => 'sucesso',
 		'mensagem' => 'Romaneio salvo com sucesso!'
 	]);
+
+
+	$ids_romaneios_compra = $_POST['romaneios_selecionados'];
+	$ids_array = explode(',', $ids_romaneios_compra);
+
+	if (!empty($ids_array)) {
+		// Cria placeholders dinâmicos (ex: ?, ?, ?)
+		$placeholders = implode(',', array_fill(0, count($ids_array), '?'));
+
+		// SQL para marcar os romaneios de compra como USADOS
+		$stmt_update = $pdo->prepare("UPDATE romaneio_compra SET usado = 1 WHERE id IN ($placeholders)");
+
+		// Executa a atualização
+		$stmt_update->execute($ids_array);
+	}
 } catch (PDOException $e) {
 	$pdo->rollBack();
 	error_log("Erro PDO: " . $e->getMessage()); // Loga o erro real
