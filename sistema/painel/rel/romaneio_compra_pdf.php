@@ -189,6 +189,7 @@ $total_liquido_parcial = $total_bruto - $valor_desconto_calculado;
   <table>
     <tr>
       <td class="logo-cell" rowspan="3">
+        <?php echo $url_sistema ?>img/logo.jpg
         <img style="margin-top: 7px; margin-left: 7px;" id="imag" src="<?php echo $url_sistema ?>img/logo.jpg" width="110px">
       </td>
       <td class="title-cell" colspan="2">ROMANEIO DE COMPRA</td>
