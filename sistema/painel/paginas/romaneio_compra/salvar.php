@@ -89,17 +89,6 @@ if (strtoupper(trim($nomePlanoPgtoSelecionado ?? '')) === 'À VISTA' && $desc_av
 }
 
 
-if (!empty($nota_fiscal)) {
-    $q_nf = $pdo->prepare("SELECT id FROM {$tabela} WHERE nota_fiscal = :nota_fiscal AND (:id = '' OR id != :id_val)");
-    $q_nf->bindValue(':nota_fiscal', $nota_fiscal);
-    $q_nf->bindValue(':id', $id);
-    $q_nf->bindValue(':id_val', $id);
-    $q_nf->execute();
-    if ($q_nf->rowCount() > 0) {
-        $erros[] = "Esta nota fiscal já está cadastrada";
-    }
-}
-
 // cálculo de totais (já existente e corrigido anteriormente)
 $total_bruto   = array_reduce($valor_1, fn($c,$v_prod)=> $c + floatval(str_replace(',', '.', $v_prod)), 0);
 $total_bruto_desc = $total_bruto * (1 - ($desc_avista / 100));
