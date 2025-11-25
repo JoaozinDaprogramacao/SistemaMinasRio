@@ -169,23 +169,10 @@ if (@$produtos == 'ocultar') {
 							<div class="row g-2">
 								<div class="col-md-12">
 									<label class="form-label">Romaneios de Compra</label>
-									<div class="lista-romaneios form-control form-control-md">
-										<?php
-										$query = $pdo->query("SELECT rc.*, f.nome_atacadista 
-											FROM romaneio_compra rc 
-											LEFT JOIN fornecedores f ON rc.fornecedor = f.id 
-											ORDER BY rc.data DESC");
-										$res = $query->fetchAll(PDO::FETCH_ASSOC);
-
-										foreach ($res as $row) {
-											$data_formatada = date('d/m/Y', strtotime($row['data']));
-											$total_formatado = number_format($row['total_liquido'], 2, ',', '.');
-											echo "<div class='romaneio-item' data-id='{$row['id']}' onclick='toggleRomaneio(this, {$row['id']})'>
-												<strong>Nº {$row['id']}</strong> - {$row['nome_atacadista']} <br>
-												Data: {$data_formatada} - Total: R$ {$total_formatado}
-											</div>";
-										}
-										?>
+									<div class="lista-romaneios form-control form-control-md" id="lista-romaneios-compra">
+										<!-- CONTEÚDO REMOVIDO: Será carregado dinamicamente via AJAX -->
+										<!-- Será ordenado por ID DESC e filtrado pelo cliente_id -->
+										<p class="text-secondary text-center">Selecione um Cliente para carregar os Romaneios de Compra relacionados.</p>
 									</div>
 								</div>
 
@@ -196,7 +183,8 @@ if (@$produtos == 'ocultar') {
 
 								<div class="col-md-6">
 									<label class="form-label">Cliente</label>
-									<select id="cliente_modal" name="cliente" class="form-select form-select-sm" onchange="buscarDadosCliente(this.value); calculaTotais();">
+									<!-- ADICIONADA CHAMADA PARA ATUALIZAR A LISTA DE ROMANEIOS -->
+									<select id="cliente_modal" name="cliente" class="form-select form-select-sm" onchange="buscarDadosCliente(this.value); atualizarListaRomaneiosCompra(this.value); calculaTotais();">
 										<option value="0">Escolher Cliente</option>
 										<?php
 										$query = $pdo->query("SELECT * from clientes order by id asc");
@@ -228,9 +216,9 @@ if (@$produtos == 'ocultar') {
 								<option value="">Selecione Variedade</option>
 								<?php
 								$query_sql = "SELECT p.id AS id_produto, p.nome AS nome_produto, c.nome AS nome_categoria 
-											FROM produtos p 
-											INNER JOIN categorias c ON p.categoria = c.id 
-											ORDER BY p.nome ASC"; // Alterei para ordenar por nome do produto, pode ser p.id também
+                                                FROM produtos p 
+                                                INNER JOIN categorias c ON p.categoria = c.id 
+                                                ORDER BY p.nome ASC"; // Alterei para ordenar por nome do produto, pode ser p.id também
 
 								$stmt = $pdo->query($query_sql);
 								$produtos_com_categorias = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -335,7 +323,7 @@ if (@$produtos == 'ocultar') {
 						</div>
 						<div class="coluna_romaneio">
 							<label for="preco_kg_2">Preço KG</label>
-							<input type="text" class="preco_kg_2" name="preco_kg_2[]" onkeyup="mascara_decimal(this);  handleInput2(this); calcularValores2(this.closest('.linha_2'));">
+							<input type="text" class="preco_kg_2" name="preco_kg_2[]" onkeyup="mascara_decimal(this);  handleInput2(this); calcularValores2(this.closest('.linha_2'));">
 						</div>
 						<div class="coluna_romaneio">
 							<label for="tipo_cx_2">TIPO CX</label>
@@ -475,7 +463,7 @@ if (@$produtos == 'ocultar') {
 
 				<input type="hidden" id="valor_liquido" name="valor_liquido">
 				<input type="hidden" id="id" name="id">
-				<div class="modal-footer d-flex align  justify-content-center align-items-center">
+				<div class="modal-footer d-flex align  justify-content-center align-items-center">
 					<button type="submit" id="btn_salvar" class="btn btn-primary">Salvar</button>
 				</div>
 				<small>
@@ -488,6 +476,7 @@ if (@$produtos == 'ocultar') {
 </div>
 
 
+<!-- ... rest of the HTML/Modals ... -->
 
 <style>
 	.radio {
@@ -1213,12 +1202,18 @@ if (@$produtos == 'ocultar') {
 
 		if (diasInput && dataInput && dataInput.value) {
 			const dias = parseInt(diasInput.value) || 0;
-			const dataBase = new Date(dataInput.value);
+			const dataBase = new Date(dataInput.value + 'T00:00:00'); // Adicionado T00:00:00 para evitar problemas de fuso
 
-			if (!isNaN(dias) && dataBase instanceof Date && !isNaN(dataBase)) {
+			if (!isNaN(dias) && dataBase instanceof Date && !isNaN(dataBase.getTime())) {
 				const dataVencimento = new Date(dataBase);
 				dataVencimento.setDate(dataVencimento.getDate() + dias);
-				vencimentoInput.value = dataVencimento.toISOString().split('T')[0];
+
+				// Formatação para YYYY-MM-DD
+				const yyyy = dataVencimento.getFullYear();
+				const mm = String(dataVencimento.getMonth() + 1).padStart(2, '0');
+				const dd = String(dataVencimento.getDate()).padStart(2, '0');
+
+				vencimentoInput.value = `${yyyy}-${mm}-${dd}`;
 			}
 		}
 	}
@@ -1291,16 +1286,16 @@ if (@$produtos == 'ocultar') {
 
 			beforeSend: function(jqXHR, settings) {
 				console.groupCollapsed('⏳ [Romaneio] Iniciando requisição AJAX');
-				console.log('URL:         ', settings.url);
-				console.log('Método:      ', settings.type);
-				console.log('Payload:     ', settings.data);
+				console.log('URL:         ', settings.url);
+				console.log('Método:      ', settings.type);
+				console.log('Payload:     ', settings.data);
 				console.groupEnd();
 			},
 
 			success: function(response, textStatus, jqXHR) {
 				console.groupCollapsed('✅ [Romaneio] Resposta AJAX recebida');
-				console.log('HTTP Status:  ', jqXHR.status, jqXHR.statusText);
-				console.log('textStatus:   ', textStatus);
+				console.log('HTTP Status:  ', jqXHR.status, jqXHR.statusText);
+				console.log('textStatus:   ', textStatus);
 				console.log('Resposta bruta:', response);
 
 				// Se o servidor enviou o wrapper { debug, data }
@@ -1308,11 +1303,11 @@ if (@$produtos == 'ocultar') {
 				if (response.debug) {
 					console.group('🛠 [Romaneio] Debug do servidor');
 					console.log('IDs recebidos (server):', response.debug.ids_recebidos);
-					console.log('Placeholders SQL:      ', response.debug.placeholders);
-					console.log('SQL completo:          ', response.debug.sql);
-					console.log('Bind values:           ', response.debug.bind_values);
-					console.log('Tempo exec (s):        ', response.debug.duration_sec);
-					console.log('Linhas retornadas:     ', response.debug.row_count);
+					console.log('Placeholders SQL:      ', response.debug.placeholders);
+					console.log('SQL completo:          ', response.debug.sql);
+					console.log('Bind values:           ', response.debug.bind_values);
+					console.log('Tempo exec (s):        ', response.debug.duration_sec);
+					console.log('Linhas retornadas:     ', response.debug.row_count);
 					console.groupEnd();
 				}
 
@@ -1349,7 +1344,7 @@ if (@$produtos == 'ocultar') {
 
 			error: function(jqXHR, textStatus, errorThrown) {
 				console.group('❌ [Romaneio] Erro na requisição AJAX');
-				console.error('textStatus:  ', textStatus);
+				console.error('textStatus:  ', textStatus);
 				console.error('HTTP Status: ', jqXHR.status, jqXHR.statusText);
 				console.error('errorThrown: ', errorThrown);
 				console.error('responseText:', jqXHR.responseText);
@@ -1357,6 +1352,68 @@ if (@$produtos == 'ocultar') {
 			}
 		});
 	}
+
+	/**
+	 * Requisita a lista de Romaneios de Compra filtrada pelo Cliente e ordenada por ID (DESC).
+	 * Esta função é chamada no evento 'change' do select de cliente.
+	 * * @param {string} clienteId O ID do cliente selecionado.
+	 */
+	function atualizarListaRomaneiosCompra(clienteId) {
+		const listaContainer = $('#lista-romaneios-compra');
+
+		if (!clienteId || clienteId == '0') {
+			listaContainer.html('<p class="text-secondary text-center">Selecione um Cliente para carregar os Romaneios de Compra relacionados.</p>');
+			// Limpa romaneios selecionados
+			romaneiosSelecionados = [];
+			$('#romaneios_selecionados').val('');
+			carregarDadosRomaneios(); // Recalcula totais (será 0)
+			return;
+		}
+
+		listaContainer.html('<p class="text-info text-center">Carregando romaneios...</p>');
+
+		// Chama o script PHP (que você deve criar) para obter a lista filtrada e ordenada.
+		$.ajax({
+			url: 'paginas/romaneio_venda/listar_romaneios_compra.php',
+			type: 'POST',
+			data: {
+				cliente_id: clienteId
+			},
+			success: function(htmlLista) {
+				listaContainer.html(htmlLista);
+
+				// 1. O PHP já retornou a lista ORDENADA POR ID DESC (Requisito 1)
+				// 2. O PHP já filtrou pelo CLIENTE ID (Requisito 2)
+
+				// Marca os itens que já estavam selecionados (se for modo edição e a lista for recarregada)
+				romaneiosSelecionados.forEach(id => {
+					$(`.romaneio-item[data-id='${id}']`).addClass('selecionado');
+				});
+
+				// Recalcula totais (se houver alguma seleção)
+				carregarDadosRomaneios();
+			},
+			error: function(xhr, status, error) {
+				listaContainer.html('<p class="text-danger text-center">Erro ao carregar romaneios de compra.</p>');
+				console.error("Erro no AJAX para carregar romaneios:", error);
+			}
+		});
+	}
+
+	// Inicializa a lista de romaneios de compra quando o modal é aberto (útil para edição)
+	$(document).ready(function() {
+		$('#modalForm').on('show.bs.modal', function(e) {
+			// Tenta obter o cliente já selecionado (se estiver em modo edição)
+			const clienteId = $('#cliente_modal').val();
+			if (clienteId && clienteId != '0') {
+				// Se houver um ID, carrega a lista filtrada
+				atualizarListaRomaneiosCompra(clienteId);
+			} else {
+				// Garante que o placeholder inicial seja exibido
+				$('#lista-romaneios-compra').html('<p class="text-secondary text-center">Selecione um Cliente para carregar os Romaneios de Compra relacionados.</p>');
+			}
+		});
+	});
 </script>
 
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
@@ -1376,6 +1433,7 @@ if (@$produtos == 'ocultar') {
 
 		// 4. LIMPA OS CAMPOS DO FORMULÁRIO PRINCIPAL
 		$('.data_atual').val(new Date().toISOString().split('T')[0]);
+		// Dispara a atualização da lista ao limpar o cliente
 		$('#cliente_modal').val('0').trigger('change');
 		$('#plano_pgto').val('0').trigger('change');
 		$('#nota_fiscal').val('');
@@ -1392,7 +1450,7 @@ if (@$produtos == 'ocultar') {
 
 		// 5. LIMPA ROMANEIOS DE COMPRA
 		romaneiosSelecionados = [];
-		$('.romaneio-item').removeClass('selecionado');
+		// A lista será limpa automaticamente pela chamada a atualizarListaRomaneiosCompra(0) acima
 		$('#romaneios_selecionados').val('');
 
 		// 6. LIMPA TODOS OS CONTÊINERES DE LINHAS DINÂMICAS
@@ -1421,6 +1479,7 @@ if (@$produtos == 'ocultar') {
 		setTimeout(function() {
 			$('#cliente_modal').on('change', function() {
 				buscarDadosCliente($(this).val());
+				atualizarListaRomaneiosCompra($(this).val()); // Reativa a nova função
 			});
 			$('#plano_pgto').on('change', calculaTotais);
 
