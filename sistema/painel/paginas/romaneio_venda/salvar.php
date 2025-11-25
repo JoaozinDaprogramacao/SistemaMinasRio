@@ -57,16 +57,6 @@ if (!empty($_POST['plano_pgto'])) {
 
 $desc_avista = !empty($_POST['desc-avista']) ? $_POST['desc-avista'] : 0;
 
-// Validação da Nota Fiscal (apenas verificar duplicidade se for informada)
-if (!empty($_POST['nota_fiscal'])) {
-	$nota = $_POST['nota_fiscal'];
-	$id = $_POST['id'] ?? '';
-	$query = $pdo->prepare("SELECT id FROM romaneio_venda WHERE nota_fiscal = ? AND id != ?");
-	$query->execute([$nota, $id]);
-	if ($query->rowCount() > 0) {
-		$erros[] = "Esta nota fiscal já está cadastrada";
-	}
-}
 
 // Validação dos Produtos
 $tem_produtos = false;
