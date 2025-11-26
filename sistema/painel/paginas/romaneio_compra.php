@@ -73,8 +73,6 @@ if (@$produtos == 'ocultar') {
 <input type="hidden" id="ids">
 
 <script src="paginas/js/<?php echo $pag; ?>/romaneio.js" defer></script>
-
-
 <div class="modal fade" id="modalForm" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
 	<div class="modal-dialog modal-xl">
 		<div class="modal-content">
@@ -93,7 +91,7 @@ if (@$produtos == 'ocultar') {
 
 							<div class="col-12 mb-2">
 								<label class="form-label">Data</label>
-								<input type="date" class="form-control" name="data" value="<?= date('Y-m-d'); ?>">
+								<input type="date" class="form-control" name="data" value="<?= date('Y-m-d'); ?>" onchange="calcularVencimento()">
 							</div>
 
 							<div class="col-12 mb-2">
@@ -114,7 +112,7 @@ if (@$produtos == 'ocultar') {
 
 							<div class="col-12 mb-2">
 								<label class="form-label">Dias</label>
-								<input type="number" id="quant_dias" name="quant_dias" class="form-control" placeholder="Quant. Dias" onchange="calcularVencimento()">
+								<input type="number" id="quant_dias" name="quant_dias" class="form-control" placeholder="Quant. Dias" oninput="calcularVencimento()">
 							</div>
 
 							<div class="col-12 mb-2">
@@ -1284,21 +1282,34 @@ if (@$produtos == 'ocultar') {
 
 <script type="text/javascript">
 	function calcularVencimento() {
-		const data = $('.data_atual').val();
-		const dias = parseInt($('#quant_dias').val()) || 0;
+		// 1. Pega o valor do input 'data' pelo atributo name, já que ele não tem a classe .data_atual
+		var dataEmissao = $('input[name="data"]').val();
 
-		if (data) {
-			const dataObj = new Date(data);
+		// 2. Pega a quantidade de dias
+		var dias = parseInt($('#quant_dias').val());
+
+		// 3. Só calcula se houver data e dias preenchidos
+		if (dataEmissao && !isNaN(dias)) {
+			// CORREÇÃO DE FUSO HORÁRIO:
+			// Divide a string (ex: "2023-11-25") em partes para criar a data localmente
+			// Isso evita que o navegador subtraia 1 dia por causa do fuso horário
+			var partes = dataEmissao.split('-');
+			var dataObj = new Date(partes[0], partes[1] - 1, partes[2]);
+
+			// Adiciona os dias
 			dataObj.setDate(dataObj.getDate() + dias);
 
-			const dataFormatada = dataObj.toISOString().split('T')[0];
-			$('input[name="vencimento"]').val(dataFormatada);
+			// Formata para o padrão do input date (YYYY-MM-DD)
+			var ano = dataObj.getFullYear();
+			var mes = String(dataObj.getMonth() + 1).padStart(2, '0');
+			var dia = String(dataObj.getDate()).padStart(2, '0');
+
+			var dataFinal = ano + '-' + mes + '-' + dia;
+
+			// Define o valor no campo vencimento
+			$('#vencimento').val(dataFinal);
 		}
 	}
-</script>
-
-<script type="text/javascript">
-	$('.data_atual').on('change', calcularVencimento);
 </script>
 
 <script type="text/javascript">
