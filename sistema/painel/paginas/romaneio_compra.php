@@ -21,8 +21,8 @@ if (@$produtos == 'ocultar') {
 					<?php
 					$query = $pdo->query("SELECT * FROM fornecedores ORDER BY nome_atacadista ASC");
 					$res = $query->fetchAll(PDO::FETCH_ASSOC);
-					foreach($res as $row) {
-						echo '<option value="'.$row['id'].'">'.$row['nome_atacadista'].'</option>';
+					foreach ($res as $row) {
+						echo '<option value="' . $row['id'] . '">' . $row['nome_atacadista'] . '</option>';
 					}
 					?>
 				</select>
@@ -84,80 +84,92 @@ if (@$produtos == 'ocultar') {
 			</div>
 			<h3 class="fs-3 text-center mt-3">Romaneio de Compra</h3>
 			<form id="form-romaneio" method="post">
-				<!-- Área de mensagens -->
 				<div class="alert alert-danger" id="mensagem-erro" style="display: none; margin: 10px 0;"></div>
 				<div class="alert alert-success" id="mensagem-sucesso" style="display: none; margin: 10px 0;"></div>
-				<div class="container-superior">
-					<div class="linha-superior">
-						<div class="coluna_romaneio">
-							<label for="data_atual">Data</label>
-							<input type="date" class="data_atual" name="data" value="<?= date('Y-m-d'); ?>">
+
+				<div class="container-fluid px-4 mb-3">
+					<div class="row">
+						<div class="col-md-6">
+
+							<div class="col-12 mb-2">
+								<label class="form-label">Data</label>
+								<input type="date" class="form-control" name="data" value="<?= date('Y-m-d'); ?>">
+							</div>
+
+							<div class="col-12 mb-2">
+								<label class="form-label">Plano Pgto</label>
+								<select id="plano_pgto" name="plano_pgto" class="form-select" onchange="(calculaTotais())">
+									<option value="0">Escolher Plano</option>
+									<?php
+									$query = $pdo->query("SELECT * from planos_pgto order by id asc");
+									$res = $query->fetchAll(PDO::FETCH_ASSOC);
+									$linhas = @count($res);
+									if ($linhas > 0) {
+										for ($i = 0; $i < $linhas; $i++) { ?>
+											<option value="<?php echo $res[$i]['id'] ?>"><?php echo $res[$i]['nome'] ?></option>
+									<?php }
+									} ?>
+								</select>
+							</div>
+
+							<div class="col-12 mb-2">
+								<label class="form-label">Dias</label>
+								<input type="number" id="quant_dias" name="quant_dias" class="form-control" placeholder="Quant. Dias" onchange="calcularVencimento()">
+							</div>
+
+							<div class="col-12 mb-2">
+								<label class="form-label">Vencimento</label>
+								<input type="date" id="vencimento" name="vencimento" class="form-control" value="<?= date('Y-m-d'); ?>">
+							</div>
+
 						</div>
-						<div class="coluna_romaneio">
-							<label for="plano_pgto">Plano Pgto</label>
-							<select id="plano_pgto" name="plano_pgto" class="plano_pgto" onchange="(calculaTotais())">
-								<option value="0">Escolher Plano</option>
-								<?php
-								$query = $pdo->query("SELECT * from planos_pgto order by id asc");
-								$res = $query->fetchAll(PDO::FETCH_ASSOC);
-								$linhas = @count($res);
-								if ($linhas > 0) {
-									for ($i = 0; $i < $linhas; $i++) { ?>
-										<option value="<?php echo $res[$i]['id'] ?>"><?php echo $res[$i]['nome'] ?></option>
-								<?php }
-								} ?>
-							</select>
-						</div>
-						<div class="coluna_romaneio">
-							<label for="quant_dias">Dias</label>
-							<input type="number" id="quant_dias" name="quant_dias" class="form-control" placeholder="Quant. Dias" onchange="calcularVencimento()">
-						</div>
-						<div class="coluna_romaneio">
-							<label for="nota_fiscal">Nota Fiscal</label>
-							<input type="text" class="nota_fiscal" id="nota_fiscal" name="nota_fiscal" placeholder="Número NF">
-						</div>
-						<div class="coluna_romaneio">
-							<label for="vencimento">Vencimento</label>
-							<input type="date" id="vencimento" name="vencimento" class="form-control" value="<?= date('Y-m-d'); ?>">
-						</div>
-						<div class="coluna_romaneio">
-							<label for="fornecedor">Fornecedor</label>
-							<select id="fornecedor" name="fornecedor" class="form-control" onchange="buscarDadosFornecedor(this.value)">
-								<option value="">Selecione o Fornecedor</option>
-								<?php
-								$query = $pdo->query("SELECT * from fornecedores order by nome_atacadista asc");
-								$res = $query->fetchAll(PDO::FETCH_ASSOC);
-								foreach($res as $row) {
-									echo '<option value="'.$row['id'].'">'.$row['nome_atacadista'].'</option>';
-								}
-								?>
-							</select>
-						</div>
-						<div class="coluna_romaneio">
-							<label for="fazenda">Fazenda</label>
-							<input type="text" class="fazenda" name="fazenda" placeholder="Desc. Fazenda">
-						</div>
-						<div class="coluna_romaneio">
-							<label for="cliente">Cliente Atacadista</label>
-							<select id="cliente" name="cliente" class="plano_pgto"">
-								<option value="0">Cliente</option>
-								<?php
-								$query = $pdo->query("SELECT * from clientes order by id asc");
-								$res = $query->fetchAll(PDO::FETCH_ASSOC);
-								$linhas = @count($res);
-								if ($linhas > 0) {
-									for ($i = 0; $i < $linhas; $i++) { ?>
-										<option value="<?php echo $res[$i]['id'] ?>"><?php echo $res[$i]['nome'] ?></option>
-								<?php }
-								} ?>
-							</select>
+
+						<div class="col-md-6">
+
+							<div class="col-12 mb-2">
+								<label class="form-label">Fornecedor</label>
+								<select id="fornecedor" name="fornecedor" class="form-select" onchange="buscarDadosFornecedor(this.value)">
+									<option value="">Selecione o Fornecedor</option>
+									<?php
+									$query = $pdo->query("SELECT * from fornecedores order by nome_atacadista asc");
+									$res = $query->fetchAll(PDO::FETCH_ASSOC);
+									foreach ($res as $row) {
+										echo '<option value="' . $row['id'] . '">' . $row['nome_atacadista'] . '</option>';
+									}
+									?>
+								</select>
+							</div>
+
+							<div class="col-12 mb-2">
+								<label class="form-label">Fazenda</label>
+								<input type="text" class="form-control" name="fazenda" placeholder="Desc. Fazenda">
+							</div>
+
+							<div class="col-12 mb-2">
+								<label class="form-label">Nota Fiscal</label>
+								<input type="text" class="form-control" id="nota_fiscal" name="nota_fiscal" placeholder="Número NF">
+							</div>
+
+							<div class="col-12 mb-2">
+								<label class="form-label">Cliente Atacadista</label>
+								<select id="cliente" name="cliente" class="form-select">
+									<option value="0">Cliente</option>
+									<?php
+									$query = $pdo->query("SELECT * from clientes order by id asc");
+									$res = $query->fetchAll(PDO::FETCH_ASSOC);
+									$linhas = @count($res);
+									if ($linhas > 0) {
+										for ($i = 0; $i < $linhas; $i++) { ?>
+											<option value="<?php echo $res[$i]['id'] ?>"><?php echo $res[$i]['nome'] ?></option>
+									<?php }
+									} ?>
+								</select>
+							</div>
+
 						</div>
 					</div>
 				</div>
 				<div id="linha-template_1" class="linha_1" style="display: none;">
-					<!-- Bloco Superior (2x2) -->
-
-					<!-- Bloco Inferior (em linha) -->
 					<div class="linha-inferior">
 						<div class="coluna_romaneio">
 							<label for="quant_caixa_1">QUANT. CX</label>
@@ -169,19 +181,19 @@ if (@$produtos == 'ocultar') {
 								<option value="">Selecione Variedade</option>
 								<?php
 								$query_sql = "SELECT p.id AS id_produto, p.nome AS nome_produto, c.nome AS nome_categoria 
-											FROM produtos p 
-											INNER JOIN categorias c ON p.categoria = c.id 
-											ORDER BY p.nome ASC"; // Alterei para ordenar por nome do produto, pode ser p.id também
+                                                            FROM produtos p 
+                                                            INNER JOIN categorias c ON p.categoria = c.id 
+                                                            ORDER BY p.nome ASC";
 
 								$stmt = $pdo->query($query_sql);
 								$produtos_com_categorias = $stmt->fetchAll(PDO::FETCH_ASSOC);
-								
+
 								if (count($produtos_com_categorias) > 0) {
 									foreach ($produtos_com_categorias as $item) { ?>
 										<option value="<?php echo $item['id_produto']; ?>">
 											<?php echo htmlspecialchars($item['nome_produto']) . ' - ' . htmlspecialchars($item['nome_categoria']); ?>
 										</option>
-									<?php }
+								<?php }
 								} ?>
 							</select>
 						</div>
@@ -192,8 +204,7 @@ if (@$produtos == 'ocultar') {
 								class="preco_kg_1"
 								id="preco_kg_1"
 								name="preco_kg_1[]"
-								onkeyup="mascara_moeda(this); handleInput(this); calcularValores(this.closest('.linha_1'));"
-							/>
+								onkeyup="mascara_moeda(this); handleInput(this); calcularValores(this.closest('.linha_1'));" />
 
 						</div>
 						<div class="coluna_romaneio">
@@ -207,16 +218,15 @@ if (@$produtos == 'ocultar') {
 
 								if ($linhas > 0) {
 									for ($i = 0; $i < $linhas; $i++) {
-										// Busca a unidade de medida dentro do loop
 										$id_unidade = $res[$i]['unidade_medida'];
 										$queryUnidade = $pdo->query("SELECT unidade FROM unidade_medida WHERE id = $id_unidade");
 										$resUnidade = $queryUnidade->fetch(PDO::FETCH_ASSOC);
-										$unidade = $resUnidade['unidade'] ?? 'N/D'; // N/D caso não encontre a unidade
-										?>
+										$unidade = $resUnidade['unidade'] ?? 'N/D';
+								?>
 										<option value="<?php echo $res[$i]['tipo'] ?>">
-											<?php echo $res[$i]['tipo'] . ' 	' . $unidade ?>
+											<?php echo $res[$i]['tipo'] . '     ' . $unidade ?>
 										</option>
-									<?php }
+								<?php }
 								} ?>
 							</select>
 						</div>
@@ -232,7 +242,6 @@ if (@$produtos == 'ocultar') {
 
 				</div>
 
-				<!-- Contêiner para as linhas -->
 				<div id="linha-container_1"></div>
 				<div class="resumo-tabela">
 					<div class="resumo-linha">
@@ -258,132 +267,126 @@ if (@$produtos == 'ocultar') {
 					</div>
 				</div>
 
-				<!-- Container das 4 linhas de comissão -->
-<div id="linha-container_2">
+				<div id="linha-container_2">
 
-  <!-- Linha 1: FUNRURAL -->
-  <div class="linha_2">
-    <div class="linha-inferior linha-abatimentos">
-      <div class="coluna_romaneio">
-        <label for="desc_funrural">Descrição</label>
-        <input id="desc_funrural" type="text" value="FUNRURAL" readonly>
-      </div>
-      <div class="coluna_romaneio">
-        <label for="info_funrural">INFO</label>
-        <select id="info_funrural" name="info_funrural" onchange="calcularTaxaFunrural()">
-          <option value="">Selecione</option>
-          <option value="liquido">V. LIQUIDO</option>
-          <option value="bruto">V. BRUTO</option>
-        </select>
-      </div>
-      <div class="coluna_romaneio">
-        <label for="preco_unit_funrural">PREÇO UNIT</label>
-        <select id="preco_unit_funrural" name="preco_unit_funrural" onchange="calcularTaxaFunrural()">
-          <option value="">Selecione</option>
-          <option value="1.50">1,50 %</option>
-          <option value="2.00">2,00 %</option>
-        </select>
-      </div>
-      <div class="coluna_romaneio">
-        <label for="valor_funrural">Valor</label>
-        <input id="valor_funrural" name="desc_funrural" type="text" class="valor_2" value="0,00" readonly>
-      </div>
-    </div>
-  </div>
+					<div class="linha_2">
+						<div class="linha-inferior linha-abatimentos">
+							<div class="coluna_romaneio">
+								<label for="desc_funrural">Descrição</label>
+								<input id="desc_funrural" type="text" value="FUNRURAL" readonly>
+							</div>
+							<div class="coluna_romaneio">
+								<label for="info_funrural">INFO</label>
+								<select id="info_funrural" name="info_funrural" onchange="calcularTaxaFunrural()">
+									<option value="">Selecione</option>
+									<option value="liquido">V. LIQUIDO</option>
+									<option value="bruto">V. BRUTO</option>
+								</select>
+							</div>
+							<div class="coluna_romaneio">
+								<label for="preco_unit_funrural">PREÇO UNIT</label>
+								<select id="preco_unit_funrural" name="preco_unit_funrural" onchange="calcularTaxaFunrural()">
+									<option value="">Selecione</option>
+									<option value="1.50">1,50 %</option>
+									<option value="2.00">2,00 %</option>
+								</select>
+							</div>
+							<div class="coluna_romaneio">
+								<label for="valor_funrural">Valor</label>
+								<input id="valor_funrural" name="desc_funrural" type="text" class="valor_2" value="0,00" readonly>
+							</div>
+						</div>
+					</div>
 
-  <!-- Linha 2: IMA -->
-  <div class="linha_2">
-    <div class="linha-inferior linha-abatimentos">
-      <div class="coluna_romaneio">
-        <label for="desc_ima">Descrição</label>
-        <input id="desc_ima" type="text" value="IMA" readonly>
-      </div>
-      <div class="coluna_romaneio">
-        <label for="info_ima">INFO</label>
-        <select id="info_ima" name="info_ima" onchange="calcularTaxaIma()">
-          <option value="">Selecione</option>
-          <option value="cx">CX</option>
-          <option value="um">1</option>
-        </select>
-      </div>
-      <div class="coluna_romaneio">
-        <label for="preco_unit_ima">PREÇO UNIT</label>
-        <select id="preco_unit_ima" name="preco_unit_ima" onchange="calcularTaxaIma()">
-          <option value="">Selecione</option>
-          <option value="55.31">55,31</option>
-          <option value="0.25">0,25</option>
-          <option value="150.00">150,00</option>
-        </select>
-      </div>
-      <div class="coluna_romaneio">
-        <label for="valor_ima">Valor</label>
-        <input id="valor_ima" name="desc_ima" type="text" class="valor_2" value="0,00" readonly>
-      </div>
-    </div>
-  </div>
+					<div class="linha_2">
+						<div class="linha-inferior linha-abatimentos">
+							<div class="coluna_romaneio">
+								<label for="desc_ima">Descrição</label>
+								<input id="desc_ima" type="text" value="IMA" readonly>
+							</div>
+							<div class="coluna_romaneio">
+								<label for="info_ima">INFO</label>
+								<select id="info_ima" name="info_ima" onchange="calcularTaxaIma()">
+									<option value="">Selecione</option>
+									<option value="cx">CX</option>
+									<option value="um">1</option>
+								</select>
+							</div>
+							<div class="coluna_romaneio">
+								<label for="preco_unit_ima">PREÇO UNIT</label>
+								<select id="preco_unit_ima" name="preco_unit_ima" onchange="calcularTaxaIma()">
+									<option value="">Selecione</option>
+									<option value="55.31">55,31</option>
+									<option value="0.25">0,25</option>
+									<option value="150.00">150,00</option>
+								</select>
+							</div>
+							<div class="coluna_romaneio">
+								<label for="valor_ima">Valor</label>
+								<input id="valor_ima" name="desc_ima" type="text" class="valor_2" value="0,00" readonly>
+							</div>
+						</div>
+					</div>
 
-  <!-- Linha 3: ABANORTE -->
-  <div class="linha_2">
-    <div class="linha-inferior linha-abatimentos">
-      <div class="coluna_romaneio">
-        <label for="desc_abanorte">Descrição</label>
-        <input id="desc_abanorte" type="text" value="ABANORTE" readonly>
-      </div>
-      <div class="coluna_romaneio">
-        <label for="info_abanorte">INFO</label>
-        <select id="info_abanorte" name="info_abanorte" onchange="calcularTaxaAbanorte()">
-          <option value="">Selecione</option>
-          <option value="kg">KG</option>
-          <option value="um">1</option>
-        </select>
-      </div>
-      <div class="coluna_romaneio">
-        <label for="preco_unit_abanorte">PREÇO UNIT</label>
-        <select id="preco_unit_abanorte" name="preco_unit_abanorte" onchange="calcularTaxaAbanorte()">
-          <option value="">Selecione</option>
-          <option value="52.80">52,80 %</option>
-          <option value="0.0025">0,0025 %</option>
-        </select>
-      </div>
-      <div class="coluna_romaneio">
-        <label for="valor_abanorte">Valor</label>
-        <input id="valor_abanorte" name="desc_abanorte" type="text" class="valor_2" value="0,00" readonly>
-      </div>
-    </div>
-  </div>
+					<div class="linha_2">
+						<div class="linha-inferior linha-abatimentos">
+							<div class="coluna_romaneio">
+								<label for="desc_abanorte">Descrição</label>
+								<input id="desc_abanorte" type="text" value="ABANORTE" readonly>
+							</div>
+							<div class="coluna_romaneio">
+								<label for="info_abanorte">INFO</label>
+								<select id="info_abanorte" name="info_abanorte" onchange="calcularTaxaAbanorte()">
+									<option value="">Selecione</option>
+									<option value="kg">KG</option>
+									<option value="um">1</option>
+								</select>
+							</div>
+							<div class="coluna_romaneio">
+								<label for="preco_unit_abanorte">PREÇO UNIT</label>
+								<select id="preco_unit_abanorte" name="preco_unit_abanorte" onchange="calcularTaxaAbanorte()">
+									<option value="">Selecione</option>
+									<option value="52.80">52,80 %</option>
+									<option value="0.0025">0,0025 %</option>
+								</select>
+							</div>
+							<div class="coluna_romaneio">
+								<label for="valor_abanorte">Valor</label>
+								<input id="valor_abanorte" name="desc_abanorte" type="text" class="valor_2" value="0,00" readonly>
+							</div>
+						</div>
+					</div>
 
-  <!-- Linha 4: TAXA ADM -->
-  <div class="linha_2">
-    <div class="linha-inferior linha-abatimentos">
-      <div class="coluna_romaneio">
-        <label for="desc_taxa_adm">Descrição</label>
-        <input id="desc_taxa_adm" type="text" value="TAXA ADM" readonly>
-      </div>
-      <div class="coluna_romaneio">
-        <label for="taxa_adm_percent">Taxa</label>
-        <input
-          id="taxa_adm_percent"
-		  name="taxa_adm_percent"
-          type="number"
-          oninput="calcularTaxaAdm()"
-          placeholder="0"
-        >
-      </div>
-      <div class="coluna_romaneio">
-        <label for="preco_unit_taxa_adm">PREÇO UNIT</label>
-        <select id="preco_unit_taxa_adm" name="preco_unit_taxa_adm" onchange="calcularTaxaAdm()">
-          <option value="">Selecione</option>
-          <option value="5">5,00</option>
-        </select>
-      </div>
-      <div class="coluna_romaneio">
-        <label for="valor_taxa_adm">Valor</label>
-        <input id="valor_taxa_adm" name="valor_taxa_adm" type="text" class="valor_2" value="0,00" readonly>
-      </div>
-    </div>
-  </div>
+					<div class="linha_2">
+						<div class="linha-inferior linha-abatimentos">
+							<div class="coluna_romaneio">
+								<label for="desc_taxa_adm">Descrição</label>
+								<input id="desc_taxa_adm" type="text" value="TAXA ADM" readonly>
+							</div>
+							<div class="coluna_romaneio">
+								<label for="taxa_adm_percent">Taxa</label>
+								<input
+									id="taxa_adm_percent"
+									name="taxa_adm_percent"
+									type="number"
+									oninput="calcularTaxaAdm()"
+									placeholder="0">
+							</div>
+							<div class="coluna_romaneio">
+								<label for="preco_unit_taxa_adm">PREÇO UNIT</label>
+								<select id="preco_unit_taxa_adm" name="preco_unit_taxa_adm" onchange="calcularTaxaAdm()">
+									<option value="">Selecione</option>
+									<option value="5">5,00</option>
+								</select>
+							</div>
+							<div class="coluna_romaneio">
+								<label for="valor_taxa_adm">Valor</label>
+								<input id="valor_taxa_adm" name="valor_taxa_adm" type="text" class="valor_2" value="0,00" readonly>
+							</div>
+						</div>
+					</div>
 
-	</div>
+				</div>
 				<div id="linha-container_2"></div>
 				<div class="resumo-tabela">
 					<div class="resumo-linha">
@@ -393,73 +396,66 @@ if (@$produtos == 'ocultar') {
 					</div>
 				</div>
 
-				<!-- ===== Sessão de Descontos Diversos ===== -->
-<div class="section-descontos">
-  <h3>Descontos Diversos</h3>
-  <button type="button" onclick="addDiscountLine()">+ Adicionar desconto</button>
+				<div class="section-descontos">
+					<h3>Descontos Diversos</h3>
+					<button type="button" onclick="addDiscountLine()">+ Adicionar desconto</button>
 
-  <!-- Template escondido -->
-  <div id="discount-template" class="linha_3" style="display: none;">
-    <div class="linha-inferior linha-abatimentos">
-      <div class="coluna_romaneio">
-        <label>Tipo</label>
-        <select class="desconto-type" name="desconto_tipo[]" onchange="calcularDescontosDiversos()">
-          <option value="+">Adicionar</option>
-          <option value="-">Subtrair</option>
-        </select>
-      </div>
-      <div class="coluna_romaneio">
-        <label>Valor</label>
-        <input 
-          type="text" 
-          class="desconto-valor" 
-		  name="desconto_valor[]"
-          placeholder="0,00"
-          onkeyup="mascara_moeda(this);" 
-          oninput="calcularDescontosDiversos()"
-        >
-      </div>
-      <div class="coluna_romaneio">
-        <label>Obs</label>
-        <input 
-          type="text" 
-          class="desconto-obs" 
-		  name="desconto_obs[]"
-          placeholder="Observação"
-          oninput="calcularDescontosDiversos()"
-        >
-      </div>
-      <div class="coluna_romaneio">
-        <label>&nbsp;</label>
-        <button 
-          type="button" 
-          class="remove-btn" 
-          onclick="removeDiscountLine(this)"
-        >×</button>
-      </div>
-    </div>
-  </div>
+					<div id="discount-template" class="linha_3" style="display: none;">
+						<div class="linha-inferior linha-abatimentos">
+							<div class="coluna_romaneio">
+								<label>Tipo</label>
+								<select class="desconto-type" name="desconto_tipo[]" onchange="calcularDescontosDiversos()">
+									<option value="+">Adicionar</option>
+									<option value="-">Subtrair</option>
+								</select>
+							</div>
+							<div class="coluna_romaneio">
+								<label>Valor</label>
+								<input
+									type="text"
+									class="desconto-valor"
+									name="desconto_valor[]"
+									placeholder="0,00"
+									onkeyup="mascara_moeda(this);"
+									oninput="calcularDescontosDiversos()">
+							</div>
+							<div class="coluna_romaneio">
+								<label>Obs</label>
+								<input
+									type="text"
+									class="desconto-obs"
+									name="desconto_obs[]"
+									placeholder="Observação"
+									oninput="calcularDescontosDiversos()">
+							</div>
+							<div class="coluna_romaneio">
+								<label>&nbsp;</label>
+								<button
+									type="button"
+									class="remove-btn"
+									onclick="removeDiscountLine(this)">×</button>
+							</div>
+						</div>
+					</div>
 
-  <!-- Onde as linhas vão aparecer -->
-  <div id="discount-container"></div>
+					<div id="discount-container"></div>
 
-  <!-- Total dessa sessão -->
-  <div class="resumo-tabela">
-    <div class="resumo-linha">
-      <div class="resumo-celula">Total Descontos</div>
-      <div class="resumo-celula">R$ <span id="total_descontos_diversos">0,00</span></div>
-    </div>
-  </div>
-</div>
+					<div class="resumo-tabela">
+						<div class="resumo-linha">
+							<div class="resumo-celula">Total Descontos</div>
+							<div class="resumo-celula">R$ <span id="total_descontos_diversos">0,00</span></div>
+						</div>
+					</div>
+				</div>
 
-<div class="resumo-tabela final">
-  <div class="resumo-linha">
-    <div class="resumo-celula">TOTAL LÍQUIDO A PAGAR</div>
-    <div class="resumo-celula">R$ <span id="total_liquido_pagar">0,00</span></div>
-  </div>
-</div>
+				<div class="resumo-tabela final">
+					<div class="resumo-linha">
+						<div class="resumo-celula">TOTAL LÍQUIDO A PAGAR</div>
+						<div class="resumo-celula">R$ <span id="total_liquido_pagar">0,00</span></div>
+					</div>
+				</div>
 
-	
+
 				<input type="hidden" id="valor_liquido" name="valor_liquido">
 				<input type="hidden" id="id" name="id">
 				<div class="modal-footer d-flex align  justify-content-center align-items-center">
@@ -473,22 +469,20 @@ if (@$produtos == 'ocultar') {
 			</form>
 
 		</div>
-		
+
 	</div>
 </div>
-
-
-
 
 
 <style>
 	.linha-abatimentos {
 		display: grid;
-		grid-template-columns: repeat(4, 1fr) !important; /* 4 colunas iguais */
+		grid-template-columns: repeat(4, 1fr) !important;
+		/* 4 colunas iguais */
 		gap: 15px;
 	}
 
-	
+
 	.radio {
 		display: flex !important;
 		align-items: center;
@@ -685,124 +679,130 @@ if (@$produtos == 'ocultar') {
 	}
 </style>
 <div class="modal fade" id="modalMostrarDados" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-lg">
-    <div class="modal-content">
-      <div class="modal-header bg-primary text-white">
-        <h4 class="modal-title">Detalhes do Romaneio de Compra</h4>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body">
-        <div class="row">
-          <div class="col-md-4">
-            <span class="fw-bold">Fornecedor:</span>
-            <span id="fornecedor_modal"></span>
-          </div>
-          <div class="col-md-4">
-            <span class="fw-bold">Data:</span>
-            <span id="data_modal"></span>
-          </div>
-          <div class="col-md-4">
-            <span class="fw-bold">Nota Fiscal:</span>
-            <span id="nota_modal"></span>
-          </div>
-        </div>
+	<div class="modal-dialog modal-lg">
+		<div class="modal-content">
+			<div class="modal-header bg-primary text-white">
+				<h4 class="modal-title">Detalhes do Romaneio de Compra</h4>
+				<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+			</div>
+			<div class="modal-body">
+				<div class="row">
+					<div class="col-md-4">
+						<span class="fw-bold">Fornecedor:</span>
+						<span id="fornecedor_modal"></span>
+					</div>
+					<div class="col-md-4">
+						<span class="fw-bold">Data:</span>
+						<span id="data_modal"></span>
+					</div>
+					<div class="col-md-4">
+						<span class="fw-bold">Nota Fiscal:</span>
+						<span id="nota_modal"></span>
+					</div>
+				</div>
 
-        <div class="row mt-2">
-          <div class="col-md-4">
-            <span class="fw-bold">Plano de Pagamento:</span>
-            <span id="plano_modal"></span>
-          </div>
-          <div class="col-md-4">
-            <span class="fw-bold">Vencimento:</span>
-            <span id="vencimento_modal"></span>
-          </div>
-          <div class="col-md-4">
-            <span class="fw-bold">Quantidade de Dias:</span>
-            <span id="quant_dias_modal"></span>
-          </div>
-        </div>
+				<div class="row mt-2">
+					<div class="col-md-4">
+						<span class="fw-bold">Plano de Pagamento:</span>
+						<span id="plano_modal"></span>
+					</div>
+					<div class="col-md-4">
+						<span class="fw-bold">Vencimento:</span>
+						<span id="vencimento_modal"></span>
+					</div>
+					<div class="col-md-4">
+						<span class="fw-bold">Quantidade de Dias:</span>
+						<span id="quant_dias_modal"></span>
+					</div>
+				</div>
 
-        <div class="row mt-2">
-          <div class="col-md-4">
-            <span class="fw-bold">Fazenda:</span>
-            <span id="fazenda_modal"></span>
-          </div>
-          <div class="col-md-4">
-            <span class="fw-bold">Cliente Atacadista:</span>
-            <span id="cliente_modal"></span>
-          </div>
-          <div class="col-md-4">
-            <span class="fw-bold">Total Líquido a Pagar:</span>
-            <span id="total_liquido_modal"></span>
-          </div>
-        </div>
+				<div class="row mt-2">
+					<div class="col-md-4">
+						<span class="fw-bold">Fazenda:</span>
+						<span id="fazenda_modal"></span>
+					</div>
+					<div class="col-md-4">
+						<span class="fw-bold">Cliente Atacadista:</span>
+						<span id="cliente_modal"></span>
+					</div>
+					<div class="col-md-4">
+						<span class="fw-bold">Total Líquido a Pagar:</span>
+						<span id="total_liquido_modal"></span>
+					</div>
+				</div>
 
-        <div class="mt-4">
-          <h6 class="fw-bold">Produtos</h6>
-          <div class="table-responsive">
-            <table class="table table-striped">
-              <thead>
-                <tr>
-                  <th>Variedade</th>
-                  <th>Tipo Caixa</th>
-                  <th>Quant</th>
-                  <th>Preço KG</th>
-                  <th>Preço Unit</th>
-                  <th>Valor</th>
-                </tr>
-              </thead>
-              <tbody id="produtos_modal">
-                </tbody>
-            </table>
-          </div>
-        </div>
+				<div class="mt-4">
+					<h6 class="fw-bold">Produtos</h6>
+					<div class="table-responsive">
+						<table class="table table-striped">
+							<thead>
+								<tr>
+									<th>Variedade</th>
+									<th>Tipo Caixa</th>
+									<th>Quant</th>
+									<th>Preço KG</th>
+									<th>Preço Unit</th>
+									<th>Valor</th>
+								</tr>
+							</thead>
+							<tbody id="produtos_modal">
+							</tbody>
+						</table>
+					</div>
+				</div>
 
-        <div class="mt-4">
-          <h6 class="fw-bold">Impostos, Taxas e Descontos Fixos</h6>
-          <div class="row">
-            <div class="col-md-4"> <span class="fw-bold">Desconto à Vista (%):</span>
-              <span id="desc_avista_perc_modal"></span> </div>
-            <div class="col-md-4">
-              <span class="fw-bold">Funrural:</span>
-              <span id="desc_funrural_modal"></span>
-            </div>
-            <div class="col-md-4">
-              <span class="fw-bold">IMA:</span>
-              <span id="desc_ima_modal"></span>
-            </div>
-          </div>
-          <div class="row mt-1"> <div class="col-md-4">
-              <span class="fw-bold">Abanorte:</span>
-              <span id="desc_abanorte_modal"></span>
-            </div>
-            <div class="col-md-4">
-              <span class="fw-bold">Taxa ADM:</span>
-              <span id="desc_taxaadm_modal"></span>
-            </div>
-            <div class="col-md-4">
-              </div>
-          </div>
-        </div>
+				<div class="mt-4">
+					<h6 class="fw-bold">Impostos, Taxas e Descontos Fixos</h6>
+					<div class="row">
+						<div class="col-md-4"> <span class="fw-bold">Desconto à Vista (%):</span>
+							<span id="desc_avista_perc_modal"></span>
+						</div>
+						<div class="col-md-4">
+							<span class="fw-bold">Funrural:</span>
+							<span id="desc_funrural_modal"></span>
+						</div>
+						<div class="col-md-4">
+							<span class="fw-bold">IMA:</span>
+							<span id="desc_ima_modal"></span>
+						</div>
+					</div>
+					<div class="row mt-1">
+						<div class="col-md-4">
+							<span class="fw-bold">Abanorte:</span>
+							<span id="desc_abanorte_modal"></span>
+						</div>
+						<div class="col-md-4">
+							<span class="fw-bold">Taxa ADM:</span>
+							<span id="desc_taxaadm_modal"></span>
+						</div>
+						<div class="col-md-4">
+						</div>
+					</div>
+				</div>
 
-        <div class="mt-4">
-          <h6 class="fw-bold">Descontos Diversos</h6>
-          <div class="table-responsive">
-            <table class="table table-sm">
-              <thead>
-                <tr>
-                  <th>Tipo</th>
-                  <th>Obs</th>  <th>Valor</th> </tr>
-              </thead>
-              <tbody id="descontos_modal">
-                <tr><td colspan="3" class="text-center">Nenhum desconto diverso informado</td></tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
+				<div class="mt-4">
+					<h6 class="fw-bold">Descontos Diversos</h6>
+					<div class="table-responsive">
+						<table class="table table-sm">
+							<thead>
+								<tr>
+									<th>Tipo</th>
+									<th>Obs</th>
+									<th>Valor</th>
+								</tr>
+							</thead>
+							<tbody id="descontos_modal">
+								<tr>
+									<td colspan="3" class="text-center">Nenhum desconto diverso informado</td>
+								</tr>
+							</tbody>
+						</table>
+					</div>
+				</div>
 
-      </div>
-    </div>
-  </div>
+			</div>
+		</div>
+	</div>
 </div>
 
 
@@ -910,75 +910,73 @@ if (@$produtos == 'ocultar') {
 
 
 <script type="text/javascript">
-	
-function limparCampos() {
-  // 1) Limpa campos fixos do cabeçalho
-  console.log("aqui123123");
+	function limparCampos() {
+		// 1) Limpa campos fixos do cabeçalho
+		console.log("aqui123123");
 
-  $('#mensagem-sucesso').hide();
+		$('#mensagem-sucesso').hide();
 
-  $('.data_atual').val(new Date().toISOString().split('T')[0]);
-  $('#fornecedor').val('');
-  $('#plano_pgto').val('');
-  $('#nota_fiscal').val('');
-  $('#quant_dias').val('');
-  $('#vencimento').val('');
-  $('#fazenda').val('');
-  $('#cliente').val('');
-  $('#desc-avista').val('');
-  $('#nota_fiscal').val('');
+		$('.data_atual').val(new Date().toISOString().split('T')[0]);
+		$('#fornecedor').val('');
+		$('#plano_pgto').val('');
+		$('#nota_fiscal').val('');
+		$('#quant_dias').val('');
+		$('#vencimento').val('');
+		$('#fazenda').val('');
+		$('#cliente').val('');
+		$('#desc-avista').val('');
+		$('#nota_fiscal').val('');
 
-  // 2) Limpa sessão de produtos
-  $('#linha-container_1').empty();
-  addNewLine1();  // Insere a primeira linha em branco
+		// 2) Limpa sessão de produtos
+		$('#linha-container_1').empty();
+		addNewLine1(); // Insere a primeira linha em branco
 
-  // 3) Limpa totais de produtos
-  $('#total_caixa').text('0 CXS');
-  $('#total_kg').text('0 KG');
-  $('#total_bruto').text('R$ 0,00');
-  $('#desc-avista').text('');
-  $('#total-desc').text('R$ 0,00');
-  $('#total-geral').text('0,00');
-  $('#valor_liquido').val('0,00');
+		// 3) Limpa totais de produtos
+		$('#total_caixa').text('0 CXS');
+		$('#total_kg').text('0 KG');
+		$('#total_bruto').text('R$ 0,00');
+		$('#desc-avista').text('');
+		$('#total-desc').text('R$ 0,00');
+		$('#total-geral').text('0,00');
+		$('#valor_liquido').val('0,00');
 
-    // 4) **Não** remover o container todo. Apenas limpar valores:
-  $('#info_funrural, #preco_unit_funrural').prop('selectedIndex', 0);
-  $('#valor_funrural').val('0,00');
-  $('#info_ima, #preco_unit_ima').prop('selectedIndex', 0);
-  $('#valor_ima').val('0,00');
-  $('#info_abanorte, #preco_unit_abanorte').prop('selectedIndex', 0);
-  $('#valor_abanorte').val('0,00');
-  $('#taxa_adm_percent').val('');
-  $('#preco_unit_taxa_adm').prop('selectedIndex', 0);
-  $('#valor_taxa_adm').val('0,00');
-  $('#total_comissao').text('0,00');
-  // Se suas linhas de comissão são estáticas na página, resete cada select/input:
-  $('#info_funrural, #preco_unit_funrural').prop('selectedIndex', 0);
-  $('#valor_funrural').val('0,00');
-  $('#info_ima, #preco_unit_ima').prop('selectedIndex', 0);
-  $('#valor_ima').val('0,00');
-  $('#info_abanorte, #preco_unit_abanorte').prop('selectedIndex', 0);
-  $('#valor_abanorte').val('0,00');
-  $('#taxa_adm_percent').val('');
-  $('#preco_unit_taxa_adm').prop('selectedIndex', 0);
-  $('#valor_taxa_adm').val('0,00');
-  $('#total_comissao').text('0,00');
+		// 4) **Não** remover o container todo. Apenas limpar valores:
+		$('#info_funrural, #preco_unit_funrural').prop('selectedIndex', 0);
+		$('#valor_funrural').val('0,00');
+		$('#info_ima, #preco_unit_ima').prop('selectedIndex', 0);
+		$('#valor_ima').val('0,00');
+		$('#info_abanorte, #preco_unit_abanorte').prop('selectedIndex', 0);
+		$('#valor_abanorte').val('0,00');
+		$('#taxa_adm_percent').val('');
+		$('#preco_unit_taxa_adm').prop('selectedIndex', 0);
+		$('#valor_taxa_adm').val('0,00');
+		$('#total_comissao').text('0,00');
+		// Se suas linhas de comissão são estáticas na página, resete cada select/input:
+		$('#info_funrural, #preco_unit_funrural').prop('selectedIndex', 0);
+		$('#valor_funrural').val('0,00');
+		$('#info_ima, #preco_unit_ima').prop('selectedIndex', 0);
+		$('#valor_ima').val('0,00');
+		$('#info_abanorte, #preco_unit_abanorte').prop('selectedIndex', 0);
+		$('#valor_abanorte').val('0,00');
+		$('#taxa_adm_percent').val('');
+		$('#preco_unit_taxa_adm').prop('selectedIndex', 0);
+		$('#valor_taxa_adm').val('0,00');
+		$('#total_comissao').text('0,00');
 
-  // 5) Limpa sessão de descontos diversos
-  $('#discount-container').empty();
-  addDiscountLine();  // Insere uma linha de desconto em branco
-  $('#total_descontos_diversos').text('0,00');
+		// 5) Limpa sessão de descontos diversos
+		$('#discount-container').empty();
+		addDiscountLine(); // Insere uma linha de desconto em branco
+		$('#total_descontos_diversos').text('0,00');
 
-  // 6) Limpa total líquido a pagar
-  $('#total_liquido_pagar').text('0,00');
+		// 6) Limpa total líquido a pagar
+		$('#total_liquido_pagar').text('0,00');
 
-  // 7) Recalcula todas as fórmulas (caso existam listeners)
-  if (typeof calculaTotais === 'function') calculaTotais();
-  if (typeof calculaTotais2 === 'function') calculaTotais2();
-  if (typeof calcularDescontosDiversos === 'function') calcularDescontosDiversos();
-  if (typeof updateLiquidPayable === 'function') updateLiquidPayable();
-}
-
+		// 7) Recalcula todas as fórmulas (caso existam listeners)
+		if (typeof calculaTotais === 'function') calculaTotais();
+		if (typeof calculaTotais2 === 'function') calculaTotais2();
+		if (typeof calcularDescontosDiversos === 'function') calcularDescontosDiversos();
+		if (typeof updateLiquidPayable === 'function') updateLiquidPayable();
+	}
 </script>
 
 <script type="text/javascript">
@@ -1025,116 +1023,116 @@ function limparCampos() {
 
 
 <script type="text/javascript">
-$("#form-romaneio").submit(function(event) {
-    event.preventDefault();
+	$("#form-romaneio").submit(function(event) {
+		event.preventDefault();
 
-    // Validação de pagamento à vista
-    if (!verificarPlanoAVista()) {
-        $('#mensagem-erro')
-          .html('<ul style="margin: 0; padding-left: 20px;"><li>Para pagamento à vista, o desconto é obrigatório</li></ul>')
-          .show();
-        $('html, body').animate({
-            scrollTop: $("#form-romaneio").offset().top - 100
-        }, 500);
-        return false;
-    }
+		// Validação de pagamento à vista
+		if (!verificarPlanoAVista()) {
+			$('#mensagem-erro')
+				.html('<ul style="margin: 0; padding-left: 20px;"><li>Para pagamento à vista, o desconto é obrigatório</li></ul>')
+				.show();
+			$('html, body').animate({
+				scrollTop: $("#form-romaneio").offset().top - 100
+			}, 500);
+			return false;
+		}
 
-    var formData = new FormData(this);
+		var formData = new FormData(this);
 
-    // Esconde mensagens antigas e desabilita botão
-    $('#mensagem-erro').hide();
-    $('#mensagem-sucesso').hide();    
-    $('#btn-salvar').prop('disabled', true);
+		// Esconde mensagens antigas e desabilita botão
+		$('#mensagem-erro').hide();
+		$('#mensagem-sucesso').hide();
+		$('#btn-salvar').prop('disabled', true);
 
-    // Scroll para o topo do formulário
-    $('html, body').animate({
-        scrollTop: $("#form-romaneio").offset().top - 100
-    }, 500);
+		// Scroll para o topo do formulário
+		$('html, body').animate({
+			scrollTop: $("#form-romaneio").offset().top - 100
+		}, 500);
 
-    // Mensagem de salvando
-    $('#mensagem-erro').html('Salvando...').show();
+		// Mensagem de salvando
+		$('#mensagem-erro').html('Salvando...').show();
 
-    $.ajax({
-        url: 'paginas/romaneio_compra/salvar.php',
-        type: 'POST',
-        data: formData,
-        contentType: false,
-        processData: false,
+		$.ajax({
+			url: 'paginas/romaneio_compra/salvar.php',
+			type: 'POST',
+			data: formData,
+			contentType: false,
+			processData: false,
 
-        success: function(response) {
-            try {
-                const data = typeof response === 'string'
-                  ? JSON.parse(response)
-                  : response;
+			success: function(response) {
+				try {
+					const data = typeof response === 'string' ?
+						JSON.parse(response) :
+						response;
 
-                if (data.status === 'sucesso') {
-                    // Sucesso: esconde erro, mostra sucesso
-                    $('#mensagem-erro').hide();
-                    $('#mensagem-sucesso')
-                      .html(data.mensagem)
-                      .show();
+					if (data.status === 'sucesso') {
+						// Sucesso: esconde erro, mostra sucesso
+						$('#mensagem-erro').hide();
+						$('#mensagem-sucesso')
+							.html(data.mensagem)
+							.show();
 
-                    // Limpa e fecha
-                    limparCampos();
-                    $('#modalForm').modal('hide');
-                    $('#btn-salvar').prop('disabled', false);
-                    listar();
+						// Limpa e fecha
+						limparCampos();
+						$('#modalForm').modal('hide');
+						$('#btn-salvar').prop('disabled', false);
+						listar();
 
-                } else {
-                    // Erro de validação: mostra lista de mensagens
-                    $('#btn-salvar').prop('disabled', false);
-                    const itens = data.mensagem
-                      .split('<br>')
-                      .map(msg => `<li>${msg}</li>`)
-                      .join('');
-                    $('#mensagem-erro')
-                      .html(`<ul style="margin: 0; padding-left: 20px;">${itens}</ul>`)
-                      .show();
-                }
-            } catch (e) {
-                console.error('Erro ao processar resposta:', e, response);
-                $('#btn-salvar').prop('disabled', false);
-                $('#mensagem-erro')
-                  .html('Erro ao processar resposta do servidor')
-                  .show();
-            }
-        },
+					} else {
+						// Erro de validação: mostra lista de mensagens
+						$('#btn-salvar').prop('disabled', false);
+						const itens = data.mensagem
+							.split('<br>')
+							.map(msg => `<li>${msg}</li>`)
+							.join('');
+						$('#mensagem-erro')
+							.html(`<ul style="margin: 0; padding-left: 20px;">${itens}</ul>`)
+							.show();
+					}
+				} catch (e) {
+					console.error('Erro ao processar resposta:', e, response);
+					$('#btn-salvar').prop('disabled', false);
+					$('#mensagem-erro')
+						.html('Erro ao processar resposta do servidor')
+						.show();
+				}
+			},
 
-        error: function(xhr, status, error) {
-            console.error('Erro na requisição:', error);
-            $('#btn-salvar').prop('disabled', false);
-            $('#mensagem-erro')
-              .html('Erro ao comunicar com o servidor. Tente novamente.')
-              .show();
+			error: function(xhr, status, error) {
+				console.error('Erro na requisição:', error);
+				$('#btn-salvar').prop('disabled', false);
+				$('#mensagem-erro')
+					.html('Erro ao comunicar com o servidor. Tente novamente.')
+					.show();
 
-            // Logs detalhados no console
-            console.log('Status da requisição:', xhr.status);
-            console.log('Texto do status:', xhr.statusText);
-            console.log('Resposta:', xhr.responseText);
+				// Logs detalhados no console
+				console.log('Status da requisição:', xhr.status);
+				console.log('Texto do status:', xhr.statusText);
+				console.log('Resposta:', xhr.responseText);
 
-            // Tenta exibir mensagem retornada pelo servidor
-            if (xhr.responseText) {
-                try {
-                    const resp = JSON.parse(xhr.responseText);
-                    if (resp.mensagem) {
-                        $('#mensagem-erro')
-                          .html('Erro: ' + resp.mensagem)
-                          .show();
-                    }
-                } catch (e2) {
-                    const text = xhr.responseText.length > 100
-                      ? xhr.responseText.substring(0, 100) + '...'
-                      : xhr.responseText;
-                    $('#mensagem-erro')
-                      .html('Erro: ' + text)
-                      .show();
-                }
-            }
-        }
-    });
+				// Tenta exibir mensagem retornada pelo servidor
+				if (xhr.responseText) {
+					try {
+						const resp = JSON.parse(xhr.responseText);
+						if (resp.mensagem) {
+							$('#mensagem-erro')
+								.html('Erro: ' + resp.mensagem)
+								.show();
+						}
+					} catch (e2) {
+						const text = xhr.responseText.length > 100 ?
+							xhr.responseText.substring(0, 100) + '...' :
+							xhr.responseText;
+						$('#mensagem-erro')
+							.html('Erro: ' + text)
+							.show();
+					}
+				}
+			}
+		});
 
-    return false;
-});
+		return false;
+	});
 </script>
 
 
@@ -1229,14 +1227,14 @@ $("#form-romaneio").submit(function(event) {
 		// Pegar os valores dos descontos
 		var descFunrural = $('#desc-funrural').val() ? parseFloat($('#desc-funrural').val().replace(',', '.')) : 0;
 		var descIma = $('#desc-ima').val() ? parseFloat($('#desc-ima').val().replace(',', '.')) : 0;
-		
+
 		// Calcular o total líquido subtraindo os descontos
 		var totalLiquido = total - descFunrural - descIma;
 
 		// Atualizar os campos na tela
 		$('#valor_total').val(total.toFixed(2).replace('.', ','));
 		$('#valor_liquido').val(totalLiquido.toFixed(2).replace('.', ','));
-		
+
 		// Atualizar também os totais exibidos na tabela verde
 		$('#total-bruto-banana').text('R$ ' + total.toFixed(2).replace('.', ','));
 		$('#total-liquido-banana').text('R$ ' + totalLiquido.toFixed(2).replace('.', ','));
@@ -1261,16 +1259,18 @@ $("#form-romaneio").submit(function(event) {
 		$.ajax({
 			url: 'paginas/romaneio_compra/buscar_fornecedor.php',
 			type: 'POST',
-			data: {id: id},
+			data: {
+				id: id
+			},
 			dataType: 'json',
 			success: function(dados) {
 				if (dados && !dados.error) {
 					const planoId = parseInt(dados.plano_pagamento);
 					const prazoDias = parseInt(dados.prazo_pagamento);
-					
+
 					document.getElementById('plano_pgto').value = planoId;
 					document.getElementById('quant_dias').value = prazoDias;
-					
+
 					calcularVencimento();
 					calculaTotais();
 				}
@@ -1286,11 +1286,11 @@ $("#form-romaneio").submit(function(event) {
 	function calcularVencimento() {
 		const data = $('.data_atual').val();
 		const dias = parseInt($('#quant_dias').val()) || 0;
-		
+
 		if (data) {
 			const dataObj = new Date(data);
 			dataObj.setDate(dataObj.getDate() + dias);
-			
+
 			const dataFormatada = dataObj.toISOString().split('T')[0];
 			$('input[name="vencimento"]').val(dataFormatada);
 		}
@@ -1303,46 +1303,46 @@ $("#form-romaneio").submit(function(event) {
 
 <script type="text/javascript">
 	function mascara_decimal(campo) {
-		var valor = $('#'+campo).val();
-		
+		var valor = $('#' + campo).val();
+
 		// Remover caracteres inválidos, manter apenas números e vírgula
 		valor = valor.replace(/[^0-9,]/g, '');
-		
+
 		// Se não tiver valor, define como zero
 		if (valor === '' || valor === undefined) {
 			valor = '0';
 		}
-		
+
 		// Tratar a vírgula
-		if(valor.indexOf(',') !== -1) {
+		if (valor.indexOf(',') !== -1) {
 			// Se já tiver vírgula, garantir que o formato está correto
 			var partes = valor.split(',');
 			if (partes.length > 2) {
 				// Se tiver mais de uma vírgula, considera apenas a primeira
 				valor = partes[0] + ',' + partes[1];
 			}
-			
+
 			// Formatar para cálculo
 			valor = valor.replace(',', '.');
 		}
-		
+
 		// Converter para número e formatar
 		try {
 			var numero = parseFloat(valor);
 			if (isNaN(numero)) {
 				numero = 0;
 			}
-			
+
 			// Formatar com 2 casas decimais
 			valor = numero.toFixed(2).replace('.', ',');
 		} catch (e) {
 			console.error('Erro ao formatar valor decimal:', e);
 			valor = '0,00';
 		}
-		
+
 		// Atualizar o campo
-		$('#'+campo).val(valor);
-		
+		$('#' + campo).val(valor);
+
 		// Recalcular totais se necessário
 		if (typeof calculaTotais === 'function') {
 			calculaTotais();
@@ -1354,14 +1354,14 @@ $("#form-romaneio").submit(function(event) {
 	function verificarPlanoAVista() {
 		var planoSelecionado = $('#plano_pgto option:selected').text().trim().toUpperCase();
 		var valorDesconto = $('#desc-avista').val();
-		
+
 		if (planoSelecionado === 'À VISTA' || planoSelecionado === 'Á VISTA') {
 			if (!valorDesconto || valorDesconto === '0' || valorDesconto === '0,00') {
 				$('#desc-avista').addClass('is-invalid');
 				return false;
 			}
 		}
-		
+
 		$('#desc-avista').removeClass('is-invalid');
 		return true;
 	}
@@ -1377,7 +1377,7 @@ $("#form-romaneio").submit(function(event) {
 		var dataInicial = $('#dataInicial').val();
 		var dataFinal = $('#dataFinal').val();
 		var fornecedor = $('#fornecedor_filtro').val();
-		
+
 		$.ajax({
 			url: 'paginas/romaneio_compra/listar.php',
 			method: 'POST',
@@ -1395,41 +1395,40 @@ $("#form-romaneio").submit(function(event) {
 </script>
 
 <script type="text/javascript">
+	function formatarData(data) {
+		if (!data) return '-';
+		return new Date(data).toLocaleDateString('pt-BR');
+	}
 
-function formatarData(data) {
-    if (!data) return '-';
-    return new Date(data).toLocaleDateString('pt-BR');
-}
-
-function formatarNumero(valor) {
-    if (!valor) return '0,00';
-    return parseFloat(valor).toFixed(2).replace('.', ',');
-}
+	function formatarNumero(valor) {
+		if (!valor) return '0,00';
+		return parseFloat(valor).toFixed(2).replace('.', ',');
+	}
 </script>
 
 <script type="text/javascript">
-document.addEventListener('DOMContentLoaded', function() {
-    const descFunruralInput = document.querySelector('[name="desc_funrural"]');
-    const descImaAbanInput = document.querySelector('[name="desc_ima"]');
-    const totalBrutoSpan = document.querySelector('#total-bruto');
-    const totalLiquidoSpan = document.querySelector('#total-liquido');
+	document.addEventListener('DOMContentLoaded', function() {
+		const descFunruralInput = document.querySelector('[name="desc_funrural"]');
+		const descImaAbanInput = document.querySelector('[name="desc_ima"]');
+		const totalBrutoSpan = document.querySelector('#total-bruto');
+		const totalLiquidoSpan = document.querySelector('#total-liquido');
 
-    function atualizarTotalLiquido() {
-        const totalBruto = parseFloat(totalBrutoSpan.textContent.replace('R$', '').replace('.', '').replace(',', '.'));
-        const descFunrural = parseFloat(descFunruralInput.value.replace(',', '.')) || 0;
-        const descImaAban = parseFloat(descImaAbanInput.value.replace(',', '.')) || 0;
+		function atualizarTotalLiquido() {
+			const totalBruto = parseFloat(totalBrutoSpan.textContent.replace('R$', '').replace('.', '').replace(',', '.'));
+			const descFunrural = parseFloat(descFunruralInput.value.replace(',', '.')) || 0;
+			const descImaAban = parseFloat(descImaAbanInput.value.replace(',', '.')) || 0;
 
-        const totalLiquido = totalBruto - descFunrural - descImaAban;
-        
-        totalLiquidoSpan.textContent = totalLiquido.toLocaleString('pt-BR', {
-            style: 'currency',
-            currency: 'BRL'
-        });
-    }
+			const totalLiquido = totalBruto - descFunrural - descImaAban;
 
-    descFunruralInput.addEventListener('input', atualizarTotalLiquido);
-    descImaAbanInput.addEventListener('input', atualizarTotalLiquido);
-});
+			totalLiquidoSpan.textContent = totalLiquido.toLocaleString('pt-BR', {
+				style: 'currency',
+				currency: 'BRL'
+			});
+		}
+
+		descFunruralInput.addEventListener('input', atualizarTotalLiquido);
+		descImaAbanInput.addEventListener('input', atualizarTotalLiquido);
+	});
 </script>
 
 <script src="js/ajax.js"></script>
