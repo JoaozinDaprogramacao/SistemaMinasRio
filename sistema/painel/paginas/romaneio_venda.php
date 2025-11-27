@@ -111,350 +111,352 @@ if (@$produtos == 'ocultar') {
 
 
 <div class="modal fade" id="modalForm" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header bg-primary text-white">
-                <h4 class="modal-title" id="exampleModalLabel"><span id="titulo_inserir"></span></h4>
-                <button id="btn-fechar" aria-label="Close" class="btn-close" data-bs-dismiss="modal" type="button"><span class="text-white" aria-hidden="true">&times;</span></button>
-            </div>
-            <h3 class="fs-3 text-center mt-3">Romaneio de Vendas</h3>
-            <div class="mensagens-container" style="margin-bottom: 20px;">
-                <div id="mensagem-erro" class="alert alert-danger" style="display: none;"></div>
-                <div id="mensagem-sucesso" class="alert alert-success" style="display: none;"></div>
-            </div>
-            <form id="form-romaneio" method="post">
-                <input type="hidden" id="romaneios_selecionados" name="romaneios_selecionados">
-                <div id="mensagem-erro"></div>
-                <div id="mensagem-sucesso"></div>
-                <div class="container-fluid px-4">
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="row g-2">
-                                <div class="col-md-6">
-                                    <label class="form-label">Data</label>
-                                    <input type="date" class="form-control form-control-sm data_atual" name="data" value="<?= date('Y-m-d'); ?>" onchange="calcularVencimento()">
-                                </div>
+	<div class="modal-dialog modal-lg">
+		<div class="modal-content">
+			<div class="modal-header bg-primary text-white">
+				<h4 class="modal-title" id="exampleModalLabel"><span id="titulo_inserir"></span></h4>
+				<button id="btn-fechar" aria-label="Close" class="btn-close" data-bs-dismiss="modal" type="button"><span class="text-white" aria-hidden="true">&times;</span></button>
+			</div>
+			<h3 class="fs-3 text-center mt-3">Romaneio de Vendas</h3>
+			<div class="mensagens-container" style="margin-bottom: 20px;">
+				<div id="mensagem-erro" class="alert alert-danger" style="display: none;"></div>
+				<div id="mensagem-sucesso" class="alert alert-success" style="display: none;"></div>
+			</div>
+			<form id="form-romaneio" method="post">
+				<input type="hidden" id="romaneios_selecionados" name="romaneios_selecionados">
+				<div id="mensagem-erro"></div>
+				<div id="mensagem-sucesso"></div>
+				<div class="container-fluid px-4">
+					<div class="row">
+						<div class="col-md-6">
+							<div class="row g-2">
+								<div class="col-md-6">
+									<label class="form-label">Data</label>
+									<input type="date" class="form-control form-control-sm data_atual" name="data" value="<?= date('Y-m-d'); ?>" onchange="calcularVencimento()">
+								</div>
 
-                                <div class="col-md-6">
-                                    <label class="form-label">Plano Pgto</label>
-                                    <select id="plano_pgto" name="plano_pgto" class="form-select form-select-sm sel2" onchange="calculaTotais()">
-                                        <option value="0">Escolher Plano</option>
-                                        <?php
-                                        $query = $pdo->query("SELECT * from planos_pgto order by id asc");
-                                        $res = $query->fetchAll(PDO::FETCH_ASSOC);
-                                        $linhas = @count($res);
-                                        if ($linhas > 0) {
-                                            for ($i = 0; $i < $linhas; $i++) { ?>
-                                                <option value="<?php echo $res[$i]['id'] ?>"><?php echo $res[$i]['nome'] ?></option>
-                                            <?php }
-                                        } ?>
-                                    </select>
-                                </div>
+								<div class="col-md-6">
+									<label class="form-label">Plano Pgto</label>
+									<select id="plano_pgto" name="plano_pgto" class="form-select form-select-sm sel2" onchange="calculaTotais()">
+										<option value="0">Escolher Plano</option>
+										<?php
+										$query = $pdo->query("SELECT * from planos_pgto order by id asc");
+										$res = $query->fetchAll(PDO::FETCH_ASSOC);
+										$linhas = @count($res);
+										if ($linhas > 0) {
+											for ($i = 0; $i < $linhas; $i++) { ?>
+												<option value="<?php echo $res[$i]['id'] ?>"><?php echo $res[$i]['nome'] ?></option>
+										<?php }
+										} ?>
+									</select>
+								</div>
 
-                                <div class="col-md-6">
-                                    <label class="form-label">Dias</label>
-                                    <input type="number" id="quant_dias" class="form-control form-control-sm" name="quant_dias" placeholder="Dias" onkeyup="calcularVencimento()">
-                                </div>
+								<div class="col-md-6">
+									<label class="form-label">Dias</label>
+									<input type="number" id="quant_dias" class="form-control form-control-sm" name="quant_dias" placeholder="Dias" onkeyup="calcularVencimento()">
+								</div>
 
-                                <div class="col-md-6">
-                                    <label class="form-label">Vencimento</label>
-                                    <input type="date" class="form-control form-control-sm" name="vencimento" id="vencimento" value="<?= date('Y-m-d'); ?>">
-                                </div>
-                            </div>
-                        </div>
+								<div class="col-md-6">
+									<label class="form-label">Vencimento</label>
+									<input type="date" class="form-control form-control-sm" name="vencimento" id="vencimento" value="<?= date('Y-m-d'); ?>">
+								</div>
+							</div>
+						</div>
 
-                        <div class="col-md-6">
-                            <div class="row g-2">
-                                <div class="col-md-12">
-                                    <label class="form-label">Romaneios de Compra</label>
-                                    <div class="lista-romaneios form-control form-control-md" id="lista-romaneios-compra">
-                                        <p class="text-secondary text-center">Selecione um Cliente para carregar os Romaneios de Compra relacionados.</p>
-                                    </div>
-                                </div>
+						<div class="col-md-6">
+							<div class="row g-2">
+								<div class="col-md-12">
+									<label class="form-label">Romaneios de Compra</label>
+									<div class="lista-romaneios form-control form-control-md" id="lista-romaneios-compra">
+										<p class="text-secondary text-center">Selecione um Cliente para carregar os Romaneios de Compra relacionados.</p>
+									</div>
+								</div>
 
-                                <div class="col-md-6">
-                                    <label class="form-label">Nota Fiscal</label>
-                                    <input type="text" class="form-control form-control-sm" id="nota_fiscal" name="nota_fiscal" placeholder="NF">
-                                </div>
+								<div class="col-md-6">
+									<label class="form-label">Nota Fiscal</label>
+									<input type="text" class="form-control form-control-sm" id="nota_fiscal" name="nota_fiscal" placeholder="NF">
+								</div>
 
-                                <div class="col-md-6">
-                                    <label class="form-label">Cliente</label>
-                                    <select id="cliente_modal" name="cliente" class="form-select form-select-sm" onchange="buscarDadosCliente(this.value); atualizarListaRomaneiosCompra(this.value); calculaTotais();">
-                                        <option value="0">Escolher Cliente</option>
-                                        <?php
-                                        $query = $pdo->query("SELECT * from clientes order by id asc");
-                                        $res = $query->fetchAll(PDO::FETCH_ASSOC);
-                                        $linhas = @count($res);
-                                        if ($linhas > 0) {
-                                            for ($i = 0; $i < $linhas; $i++) { ?>
-                                                <option value="<?php echo $res[$i]['id'] ?>"><?php echo $res[$i]['nome'] ?></option>
-                                            <?php }
-                                        } ?>
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+								<div class="col-md-6">
+									<label class="form-label">Cliente</label>
+									<select id="cliente_modal" name="cliente" class="form-select form-select-sm" onchange="buscarDadosCliente(this.value); atualizarListaRomaneiosCompra(this.value); calculaTotais();">
+										<option value="0">Escolher Cliente</option>
+										<?php
+										// AQUI ESTÁ A MUDANÇA: troquei 'order by id asc' por 'order by nome asc'
+										$query = $pdo->query("SELECT * from clientes order by nome asc");
 
-                <div id="linha-template_1" class="linha_1" style="display: none;">
-                    <div class="linha-inferior">
-                        <div class="coluna_romaneio">
-                            <label for="quant_caixa_1">QUANT. CX</label>
-                            <input type="number" class="quant_caixa_1" name="quant_caixa_1[]" onkeyup="handleInput(this); calcularValores(this.closest('.linha_1'));">
-                        </div>
-                        <div class="coluna_romaneio">
-                            <label for="produto_1">Variedade</label>
-                            <select name="produto_1[]" class="produto_1" onchange="handleInput(this); calcularValores(this.closest('.linha_1'));">
-                                <option value="">Selecione Variedade</option>
-                                <?php
-                                $query_sql = "SELECT p.id AS id_produto, p.nome AS nome_produto, c.nome AS nome_categoria 
+										$res = $query->fetchAll(PDO::FETCH_ASSOC);
+										$linhas = @count($res);
+										if ($linhas > 0) {
+											for ($i = 0; $i < $linhas; $i++) { ?>
+												<option value="<?php echo $res[$i]['id'] ?>"><?php echo $res[$i]['nome'] ?></option>
+										<?php }
+										} ?>
+									</select>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<div id="linha-template_1" class="linha_1" style="display: none;">
+					<div class="linha-inferior">
+						<div class="coluna_romaneio">
+							<label for="quant_caixa_1">QUANT. CX</label>
+							<input type="number" class="quant_caixa_1" name="quant_caixa_1[]" onkeyup="handleInput(this); calcularValores(this.closest('.linha_1'));">
+						</div>
+						<div class="coluna_romaneio">
+							<label for="produto_1">Variedade</label>
+							<select name="produto_1[]" class="produto_1" onchange="handleInput(this); calcularValores(this.closest('.linha_1'));">
+								<option value="">Selecione Variedade</option>
+								<?php
+								$query_sql = "SELECT p.id AS id_produto, p.nome AS nome_produto, c.nome AS nome_categoria 
                                                 FROM produtos p 
                                                 INNER JOIN categorias c ON p.categoria = c.id 
                                                 ORDER BY p.nome ASC"; // Alterei para ordenar por nome do produto, pode ser p.id também
 
-                                $stmt = $pdo->query($query_sql);
-                                $produtos_com_categorias = $stmt->fetchAll(PDO::FETCH_ASSOC);
+								$stmt = $pdo->query($query_sql);
+								$produtos_com_categorias = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-                                if (count($produtos_com_categorias) > 0) {
-                                    foreach ($produtos_com_categorias as $item) { ?>
-                                        <option value="<?php echo $item['id_produto']; ?>">
-                                            <?php echo htmlspecialchars($item['nome_produto']) . ' - ' . htmlspecialchars($item['nome_categoria']); ?>
-                                        </option>
-                                <?php }
-                                } ?>
-                            </select>
-                        </div>
-                        <div class="coluna_romaneio">
-                            <label for="preco_kg_1">Preço KG</label>
-                            <input type="text" class="preco_kg_1" id="preco_kg_1" name="preco_kg_1[]" onkeyup="mascara_decimal(this); handleInput(this); calcularValores(this.closest('.linha_1'));">
-                        </div>
-                        <div class="coluna_romaneio">
-                            <label for="tipo_cx_1">TIPO CX</label>
-                            <select name="tipo_cx_1[]" class="tipo_cx_1" onchange="handleInput(this); calcularValores(this.closest('.linha_1'));">
-                                <option value="">Selecione</option>
-                                <?php
-                                $query = $pdo->query("SELECT * from tipo_caixa order by id asc");
-                                $res = $query->fetchAll(PDO::FETCH_ASSOC);
-                                $linhas = @count($res);
+								if (count($produtos_com_categorias) > 0) {
+									foreach ($produtos_com_categorias as $item) { ?>
+										<option value="<?php echo $item['id_produto']; ?>">
+											<?php echo htmlspecialchars($item['nome_produto']) . ' - ' . htmlspecialchars($item['nome_categoria']); ?>
+										</option>
+								<?php }
+								} ?>
+							</select>
+						</div>
+						<div class="coluna_romaneio">
+							<label for="preco_kg_1">Preço KG</label>
+							<input type="text" class="preco_kg_1" id="preco_kg_1" name="preco_kg_1[]" onkeyup="mascara_decimal(this); handleInput(this); calcularValores(this.closest('.linha_1'));">
+						</div>
+						<div class="coluna_romaneio">
+							<label for="tipo_cx_1">TIPO CX</label>
+							<select name="tipo_cx_1[]" class="tipo_cx_1" onchange="handleInput(this); calcularValores(this.closest('.linha_1'));">
+								<option value="">Selecione</option>
+								<?php
+								$query = $pdo->query("SELECT * from tipo_caixa order by id asc");
+								$res = $query->fetchAll(PDO::FETCH_ASSOC);
+								$linhas = @count($res);
 
-                                if ($linhas > 0) {
-                                    for ($i = 0; $i < $linhas; $i++) {
-                                        // Busca a unidade de medida dentro do loop
-                                        $id_unidade = $res[$i]['unidade_medida'];
-                                        $queryUnidade = $pdo->query("SELECT unidade FROM unidade_medida WHERE id = $id_unidade");
-                                        $resUnidade = $queryUnidade->fetch(PDO::FETCH_ASSOC);
-                                        $unidade = $resUnidade['unidade'] ?? 'N/D'; // N/D caso não encontre a unidade
-                                ?>
-                                        <option value="<?php echo $res[$i]['id'] ?>">
-                                            <?php echo $res[$i]['tipo'] . ' ' . $unidade ?>
-                                        </option>
-                                <?php }
-                                } ?>
-                            </select>
-                        </div>
-                        <div class="coluna_romaneio">
-                            <label for="preco_unit_1">PREÇO UNIT.</label>
-                            <input type="text" class="preco_unit_1" name="preco_unit_1[]" readonly>
-                        </div>
-                        <div class="coluna_romaneio">
-                            <label for="valor_1">Valor</label>
-                            <input type="text" class="valor_1" name="valor_1[]" readonly>
-                        </div>
-                    </div>
+								if ($linhas > 0) {
+									for ($i = 0; $i < $linhas; $i++) {
+										// Busca a unidade de medida dentro do loop
+										$id_unidade = $res[$i]['unidade_medida'];
+										$queryUnidade = $pdo->query("SELECT unidade FROM unidade_medida WHERE id = $id_unidade");
+										$resUnidade = $queryUnidade->fetch(PDO::FETCH_ASSOC);
+										$unidade = $resUnidade['unidade'] ?? 'N/D'; // N/D caso não encontre a unidade
+								?>
+										<option value="<?php echo $res[$i]['id'] ?>">
+											<?php echo $res[$i]['tipo'] . ' ' . $unidade ?>
+										</option>
+								<?php }
+								} ?>
+							</select>
+						</div>
+						<div class="coluna_romaneio">
+							<label for="preco_unit_1">PREÇO UNIT.</label>
+							<input type="text" class="preco_unit_1" name="preco_unit_1[]" readonly>
+						</div>
+						<div class="coluna_romaneio">
+							<label for="valor_1">Valor</label>
+							<input type="text" class="valor_1" name="valor_1[]" readonly>
+						</div>
+					</div>
 
-                </div>
+				</div>
 
-                <div id="linha-container_1"></div>
-                <div class="resumo-tabela">
-                    <div class="resumo-linha">
-                        <div class="resumo-celula" id="total_caixa">0 CXS</div>
-                        <div class="resumo-celula">TOTAL BRUTO - BANANA</div>
-                        <div class="resumo-celula" id="total_bruto">R$ 0,00</div>
-                    </div>
-                    <div class="resumo-linha">
-                        <div class="resumo-celula" id="total_kg">0 KG</div>
-                        <div class="resumo-celula input">
-                            <label for="desc-avista">DESCONTO RECEBIMENTO - À VISTA</label>
-                            <div class="input-wrapper">
-                                <input id="desc-avista" name="desc-avista" type="text" placeholder="%" onkeyup="(calculaTotais())" />
-                            </div>
-                        </div>
-                        <div class="resumo-celula" id="total-desc">R$ 0,00</div>
-                    </div>
-                    <div class="resumo-linha">
-                        <div class="resumo-celula">TOTAL LÍQUIDO - BANANA</div>
-                        <div class="resumo-celula"></div>
-                        <div class="resumo-celula">R$ <p id="total-geral">0,00</p>
-                        </div>
-                    </div>
-                </div>
-                <div id="linha-template_2" class="linha_2" style="display: none;">
-                    <div class="linha-inferior">
-                        <div class="coluna_romaneio">
-                            <label for="desc_2">Descrição</label>
-                            <select name="desc_2[]" class="desc_2" onchange="handleInput2(this); calcularValores2(this.closest('.linha_2'));">
-                                <option value="">Selecione Descrição</option>
-                                <?php
-                                $query = $pdo->query("SELECT * from descricao_romaneio order by id asc");
-                                $res = $query->fetchAll(PDO::FETCH_ASSOC);
-                                $linhas = @count($res);
-                                if ($linhas > 0) {
-                                    for ($i = 0; $i < $linhas; $i++) { ?>
-                                        <option value="<?php echo $res[$i]['id'] ?>"><?php echo $res[$i]['descricao'] ?></option>
-                                <?php }
-                                } ?>
-                            </select>
-                        </div>
-                        <div class="coluna_romaneio">
-                            <label for="quant_caixa_2">QUANT. CX</label>
-                            <input type="number" class="quant_caixa_2" name="quant_caixa_2[]" onkeyup="handleInput2(this); calcularValores2(this.closest('.linha_2'));">
-                        </div>
-                        <div class="coluna_romaneio">
-                            <label for="preco_kg_2">Preço KG</label>
-                            <input type="text" class="preco_kg_2" name="preco_kg_2[]" onkeyup="mascara_decimal(this);  handleInput2(this); calcularValores2(this.closest('.linha_2'));">
-                        </div>
-                        <div class="coluna_romaneio">
-                            <label for="tipo_cx_2">TIPO CX</label>
-                            <select name="tipo_cx_2[]" class="tipo_cx_2" onchange="handleInput2(this); calcularValores2(this.closest('.linha_2'));">
-                                <option value="">Selecione</option>
-                                <?php
-                                $query = $pdo->query("SELECT * from tipo_caixa order by id asc");
-                                $res = $query->fetchAll(PDO::FETCH_ASSOC);
-                                $linhas = @count($res);
+				<div id="linha-container_1"></div>
+				<div class="resumo-tabela">
+					<div class="resumo-linha">
+						<div class="resumo-celula" id="total_caixa">0 CXS</div>
+						<div class="resumo-celula">TOTAL BRUTO - BANANA</div>
+						<div class="resumo-celula" id="total_bruto">R$ 0,00</div>
+					</div>
+					<div class="resumo-linha">
+						<div class="resumo-celula" id="total_kg">0 KG</div>
+						<div class="resumo-celula input">
+							<label for="desc-avista">DESCONTO RECEBIMENTO - À VISTA</label>
+							<div class="input-wrapper">
+								<input id="desc-avista" name="desc-avista" type="text" placeholder="%" onkeyup="(calculaTotais())" />
+							</div>
+						</div>
+						<div class="resumo-celula" id="total-desc">R$ 0,00</div>
+					</div>
+					<div class="resumo-linha">
+						<div class="resumo-celula">TOTAL LÍQUIDO - BANANA</div>
+						<div class="resumo-celula"></div>
+						<div class="resumo-celula">R$ <p id="total-geral">0,00</p>
+						</div>
+					</div>
+				</div>
+				<div id="linha-template_2" class="linha_2" style="display: none;">
+					<div class="linha-inferior">
+						<div class="coluna_romaneio">
+							<label for="desc_2">Descrição</label>
+							<select name="desc_2[]" class="desc_2" onchange="handleInput2(this); calcularValores2(this.closest('.linha_2'));">
+								<option value="">Selecione Descrição</option>
+								<?php
+								$query = $pdo->query("SELECT * from descricao_romaneio order by id asc");
+								$res = $query->fetchAll(PDO::FETCH_ASSOC);
+								$linhas = @count($res);
+								if ($linhas > 0) {
+									for ($i = 0; $i < $linhas; $i++) { ?>
+										<option value="<?php echo $res[$i]['id'] ?>"><?php echo $res[$i]['descricao'] ?></option>
+								<?php }
+								} ?>
+							</select>
+						</div>
+						<div class="coluna_romaneio">
+							<label for="quant_caixa_2">QUANT. CX</label>
+							<input type="number" class="quant_caixa_2" name="quant_caixa_2[]" onkeyup="handleInput2(this); calcularValores2(this.closest('.linha_2'));">
+						</div>
+						<div class="coluna_romaneio">
+							<label for="preco_kg_2">Preço KG</label>
+							<input type="text" class="preco_kg_2" name="preco_kg_2[]" onkeyup="mascara_decimal(this);  handleInput2(this); calcularValores2(this.closest('.linha_2'));">
+						</div>
+						<div class="coluna_romaneio">
+							<label for="tipo_cx_2">TIPO CX</label>
+							<select name="tipo_cx_2[]" class="tipo_cx_2" onchange="handleInput2(this); calcularValores2(this.closest('.linha_2'));">
+								<option value="">Selecione</option>
+								<?php
+								$query = $pdo->query("SELECT * from tipo_caixa order by id asc");
+								$res = $query->fetchAll(PDO::FETCH_ASSOC);
+								$linhas = @count($res);
 
-                                if ($linhas > 0) {
-                                    for ($i = 0; $i < $linhas; $i++) {
-                                        // Busca a unidade de medida dentro do loop
-                                        $id_unidade = $res[$i]['unidade_medida'];
-                                        $queryUnidade = $pdo->query("SELECT unidade FROM unidade_medida WHERE id = $id_unidade");
-                                        $resUnidade = $queryUnidade->fetch(PDO::FETCH_ASSOC);
-                                        $unidade = $resUnidade['unidade'] ?? 'N/D'; // N/D caso não encontre a unidade
-                                ?>
-                                        <option value="<?php echo $res[$i]['id'] ?>">
-                                            <?php echo $res[$i]['tipo'] . ' ' . $unidade ?>
-                                        </option>
-                                <?php }
-                                } ?>
-                            </select>
-                        </div>
-                        <div class="coluna_romaneio">
-                            <label for="preco_unit_2">PREÇO UNIT.</label>
-                            <input type="text" class="preco_unit_2" name="preco_unit_2[]" readonly>
-                        </div>
-                        <div class="coluna_romaneio">
-                            <label for="valor_2">Valor</label>
-                            <input type="text" class="valor_2" name="valor_2[]" readonly>
-                        </div>
-                    </div>
+								if ($linhas > 0) {
+									for ($i = 0; $i < $linhas; $i++) {
+										// Busca a unidade de medida dentro do loop
+										$id_unidade = $res[$i]['unidade_medida'];
+										$queryUnidade = $pdo->query("SELECT unidade FROM unidade_medida WHERE id = $id_unidade");
+										$resUnidade = $queryUnidade->fetch(PDO::FETCH_ASSOC);
+										$unidade = $resUnidade['unidade'] ?? 'N/D'; // N/D caso não encontre a unidade
+								?>
+										<option value="<?php echo $res[$i]['id'] ?>">
+											<?php echo $res[$i]['tipo'] . ' ' . $unidade ?>
+										</option>
+								<?php }
+								} ?>
+							</select>
+						</div>
+						<div class="coluna_romaneio">
+							<label for="preco_unit_2">PREÇO UNIT.</label>
+							<input type="text" class="preco_unit_2" name="preco_unit_2[]" readonly>
+						</div>
+						<div class="coluna_romaneio">
+							<label for="valor_2">Valor</label>
+							<input type="text" class="valor_2" name="valor_2[]" readonly>
+						</div>
+					</div>
 
-                </div>
+				</div>
 
-                <div id="linha-container_2"></div>
-                <div class="resumo-tabela">
-                    <div class="resumo-linha">
-                        <div class="resumo-celula">TOTAL COMISSÃO</div>
-                        <div class="resumo-celula">R$ <p id="total_comissao">0,00</p>
-                        </div>
-                    </div>
-                </div>
+				<div id="linha-container_2"></div>
+				<div class="resumo-tabela">
+					<div class="resumo-linha">
+						<div class="resumo-celula">TOTAL COMISSÃO</div>
+						<div class="resumo-celula">R$ <p id="total_comissao">0,00</p>
+						</div>
+					</div>
+				</div>
 
-                <div id="linha-template_3" class="linha_3" style="display: none;">
-                    <div class="linha-inferior" style="grid-template-columns: repeat(5, 1fr);">
-                        <div class="coluna_romaneio">
-                            <label for="obs_3">Observação</label>
-                            <input type="text" name="obs_3[]" class="obs_3" onchange="handleInput3(this); calcularValores3(this.closest('.linha_3'));">
+				<div id="linha-template_3" class="linha_3" style="display: none;">
+					<div class="linha-inferior" style="grid-template-columns: repeat(5, 1fr);">
+						<div class="coluna_romaneio">
+							<label for="obs_3">Observação</label>
+							<input type="text" name="obs_3[]" class="obs_3" onchange="handleInput3(this); calcularValores3(this.closest('.linha_3'));">
 
-                        </div>
-                        <div class="coluna_romaneio">
-                            <label for="material">Descrição</label>
-                            <select name="material[]" class="material" onchange="handleInput3(this); calcularValores(this.closest('.linha_3'));">
-                                <option value="">Selecione um Material</option>
-                                <?php
-                                $query = $pdo->query("SELECT * from materiais order by id asc");
-                                $res = $query->fetchAll(PDO::FETCH_ASSOC);
-                                $linhas = @count($res);
-                                if ($linhas > 0) {
-                                    for ($i = 0; $i < $linhas; $i++) { ?>
-                                        <option value="<?php echo $res[$i]['id'] ?>"><?php echo $res[$i]['nome'] ?></option>
-                                <?php }
-                                } ?>
-                            </select>
-                        </div>
-                        <div class="coluna_romaneio">
-                            <label for="quant_3">QUANT.</label>
-                            <input type="text" class="quant_3" name="quant_3[]" onkeyup="handleInput3(this); calcularValores3(this.closest('.linha_3'));">
-                        </div>
-                        <div class="coluna_romaneio">
-                            <label for="preco_unit_3">PREÇO UNIT.</label>
-                            <input type="text" class="preco_unit_3" name="preco_unit_3[]" onkeyup="mascara_decimal(this); handleInput3(this); calcularValores3(this.closest('.linha_3'));">
-                        </div>
-                        <div class="coluna_romaneio">
-                            <label for="valor_3">Valor</label>
-                            <input type="text" class="valor_3" name="valor_3[]" readonly>
-                        </div>
-                    </div>
+						</div>
+						<div class="coluna_romaneio">
+							<label for="material">Descrição</label>
+							<select name="material[]" class="material" onchange="handleInput3(this); calcularValores(this.closest('.linha_3'));">
+								<option value="">Selecione um Material</option>
+								<?php
+								$query = $pdo->query("SELECT * from materiais order by id asc");
+								$res = $query->fetchAll(PDO::FETCH_ASSOC);
+								$linhas = @count($res);
+								if ($linhas > 0) {
+									for ($i = 0; $i < $linhas; $i++) { ?>
+										<option value="<?php echo $res[$i]['id'] ?>"><?php echo $res[$i]['nome'] ?></option>
+								<?php }
+								} ?>
+							</select>
+						</div>
+						<div class="coluna_romaneio">
+							<label for="quant_3">QUANT.</label>
+							<input type="text" class="quant_3" name="quant_3[]" onkeyup="handleInput3(this); calcularValores3(this.closest('.linha_3'));">
+						</div>
+						<div class="coluna_romaneio">
+							<label for="preco_unit_3">PREÇO UNIT.</label>
+							<input type="text" class="preco_unit_3" name="preco_unit_3[]" onkeyup="mascara_decimal(this); handleInput3(this); calcularValores3(this.closest('.linha_3'));">
+						</div>
+						<div class="coluna_romaneio">
+							<label for="valor_3">Valor</label>
+							<input type="text" class="valor_3" name="valor_3[]" readonly>
+						</div>
+					</div>
 
-                </div>
-                <div id="linha-container_3"></div>
-                <div class="resumo-tabela">
-                    <div class="resumo-linha">
-                        <div class="resumo-celula">TOTAL MATERIAIS</div>
-                        <div class="resumo-celula">R$ <p id="total_materiais">0,00</p>
-                        </div>
-                    </div>
-                </div>
+				</div>
+				<div id="linha-container_3"></div>
+				<div class="resumo-tabela">
+					<div class="resumo-linha">
+						<div class="resumo-celula">TOTAL MATERIAIS</div>
+						<div class="resumo-celula">R$ <p id="total_materiais">0,00</p>
+						</div>
+					</div>
+				</div>
 
-                <div class="resumo-tabela">
-                    <div class="resumo-linha">
-                        <div class="resumo-celula">TOTAL DA CARGA</div>
-                        <div class="resumo-celula">R$ <p id="total_carga">0,00</p>
-                        </div>
-                    </div>
-                    <div class="resumo-linha radio">
-                        <div class="radio-group" style="display: block !important;">
-                            <div style="display: flex; gap: 10px; align-items: center;">
-                                <label>
-                                    <input type="checkbox" name="adicional_ativo" id="adicional_ativo" onchange="adicionalAtivado()">
-                                    Adicional
-                                </label>
-                                <input type="text" placeholder="Descrição do Adicional" name="descricao_adicional" id="descricao_adicional">
-                                <input type="text" placeholder="Valor do Adicional" name="valor_adicional" id="valor_adicional" onkeyup="mascara_decimal(this)">
-                            </div>
+				<div class="resumo-tabela">
+					<div class="resumo-linha">
+						<div class="resumo-celula">TOTAL DA CARGA</div>
+						<div class="resumo-celula">R$ <p id="total_carga">0,00</p>
+						</div>
+					</div>
+					<div class="resumo-linha radio">
+						<div class="radio-group" style="display: block !important;">
+							<div style="display: flex; gap: 10px; align-items: center;">
+								<label>
+									<input type="checkbox" name="adicional_ativo" id="adicional_ativo" onchange="adicionalAtivado()">
+									Adicional
+								</label>
+								<input type="text" placeholder="Descrição do Adicional" name="descricao_adicional" id="descricao_adicional">
+								<input type="text" placeholder="Valor do Adicional" name="valor_adicional" id="valor_adicional" onkeyup="mascara_decimal(this)">
+							</div>
 
-                            <br>
+							<br>
 
-                            <div style="display: flex; gap: 10px; align-items: center;">
-                                <label>
-                                    <input type="checkbox" name="desconto_ativo" id="desconto_ativo" onchange="descontoAtivado()">
-                                    Desconto
-                                </label>
-                                <input type="text" placeholder="Descrição do Desconto" name="descricao_desconto" id="descricao_desconto">
-                                <input type="text" placeholder="Valor do Desconto" name="valor_desconto" id="valor_desconto" onkeyup="mascara_decimal(this)">
-                            </div>
-                        </div>
-                    </div>
+							<div style="display: flex; gap: 10px; align-items: center;">
+								<label>
+									<input type="checkbox" name="desconto_ativo" id="desconto_ativo" onchange="descontoAtivado()">
+									Desconto
+								</label>
+								<input type="text" placeholder="Descrição do Desconto" name="descricao_desconto" id="descricao_desconto">
+								<input type="text" placeholder="Valor do Desconto" name="valor_desconto" id="valor_desconto" onkeyup="mascara_decimal(this)">
+							</div>
+						</div>
+					</div>
 
-                    <div class="resumo-linha">
-                        <div class="resumo-celula">VALOR LÍQUIDO A RECEBER</div>
-                        <div class="resumo-celula" style="display: flex; gap: 5px;">R$ <p id="total_liquido">0,00</p>
-                        </div>
-                    </div>
+					<div class="resumo-linha">
+						<div class="resumo-celula">VALOR LÍQUIDO A RECEBER</div>
+						<div class="resumo-celula" style="display: flex; gap: 5px;">R$ <p id="total_liquido">0,00</p>
+						</div>
+					</div>
 
-                </div>
+				</div>
 
-                <input type="hidden" id="valor_liquido" name="valor_liquido">
-                <input type="hidden" id="id" name="id">
-                <div class="modal-footer d-flex align  justify-content-center align-items-center">
-                    <button type="submit" id="btn_salvar" class="btn btn-primary">Salvar</button>
-                </div>
-                <small>
-                    <div id="mensagem" align="center"></div>
-                </small>
-            </form>
+				<input type="hidden" id="valor_liquido" name="valor_liquido">
+				<input type="hidden" id="id" name="id">
+				<div class="modal-footer d-flex align  justify-content-center align-items-center">
+					<button type="submit" id="btn_salvar" class="btn btn-primary">Salvar</button>
+				</div>
+				<small>
+					<div id="mensagem" align="center"></div>
+				</small>
+			</form>
 
-        </div>
-    </div>
+		</div>
+	</div>
 </div>
 
 

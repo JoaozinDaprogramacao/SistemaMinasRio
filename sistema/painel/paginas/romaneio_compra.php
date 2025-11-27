@@ -147,13 +147,14 @@ if (@$produtos == 'ocultar') {
 								<label class="form-label">Nota Fiscal</label>
 								<input type="text" class="form-control" id="nota_fiscal" name="nota_fiscal" placeholder="Número NF">
 							</div>
-
 							<div class="col-12 mb-2">
 								<label class="form-label">Cliente Atacadista</label>
 								<select id="cliente" name="cliente" class="form-select">
 									<option value="0">Cliente</option>
 									<?php
-									$query = $pdo->query("SELECT * from clientes order by id asc");
+									// MUDANÇA AQUI: 'order by nome asc' para organizar alfabeticamente
+									$query = $pdo->query("SELECT * from clientes order by nome asc");
+
 									$res = $query->fetchAll(PDO::FETCH_ASSOC);
 									$linhas = @count($res);
 									if ($linhas > 0) {
