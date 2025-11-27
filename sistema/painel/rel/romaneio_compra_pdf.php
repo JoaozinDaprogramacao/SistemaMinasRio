@@ -28,7 +28,7 @@ $query = $pdo->prepare("
     p.nome   AS nome_produto,
     tc.tipo  AS tipo_caixa
   FROM linha_produto_compra lpc
-  LEFT JOIN produtos   p  ON lpc.variedade   = p.id
+  LEFT JOIN produtos    p  ON lpc.variedade   = p.id
   LEFT JOIN tipo_caixa tc ON lpc.tipo_caixa = tc.id
   WHERE lpc.id_romaneio = :id
 ");
@@ -48,6 +48,25 @@ $percentual_desconto = floatval($romaneio['desc_avista'] ?? 0);
 // 2. O resto dos cálculos funciona normalmente
 $valor_desconto_calculado = ($total_bruto * $percentual_desconto) / 100;
 $total_liquido_parcial = $total_bruto - $valor_desconto_calculado;
+
+
+// --- SOLUÇÃO BASE64 PARA A LOGO (Para garantir a exibição no PDF) ---
+
+// Caminho físico relativo à este arquivo (romaneio_compra_pdf.php)
+$caminho_fisico = "../../img/logo.jpg";
+$logo_src = "";
+
+if (file_exists($caminho_fisico)) {
+  $dados_imagem = file_get_contents($caminho_fisico);
+  $extensao = pathinfo($caminho_fisico, PATHINFO_EXTENSION);
+  // Cria a string Base64 (Data URI)
+  $logo_src = 'data:image/' . $extensao . ';base64,' . base64_encode($dados_imagem);
+} else {
+  // Fallback: Presume que $url_sistema vem de conexao.php.
+  $logo_src = $url_sistema . "img/logo.jpg";
+}
+
+// --- FIM DA SOLUÇÃO BASE64 PARA A LOGO ---
 ?>
 <!DOCTYPE html>
 <html lang="pt-BR">
@@ -189,8 +208,7 @@ $total_liquido_parcial = $total_bruto - $valor_desconto_calculado;
   <table>
     <tr>
       <td class="logo-cell" rowspan="3">
-        <?php echo $url_sistema ?>img/logo.jpg
-        <img style="margin-top: 7px; margin-left: 7px;" id="imag" src="<?php echo $url_sistema ?>img/logo.jpg" width="110px">
+        <img style="margin-top: 7px; margin-left: 7px;" id="imag" src="<?= $logo_src ?>" width="110px">
       </td>
       <td class="title-cell" colspan="2">ROMANEIO DE COMPRA</td>
       <td class="rom-label">Rom nº</td>
@@ -285,10 +303,10 @@ $total_liquido_parcial = $total_bruto - $valor_desconto_calculado;
         <td colspan="5">TOTAL IMPOSTOS E TAXAS</td>
         <td style="text-align: right;">
           R$ <?= number_format(
-                ($romaneio['desc_funrural'] ?? 0)
-                  + ($romaneio['desc_ima'] ?? 0)
-                  + ($romaneio['desc_abanorte'] ?? 0)
-                  + ($romaneio['desc_taxaadm'] ?? 0),
+                (floatval($romaneio['desc_funrural'] ?? 0)
+                  + floatval($romaneio['desc_ima'] ?? 0)
+                  + floatval($romaneio['desc_abanorte'] ?? 0)
+                  + floatval($romaneio['desc_taxaadm'] ?? 0)),
                 2,
                 ',',
                 '.'
