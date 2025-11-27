@@ -371,50 +371,35 @@ HTML;
   // Dentro do seu arquivo romaneio.js (ou similar)
 
   function editar(id) {
-    console.debug('=== editar() iniciado para ID:', id);
-
-    // 1) ATIVA O BLOQUEIO: Impede que o change do cliente altere o plano
     carregando_dados = true;
-
-    // 2) Limpa e prepara
     limparCampos();
     $('#titulo_inserir').text(`Editar Romaneio de Venda Nº ${id}`);
     $('#id').val(id);
 
-    // 3) Busca dados
     $.ajax({
       url: 'paginas/romaneio_venda/buscar_dados.php',
       type: 'POST',
       dataType: 'json',
       data: {
-        id
+        id: id
       },
       success(res) {
         if (!res || !res.romaneio) {
-          alert('Não foi possível carregar os dados.');
-          carregando_dados = false; // Libera em caso de erro
+          alert('Erro ao carregar dados.');
+          carregando_dados = false;
           return;
         }
         const r = res.romaneio;
-
-        // 4) Abre modal
         $('#modalForm').modal('show');
 
-        // 5) Aguarda DOM e preenche
         setTimeout(() => {
-          // ---------------- CABEÇALHO ----------------
-          $('input[name="data"]').val(r.data?.split(' ')[0] || '');
-          $('input[name="vencimento"]').val(r.vencimento?.split(' ')[0] || '');
+          // 1. Preenche dados básicos (Cabeçalho)
+          $('input[name="data"]').val(r.data ? r.data.split(' ')[0] : '');
+          $('input[name="vencimento"]').val(r.vencimento ? r.vencimento.split(' ')[0] : '');
           $('input[name="nota_fiscal"]').val(r.nota_fiscal || '');
           $('#quant_dias').val(r.quant_dias || 0);
 
-          // ---------------- CLIENTE ----------------
-          // O trigger('change') vai disparar, mas como carregando_dados = true,
-          // a função buscarDadosCliente (que você ajustou antes) vai ignorar.
-          $('#cliente_modal').val(r.atacadista || '').trigger('change');
-
-          // ---------------- PLANO PGTO ----------------
-          // Normalização para encontrar o ID pelo Nome (sua lógica original)
+          // Normalização do Plano de Pagamento
           const normalize = s => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
           const target = normalize(r.nome_plano || '');
           let planoId = '';
@@ -424,21 +409,47 @@ HTML;
               return false;
             }
           });
-          // Define o plano REAL salvo no banco (sobrescrevendo qualquer padrão de cliente)
           $('#plano_pgto').val(planoId).trigger('change');
 
-          // ---------------- PRODUTOS ----------------
+          // 2. Preenche o Cliente
+          $('#cliente_modal').val(r.atacadista || '');
+
+          // 3. Lógica da Lista de Romaneios de Compra
+          // Pega o ID que veio do banco (ajustamos o buscar_dados.php para trazer isso dentro de 'romaneio')
+          let idCompraSalva = r.id_romaneio_compra;
+
+          // Atualiza a variável global manualmente
+          if (idCompraSalva) {
+            romaneiosSelecionados = [String(idCompraSalva)];
+            $('#romaneios_selecionados').val(idCompraSalva);
+          }
+
+          // Carrega a lista visualmente
+          atualizarListaRomaneiosCompra(r.atacadista, idCompraSalva, function() {
+            // --- AQUI ESTAVA O ERRO ---
+            // NÃO chame carregarDadosRomaneios(), pois ele limpa os produtos!
+
+            // Apenas pinte de azul o item selecionado
+            if (idCompraSalva) {
+              $(`.romaneio-item[data-id='${idCompraSalva}']`).addClass('selecionado');
+            }
+          });
+
+          // 4. Preenche os PRODUTOS (Vindo do banco de dados, não da importação)
           $('#linha-container_1').empty();
-          if (res.produtos?.length) {
+          if (res.produtos && res.produtos.length > 0) {
             res.produtos.forEach((item, idx) => {
-              addNewLine1();
+              addNewLine1(); // Adiciona linha vazia
               const $ln = $('#linha-container_1 .linha_1').eq(idx);
+
+              // Preenche os campos
               $ln.find('.quant_caixa_1').val(item.quant || '');
               $ln.find('.produto_1').val(item.variedade || '');
               $ln.find('.preco_kg_1').val(item.preco_kg ? parseFloat(item.preco_kg).toFixed(2).replace('.', ',') : '0,00');
               $ln.find('.tipo_cx_1').val(item.tipo_caixa || '');
               $ln.find('.preco_unit_1').val(item.preco_unit ? parseFloat(item.preco_unit).toFixed(2).replace('.', ',') : '0,00');
               $ln.find('.valor_1').val(item.valor ? parseFloat(item.valor).toFixed(2).replace('.', ',') : '0,00');
+
               calcularValores($ln.get(0));
             });
             $('#desc-avista').val(r.desc_avista);
@@ -446,9 +457,9 @@ HTML;
             addNewLine1();
           }
 
-          // ---------------- COMISSÕES ----------------
+          // 5. Preenche Comissões
           $('#linha-container_2').empty();
-          if (res.comissoes?.length) {
+          if (res.comissoes && res.comissoes.length > 0) {
             res.comissoes.forEach((item, idx) => {
               addNewLine2();
               const $ln = $('#linha-container_2 .linha_2').eq(idx);
@@ -464,9 +475,9 @@ HTML;
             addNewLine2();
           }
 
-          // ---------------- MATERIAIS ----------------
+          // 6. Preenche Materiais
           $('#linha-container_3').empty();
-          if (res.materiais?.length) {
+          if (res.materiais && res.materiais.length > 0) {
             res.materiais.forEach((item, idx) => {
               addNewLine3();
               const $ln = $('#linha-container_3 .linha_3').eq(idx);
@@ -481,41 +492,37 @@ HTML;
             addNewLine3();
           }
 
-          // Adicionais e Descontos
-          $('#valor_adicional').val(r.adicional.toFixed(2).replace('.', ','));
+          // 7. Adicionais e Descontos
+          $('#valor_adicional').val(r.adicional ? parseFloat(r.adicional).toFixed(2).replace('.', ',') : '0,00');
           $('#descricao_adicional').val(r.descricao_a);
-          if (r.adicional > 0) {
+          if (parseFloat(r.adicional) > 0) {
             $('#adicional_ativo').prop('checked', true);
             adicionalAtivado();
           }
 
-          $('#valor_desconto').val(r.desconto.toFixed(2).replace('.', ','));
+          $('#valor_desconto').val(r.desconto ? parseFloat(r.desconto).toFixed(2).replace('.', ',') : '0,00');
           $('#descricao_desconto').val(r.descricao_d);
-          if (r.desconto > 0) {
+          if (parseFloat(r.desconto) > 0) {
             $('#desconto_ativo').prop('checked', true);
             descontoAtivado();
           }
 
-          // Recalcula TUDO
+          // 8. Finaliza
           calculaTotais();
           calculaTotais2();
           calculaTotais3();
 
-          // 6) DESATIVA O BLOQUEIO: Agora o usuário pode mexer e os eventos funcionarão
           carregando_dados = false;
 
-        }, 300); // Aumentei levemente o timeout para garantir que o modal esteja renderizado
+        }, 500); // Timeout para garantir que o modal abriu
       },
       error(err) {
         console.error('Erro ao buscar dados:', err);
         alert('Erro ao carregar detalhes.');
-        carregando_dados = false; // Libera em caso de erro
+        carregando_dados = false;
       }
     });
   }
-
-
-
 
 
   /**
