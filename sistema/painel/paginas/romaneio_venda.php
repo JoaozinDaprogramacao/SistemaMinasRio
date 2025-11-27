@@ -176,15 +176,14 @@ if (@$produtos == 'ocultar') {
 									<label class="form-label">Nota Fiscal</label>
 									<input type="text" class="form-control form-control-sm" id="nota_fiscal" name="nota_fiscal" placeholder="NF">
 								</div>
-
-								<div class="col-md-6">
+<div class="col-md-6">
 									<label class="form-label">Cliente</label>
 									<select id="cliente_modal" name="cliente" class="form-select form-select-sm" onchange="buscarDadosCliente(this.value); atualizarListaRomaneiosCompra(this.value); calculaTotais();">
 										<option value="0">Escolher Cliente</option>
 										<?php
-										// AQUI ESTÁ A MUDANÇA: troquei 'order by id asc' por 'order by nome asc'
+										// Mantido a ordenação por NOME (vinda da master) pois é melhor para a usabilidade
 										$query = $pdo->query("SELECT * from clientes order by nome asc");
-
+										
 										$res = $query->fetchAll(PDO::FETCH_ASSOC);
 										$linhas = @count($res);
 										if ($linhas > 0) {
@@ -1342,48 +1341,35 @@ if (@$produtos == 'ocultar') {
 	 * Esta função é chamada no evento 'change' do select de cliente.
 	 * * @param {string} clienteId O ID do cliente selecionado.
 	 */
-	function atualizarListaRomaneiosCompra(clienteId) {
+	/**
+	 * Agora aceita idVendaAtual e um callback (função para rodar depois que carregar)
+	 */
+	function atualizarListaRomaneiosCompra(clienteId, idCompraSalva = null, callback = null) {
 		const listaContainer = $('#lista-romaneios-compra');
 
 		if (!clienteId || clienteId == '0') {
-			listaContainer.html('<p class="text-secondary text-center">Selecione um Cliente para carregar os Romaneios de Compra relacionados.</p>');
-			// Limpa romaneios selecionados
+			listaContainer.html('<p class="text-secondary text-center">Selecione um Cliente...</p>');
 			romaneiosSelecionados = [];
 			$('#romaneios_selecionados').val('');
-			carregarDadosRomaneios(); // Recalcula totais (será 0)
+			if (callback) callback();
 			return;
 		}
 
 		listaContainer.html('<p class="text-info text-center">Carregando romaneios...</p>');
 
-		// Chama o script PHP (que você deve criar) para obter a lista filtrada e ordenada.
 		$.ajax({
 			url: 'paginas/romaneio_venda/listar_romaneios_compra.php',
 			type: 'POST',
 			data: {
-				cliente_id: clienteId
+				cliente_id: clienteId,
+				id_compra_salva: idCompraSalva // <--- Enviamos o ID da COMPRA, não da venda
 			},
 			success: function(htmlLista) {
 				listaContainer.html(htmlLista);
-
-				// 1. O PHP já retornou a lista ORDENADA POR ID DESC (Requisito 1)
-				// 2. O PHP já filtrou pelo CLIENTE ID (Requisito 2)
-
-				// Marca os itens que já estavam selecionados (se for modo edição e a lista for recarregada)
-				romaneiosSelecionados.forEach(id => {
-					$(`.romaneio-item[data-id='${id}']`).addClass('selecionado');
-				});
-
-				// Recalcula totais (se houver alguma seleção)
-				carregarDadosRomaneios();
-			},
-			error: function(xhr, status, error) {
-				listaContainer.html('<p class="text-danger text-center">Erro ao carregar romaneios de compra.</p>');
-				console.error("Erro no AJAX para carregar romaneios:", error);
+				if (callback) callback();
 			}
 		});
 	}
-
 	// Inicializa a lista de romaneios de compra quando o modal é aberto (útil para edição)
 	$(document).ready(function() {
 		$('#modalForm').on('show.bs.modal', function(e) {

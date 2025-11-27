@@ -12,7 +12,7 @@ $id = $_POST['id'];
 
 try {
     // 2. Buscar o Romaneio Principal (Cabeçalho)
-    // Faz a junção com 'clientes' e 'planos_pgto' para obter os nomes.
+    // Ao fazer "rv.*", trazemos também a coluna 'id_romaneio_compra'
     $query_romaneio = $pdo->prepare("
         SELECT 
             rv.*, 
@@ -27,7 +27,7 @@ try {
     $query_romaneio->execute();
     $romaneio = $query_romaneio->fetch(PDO::FETCH_ASSOC);
 
-    // Se o romaneio não existir, encerra com erro 404 Not Found.
+    // Se o romaneio não existir, encerra com erro 404.
     if (!$romaneio) {
         http_response_code(404);
         echo json_encode(['error' => 'Romaneio com ID ' . htmlspecialchars($id) . ' não encontrado.']);
@@ -35,7 +35,6 @@ try {
     }
 
     // 3. Buscar as Linhas de Produto
-    // Faz a junção com 'produtos' (para o nome) e 'tipo_caixa'/'unidade_medida' para a descrição da caixa.
     $query_produtos = $pdo->prepare("
         SELECT 
             lp.*,
@@ -53,8 +52,6 @@ try {
     $produtos = $query_produtos->fetchAll(PDO::FETCH_ASSOC);
 
     // 4. Buscar as Linhas de Comissão
-    // A lógica é similar à de produtos. Note que `linha_comissao.descricao` parece ser um varchar, 
-    // mas o código anterior o tratava como ID, então mantivemos essa lógica.
     $query_comissoes = $pdo->prepare("
         SELECT 
             lc.*,
@@ -72,7 +69,6 @@ try {
     $comissoes = $query_comissoes->fetchAll(PDO::FETCH_ASSOC);
 
     // 5. Buscar as Linhas de Materiais/Observações
-    // Faz a junção com 'materiais' para obter o nome do material.
     $query_materiais = $pdo->prepare("
         SELECT 
             lo.*,
@@ -86,24 +82,32 @@ try {
     $query_materiais->execute();
     $materiais = $query_materiais->fetchAll(PDO::FETCH_ASSOC);
 
-    // 6. Montar a Resposta Final no formato aninhado correto
-    // Nenhum dado é formatado aqui (sem date() ou number_format()). O frontend cuidará disso.
+    // ==================================================================================
+    // 6. [AJUSTADO] Obter IDs dos Romaneios de Compra
+    // ==================================================================================
+    // Não precisamos fazer outra consulta SQL. O dado já veio no passo 2 
+    // dentro da variável $romaneio['id_romaneio_compra'].
+
+    $ids_compras = [];
+
+    // Verificamos se existe valor na coluna e adicionamos ao array
+    if (!empty($romaneio['id_romaneio_compra'])) {
+        $ids_compras[] = $romaneio['id_romaneio_compra'];
+    }
+
+    // 7. Montar a Resposta Final
     $dados_finais = [
-        'romaneio'  => $romaneio,
-        'produtos'  => $produtos,
-        'comissoes' => $comissoes,
-        'materiais' => $materiais,
+        'romaneio'    => $romaneio,
+        'produtos'    => $produtos,
+        'comissoes'   => $comissoes,
+        'materiais'   => $materiais,
+        'ids_compras' => $ids_compras // Array contendo o ID (ex: [10]) ou vazio []
     ];
 
-    // 7. Enviar a resposta como JSON
+    // 8. Enviar a resposta como JSON
     header('Content-Type: application/json');
     echo json_encode($dados_finais, JSON_PRETTY_PRINT | JSON_NUMERIC_CHECK);
-
 } catch (PDOException $e) {
-    // Em caso de erro de banco de dados, retorna um erro 500 Internal Server Error.
     http_response_code(500);
-    // Não exponha a mensagem de erro detalhada em produção por segurança.
-    // error_log("Erro no buscar_dados.php: " . $e->getMessage()); // Log para o admin
-    echo json_encode(['error' => 'Ocorreu um erro interno no servidor.']);
+    echo json_encode(['error' => 'Erro interno ao buscar dados: ' . $e->getMessage()]);
 }
-?>
