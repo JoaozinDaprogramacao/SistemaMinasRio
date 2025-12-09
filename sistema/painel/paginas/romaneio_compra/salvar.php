@@ -7,13 +7,32 @@ session_start();
 // Define o cabeçalho como JSON para garantir que o JavaScript entenda a resposta
 header('Content-Type: application/json; charset=utf-8');
 
+// --- FUNÇÃO DE LOG PARA DEBUG ---
+function gravarLog($mensagem) {
+    $arquivo = 'debug_log.txt';
+    $dataHora = date('d/m/Y H:i:s');
+    // Se a mensagem for array ou objeto, converte para string
+    if (is_array($mensagem) || is_object($mensagem)) {
+        $mensagem = json_encode($mensagem, JSON_UNESCAPED_UNICODE);
+    }
+    $texto = "[$dataHora] $mensagem" . PHP_EOL;
+    file_put_contents($arquivo, $texto, FILE_APPEND);
+}
+
 try {
+    gravarLog("----------------------------------------------------------------");
+    gravarLog("INICIANDO SCRIPT SALVAR.PHP");
+
     // 1. DICA DA VPS: Verificar conexão imediatamente
     if (!isset($pdo)) {
         throw new Exception("Erro crítico: A variável de conexão ($pdo) não foi carregada.");
     }
 
     $id_usuario = $_SESSION['id'] ?? null;
+
+    // Log dos dados recebidos
+    gravarLog("DADOS RECEBIDOS (_POST):");
+    gravarLog($_POST);
 
     // --- RECEBIMENTO DOS DADOS ---
     $id          = $_POST['id']          ?? '';
@@ -84,6 +103,7 @@ try {
     // valida desconto à vista
     $nomePlanoPgtoSelecionado = '';
     if (!empty($plano_pgto) && is_numeric($plano_pgto)) {
+        gravarLog("Consultando Plano de Pagamento ID: $plano_pgto");
         $queryPlano = $pdo->prepare("SELECT nome FROM planos_pgto WHERE id = ?");
         $queryPlano->execute([$plano_pgto]);
         $nomePlanoPgtoSelecionado = $queryPlano->fetchColumn();
@@ -108,6 +128,8 @@ try {
         }
     }
     $total_liquido += $soma_descontos_diversos_val;
+    
+    gravarLog("Total Líquido Calculado: $total_liquido");
 
     // --- VALIDAÇÃO DE PRODUTOS ---
     $tem_produtos = false;
@@ -136,7 +158,8 @@ try {
     }
 
     if ($erros) {
-        // Lançamos exceção para cair no catch e retornar JSON
+        gravarLog("ERROS DE VALIDAÇÃO:");
+        gravarLog($erros);
         throw new Exception(implode("<br>", $erros));
     }
 
@@ -158,9 +181,10 @@ try {
     // INÍCIO DO BLOCO DE TRANSAÇÃO E SQL
     // =================================================================================
 
+    gravarLog("Iniciando Transação (beginTransaction)");
     $pdo->beginTransaction(); // Inicia transação segura
 
-    // 2. TRATAMENTO DA DATA (Dica do HEAD: converte dd/mm/aaaa)
+    // 2. TRATAMENTO DA DATA
     $data_mysql = $data;
     if (!empty($data) && strpos($data, '/') !== false) {
         $timestamp = strtotime(str_replace('/', '-', $data));
@@ -212,22 +236,26 @@ try {
              usado)
             VALUES
              (:forn, :cli, :qd, :dt, :nf, :pp, :ven, :tl, :faz, :da,
-              :df,   :di,    :dab,   :dtadm,    :dd,
+              :df,    :di,    :dab,    :dtadm,    :dd,
               :fci,  :fcpu,
               :ici,  :icpu,
               :aci,  :acpu,
               :atctp, :atcpu,
               0)";
         
+        gravarLog("SQL INSERT Romaneio: " . $sql);
+        gravarLog("Params INSERT: " . json_encode($params));
+
         $stmt = $pdo->prepare($sql);
         
-        // CHECK DE ERRO DO INSERT (Dedo Duro)
         if (!$stmt->execute($params)) {
             $err = $stmt->errorInfo();
+            gravarLog("ERRO SQL INSERT: " . $err[2]);
             throw new Exception("Erro fatal ao inserir Romaneio: " . $err[2]);
         }
         
         $romaneioId = $pdo->lastInsertId();
+        gravarLog("Romaneio Inserido ID: " . $romaneioId);
         
         if (empty($romaneioId)) {
             throw new Exception("O banco de dados não retornou um ID válido.");
@@ -236,40 +264,46 @@ try {
     } else {
         $sql = "UPDATE {$tabela} SET
              fornecedor      = :forn, cliente        = :cli, quant_dias      = :qd,
-             data            = :dt,      nota_fiscal     = :nf, plano_pgto   = :pp,
-             vencimento      = :ven,    total_liquido   = :tl, fazenda           = :faz,
+             data            = :dt,      nota_fiscal      = :nf, plano_pgto    = :pp,
+             vencimento      = :ven,    total_liquido    = :tl, fazenda           = :faz,
              desc_avista     = :da,
-             desc_funrural   = :df,      desc_ima        = :di, desc_abanorte    = :dab,
+             desc_funrural   = :df,      desc_ima         = :di, desc_abanorte    = :dab,
              desc_taxaadm    = :dtadm, descontos_diversos = :dd,
              funrural_config_info = :fci, funrural_config_preco_unit = :fcpu,
              ima_config_info = :ici, ima_config_preco_unit = :icpu,
              abanorte_config_info = :aci, abanorte_config_preco_unit = :acpu,
              taxa_adm_config_taxa_perc = :atctp, taxa_adm_config_preco_unit = :atcpu
-           WHERE id = :id_val";
+            WHERE id = :id_val";
         
         $params[':id_val'] = $id;
+
+        gravarLog("SQL UPDATE Romaneio: " . $sql);
+        gravarLog("Params UPDATE: " . json_encode($params));
+
         $stmt = $pdo->prepare($sql);
         
-        // CHECK DE ERRO DO UPDATE (Dedo Duro)
         if (!$stmt->execute($params)) {
             $err = $stmt->errorInfo();
+            gravarLog("ERRO SQL UPDATE: " . $err[2]);
             throw new Exception("Erro fatal ao atualizar Romaneio: " . $err[2]);
         }
         $romaneioId = $id;
+        gravarLog("Romaneio Atualizado ID: " . $romaneioId);
     }
 
     // 4. INSERÇÃO DOS PRODUTOS
+    gravarLog("Limpando produtos antigos do romaneio " . $romaneioId);
     $delProd = $pdo->prepare("DELETE FROM linha_produto_compra WHERE id_romaneio = ?");
     if (!$delProd->execute([$romaneioId])) {
         throw new Exception("Erro ao limpar produtos antigos.");
     }
 
     if (count($quant_caixa_1_val) > 0) {
-        $insertLinha = $pdo->prepare(
-            "INSERT INTO linha_produto_compra
+        $sqlProd = "INSERT INTO linha_produto_compra
              (id_romaneio, quant, variedade, preco_kg, tipo_caixa, preco_unit, valor)
-             VALUES (?, ?, ?, ?, ?, ?, ?)"
-        );
+             VALUES (?, ?, ?, ?, ?, ?, ?)";
+        
+        $insertLinha = $pdo->prepare($sqlProd);
 
         foreach ($quant_caixa_1_val as $key => $q_val) {
             if (!isset($produto_1_val[$key], $valor_1_val[$key], $tipo_cx_1_val[$key])) {
@@ -282,19 +316,21 @@ try {
             $pun_final   = isset($preco_unit_1_val[$key]) ? str_replace(',', '.', $preco_unit_1_val[$key]) : '0';
             $tipo_cx_str = $tipo_cx_1_val[$key];
 
+            // Busca ou cadastra tipo caixa
             $stmtTipoCx = $pdo->prepare("SELECT id FROM tipo_caixa WHERE tipo = ?");
             $stmtTipoCx->execute([$tipo_cx_str]);
             $tipoCxId = $stmtTipoCx->fetchColumn();
 
             if (!$tipoCxId) {
+                gravarLog("Cadastrando novo tipo de caixa: $tipo_cx_str");
                 $stmtInsTipoCx = $pdo->prepare("INSERT INTO tipo_caixa (tipo, unidade_medida) VALUES (?,1)");
                 if (!$stmtInsTipoCx->execute([$tipo_cx_str])) {
-                     throw new Exception("Erro ao cadastrar novo tipo de caixa: $tipo_cx_str");
+                      throw new Exception("Erro ao cadastrar novo tipo de caixa: $tipo_cx_str");
                 }
                 $tipoCxId = $pdo->lastInsertId();
             }
 
-            if (!$insertLinha->execute([
+            $paramsProd = [
                 $romaneioId,
                 floatval(str_replace(',', '.', $q_val)),
                 $var_final,
@@ -302,14 +338,20 @@ try {
                 $tipoCxId,
                 $pun_final,
                 $v_final
-            ])) {
+            ];
+
+            gravarLog("Inserindo produto (Linha $key): " . json_encode($paramsProd));
+
+            if (!$insertLinha->execute($paramsProd)) {
                 $errP = $insertLinha->errorInfo();
+                gravarLog("ERRO INSERT PRODUTO: " . $errP[2]);
                 throw new Exception("Erro ao inserir produto (Linha $key): " . $errP[2]);
             }
         }
     }
 
     // 5. CONTAS A PAGAR
+    gravarLog("Limpando contas a pagar (pagar) do romaneio " . $romaneioId);
     $deleteRec = $pdo->prepare("DELETE FROM pagar WHERE id_ref = :id_ref AND referencia = 'romaneio_compra'");
     if (!$deleteRec->execute([':id_ref' => $romaneioId])) {
         throw new Exception("Erro ao limpar financeiro antigo.");
@@ -319,12 +361,12 @@ try {
         $formaPgtoRec   = is_numeric($plano_pgto) ? (int)$plano_pgto : null;
         $usuarioLancRec = $id_usuario;
 
-        $insRec = $pdo->prepare("
-        INSERT INTO pagar
+        $sqlPagar = "INSERT INTO pagar
             (descricao, fornecedor, valor, vencimento, data_lanc, forma_pgto, frequencia, referencia, id_romaneio, usuario_lanc, usuario_pgto, funcionario, id_ref)
         VALUES
-            (:descricao, :fornecedor, :valor, :vencimento, :data_lanc, :forma_pgto, '0', 'romaneio_compra', :id_romaneio_fk, :usuario_lanc, :usuario_pgto, '0', :id_ref_pagar)
-        ");
+            (:descricao, :fornecedor, :valor, :vencimento, :data_lanc, :forma_pgto, '0', 'romaneio_compra', :id_romaneio_fk, :usuario_lanc, :usuario_pgto, '0', :id_ref_pagar)";
+
+        $insRec = $pdo->prepare($sqlPagar);
 
         $paramsPagar = [
             'descricao'      => "Romaneio Compra #{$romaneioId}",
@@ -338,15 +380,19 @@ try {
             'usuario_pgto'   => null,
             'id_ref_pagar'   => $romaneioId
         ];
+        
+        gravarLog("Inserindo Financeiro: " . json_encode($paramsPagar));
 
         if (!$insRec->execute($paramsPagar)) {
              $errFin = $insRec->errorInfo();
+             gravarLog("ERRO INSERT FINANCEIRO: " . $errFin[2]);
              throw new Exception("Erro ao gerar Contas a Pagar: " . $errFin[2]);
         }
     }
 
     // SE CHEGOU AQUI, TUDO DEU CERTO.
     $pdo->commit();
+    gravarLog("Commit realizado com sucesso!");
 
     echo json_encode([
         'status'   => 'sucesso',
@@ -356,15 +402,19 @@ try {
 
 } catch (Throwable $e) { // Usamos Throwable para pegar Erros Fatais e Exceptions
     
+    $msgErro = $e->getMessage();
+    gravarLog("ERRO NO CATCH: " . $msgErro);
+
     // SE DER ERRO EM QUALQUER LUGAR (Mesmo antes da transaction)
     if (isset($pdo) && $pdo->inTransaction()) {
         $pdo->rollBack();
+        gravarLog("Rollback realizado.");
     }
     
     // Retorna JSON para o Javascript não quebrar
     echo json_encode([
         'status'   => 'erro',
-        'mensagem' => 'Erro: ' . $e->getMessage()
+        'mensagem' => 'Erro: ' . $msgErro
     ], JSON_UNESCAPED_UNICODE);
     exit;
 }
