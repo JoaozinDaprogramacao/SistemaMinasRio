@@ -1,0 +1,31 @@
+[09/12/2025 16:00:16] ----------------------------------------------------------------
+[09/12/2025 16:00:16] INICIANDO SCRIPT SALVAR.PHP
+[09/12/2025 16:00:16] DADOS RECEBIDOS (_POST):
+[09/12/2025 16:00:16] {"data":"2025-12-09","plano_pgto":"1","quant_dias":"6","vencimento":"2025-12-15","fornecedor":"30","fazenda":"Fazenda do Joao","nota_fiscal":"1244412","cliente":"29","quant_caixa_1":["","5",""],"produto_1":["","37",""],"preco_kg_1":["","0,65",""],"tipo_cx_1":["","10.00",""],"preco_unit_1":["","6,50",""],"valor_1":["","32,50",""],"desc-avista":"6","info_funrural":"","preco_unit_funrural":"","desc_funrural":"0,00","info_ima":"","preco_unit_ima":"","desc_ima":"0,00","info_abanorte":"","preco_unit_abanorte":"","desc_abanorte":"0,00","taxa_adm_percent":"","preco_unit_taxa_adm":"","valor_taxa_adm":"0,00","desconto_tipo":["+","+"],"desconto_valor":["",""],"desconto_obs":["",""],"valor_liquido":"30,55","id":""}
+[09/12/2025 16:00:16] Consultando Plano de Pagamento ID: 1
+[09/12/2025 16:00:16] Total Líquido Calculado: 30.55
+[09/12/2025 16:00:16] Iniciando Transação (beginTransaction)
+[09/12/2025 16:00:16] SQL INSERT Romaneio: INSERT INTO romaneio_compra
+            (fornecedor, cliente, quant_dias, data, nota_fiscal, plano_pgto, vencimento,
+             total_liquido, fazenda, desc_avista,
+             desc_funrural, desc_ima, desc_abanorte, desc_taxaadm, descontos_diversos,
+             funrural_config_info, funrural_config_preco_unit, 
+             ima_config_info, ima_config_preco_unit,
+             abanorte_config_info, abanorte_config_preco_unit,
+             taxa_adm_config_taxa_perc, taxa_adm_config_preco_unit,
+             usado)
+            VALUES
+             (:forn, :cli, :qd, :dt, :nf, :pp, :ven, :tl, :faz, :da,
+              :df,    :di,    :dab,    :dtadm,    :dd,
+              :fci,  :fcpu,
+              :ici,  :icpu,
+              :aci,  :acpu,
+              :atctp, :atcpu,
+              0)
+[09/12/2025 16:00:16] Params INSERT: {":forn":"30",":cli":"29",":qd":"6",":dt":"2025-12-09",":nf":"1244412",":pp":"1",":ven":"2025-12-15",":tl":30.549999999999997,":faz":"Fazenda do Joao",":da":6,":df":0,":di":0,":dab":0,":dtadm":0,":dd":null,":fci":"",":fcpu":null,":ici":"",":icpu":null,":aci":"",":acpu":null,":atctp":null,":atcpu":null}
+[09/12/2025 16:00:16] Romaneio Inserido ID: 173
+[09/12/2025 16:00:16] Limpando produtos antigos do romaneio 173
+[09/12/2025 16:00:16] Inserindo produto (Linha 0): ["173",5,"37","0.65",5,"6.50","32.50"]
+[09/12/2025 16:00:16] Limpando contas a pagar (pagar) do romaneio 173
+[09/12/2025 16:00:16] Inserindo Financeiro: {"descricao":"Romaneio Compra #173","fornecedor":"30","valor":30.549999999999997,"vencimento":"2025-12-15","data_lanc":"2025-12-09","forma_pgto":1,"id_romaneio_fk":"173","usuario_lanc":8,"usuario_pgto":null,"id_ref_pagar":"173"}
+[09/12/2025 16:00:16] Commit realizado com sucesso!
