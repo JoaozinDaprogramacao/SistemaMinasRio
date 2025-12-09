@@ -7,7 +7,7 @@ function listar(p1, p2, p3, p4, p5, p6, p7, p8) {
     $.ajax({
         url: 'paginas/' + pag + "/listar.php",
         method: 'POST',
-        data: { p1, p2, p3, p4, p5, p6 , p7, p8},
+        data: { p1, p2, p3, p4, p5, p6, p7, p8 },
         dataType: "html",
 
         success: function (result) {
@@ -35,7 +35,7 @@ function carregarSalarioMinimo() {
                 console.log('Salário mínimo carregado: R$', salarioMinimoAtual);
             } else {
                 // Usa um valor de fallback se a API falhar
-                salarioMinimoAtual = 1518.00; 
+                salarioMinimoAtual = 1518.00;
             }
         })
         .catch(error => {
@@ -49,13 +49,13 @@ function carregarSalarioMinimo() {
 function calcularSalarioFolha() {
     if (salarioMinimoAtual === 0) {
         // Se o salário ainda não carregou, não faz o cálculo
-        return; 
+        return;
     }
 
     const inputDescricao = document.getElementById('descricao_salario');
     const inputSalarioFolha = document.getElementById('salario_folha');
     const multiplicador = parseFloat(inputDescricao.value.replace(',', '.')) || 0;
-    
+
     const salarioCalculado = multiplicador * salarioMinimoAtual;
 
     inputSalarioFolha.value = salarioCalculado.toFixed(2).replace('.', '.'); // Garante o ponto
@@ -63,7 +63,7 @@ function calcularSalarioFolha() {
 
 
 // Chame esta função assim que a página carregar
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     carregarSalarioMinimo();
 });
 
@@ -90,7 +90,7 @@ function mascara_decimal_ponto(el) {
     // 4. Separa a parte inteira dos decimais
     let parteInteira = valor.slice(0, -2);
     let centavos = valor.slice(-2);
-    
+
     // Garante que a parte inteira seja '0' se não houver nada
     if (parteInteira === '') {
         parteInteira = '0';
@@ -98,7 +98,7 @@ function mascara_decimal_ponto(el) {
 
     // 5. Monta o valor final e atualiza o campo
     el.value = parteInteira + '.' + centavos;
-}   
+}
 
 
 $("#form").submit(function () {
@@ -216,8 +216,8 @@ function ativar(id, acao) {
 function mascara_moeda(el) {
     // el pode ser this (o próprio <input>) ou um seletor jQuery
     var $el = $(el);
-    var v   = $el.val() || '';
-    
+    var v = $el.val() || '';
+
     // 1) tira tudo que não for dígito
     v = v.replace(/\D/g, '');
     // 2) se vazio, vira "0"
@@ -225,19 +225,19 @@ function mascara_moeda(el) {
     // 3) garante no mínimo 3 dígitos
     while (v.length < 3) v = '0' + v;
     // 4) separa reais / centavos
-    var inteiro  = v.slice(0, -2);
+    var inteiro = v.slice(0, -2);
     var centavos = v.slice(-2);
     // 5) separador de milhares (opcional)
     inteiro = inteiro.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
     // 6) atualiza campo
     $el.val(inteiro + ',' + centavos);
-  
+
     // 7) recálculo de totais
     if (typeof calculaTotais === 'function') calculaTotais();
-  }
+}
 
 
-  function mascara_decimal(el) {
+function mascara_decimal(el) {
     // el é o próprio <input> que chamou a função
     var $input = $(el);
     var valor = $input.val() || "";
@@ -251,8 +251,8 @@ function mascara_moeda(el) {
     }
 
     // 3) separa parte inteira e centavos
-    var parteInteira  = valor.slice(0, -2);
-    var centavos      = valor.slice(-2);
+    var parteInteira = valor.slice(0, -2);
+    var centavos = valor.slice(-2);
 
     // 4) pontua milhares
     parteInteira = parteInteira.replace(/\B(?=(\d{3})+(?!\d))/g, ".");

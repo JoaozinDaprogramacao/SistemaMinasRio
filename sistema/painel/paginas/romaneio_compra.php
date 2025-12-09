@@ -915,6 +915,9 @@ if (@$produtos == 'ocultar') {
 
 		$('#mensagem-sucesso').hide();
 
+		$('#id').val('');
+		$('#mensagem-erro').hide();
+
 		$('.data_atual').val(new Date().toISOString().split('T')[0]);
 		$('#fornecedor').val('');
 		$('#plano_pgto').val('');
