@@ -241,8 +241,8 @@ if (file_exists($caminho_fisico)) {
         <?= $romaneio['fazenda'] ?>
       </td>
       <td class="info-label" style="text-align: center;">NFe:</td>
-      <td style="font-weight: bold; text-align: center;">
-        <?= $romaneio['nfe'] ?? '' ?>
+      <td style="font-weight: bold; text-align: left;">
+        <?= $romaneio['nota_fiscal'] ?? '' ?>
       </td>
     </tr>
   </table>
