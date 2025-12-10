@@ -4,37 +4,44 @@ $tabela = 'romaneio_compra';
 require_once("../../../conexao.php");
 session_start();
 
-// Define o cabeçalho como JSON para garantir que o JavaScript entenda a resposta
+// Define o cabeçalho como JSON
 header('Content-Type: application/json; charset=utf-8');
 
-// --- FUNÇÃO DE LOG PARA DEBUG ---
+// --- FUNÇÃO DE LOG PARA DEBUG ULTRA DETALHADO ---
 function gravarLog($mensagem) {
-    $arquivo = 'debug_log.txt';
+    $arquivo = 'debug_romaneio_log.txt'; // Nome do arquivo de log
     $dataHora = date('d/m/Y H:i:s');
-    // Se a mensagem for array ou objeto, converte para string
+    
+    // Formata arrays e objetos para leitura humana
     if (is_array($mensagem) || is_object($mensagem)) {
-        $mensagem = json_encode($mensagem, JSON_UNESCAPED_UNICODE);
+        $mensagem = json_encode($mensagem, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
     }
-    $texto = "[$dataHora] $mensagem" . PHP_EOL;
-    file_put_contents($arquivo, $texto, FILE_APPEND);
+    
+    $texto = "[$dataHora] > $mensagem" . PHP_EOL;
+    // Usa LOCK_EX para evitar conflito se duas pessoas salvarem ao mesmo tempo
+    file_put_contents($arquivo, $texto, FILE_APPEND | LOCK_EX);
 }
 
 try {
-    gravarLog("----------------------------------------------------------------");
+    // Limpa visualmente o log a cada nova requisição (opcional, se quiser histórico remova a linha abaixo)
+    // file_put_contents('debug_romaneio_log.txt', "=== NOVO PROCESSO DE SALVAMENTO INICIADO ===\n");
+
+    gravarLog("==================================================================");
     gravarLog("INICIANDO SCRIPT SALVAR.PHP");
 
-    // 1. DICA DA VPS: Verificar conexão imediatamente
+    // 1. VERIFICAR CONEXÃO
     if (!isset($pdo)) {
-        throw new Exception("Erro crítico: A variável de conexão ($pdo) não foi carregada.");
+        throw new Exception("Erro crítico: A variável de conexão (\$pdo) não foi carregada.");
     }
+    gravarLog("Conexão com Banco de Dados: OK");
 
     $id_usuario = $_SESSION['id'] ?? null;
-
-    // Log dos dados recebidos
-    gravarLog("DADOS RECEBIDOS (_POST):");
-    gravarLog($_POST);
+    gravarLog("Usuário da Sessão ID: " . ($id_usuario ?? 'NÃO LOGADO'));
 
     // --- RECEBIMENTO DOS DADOS ---
+    gravarLog("--- RECEBENDO DADOS BRUTOS (_POST) ---");
+    gravarLog($_POST);
+
     $id          = $_POST['id']          ?? '';
     $fornecedor  = $_POST['fornecedor']  ?? '';
     $cliente     = $_POST['cliente']     ?? '';
@@ -44,15 +51,17 @@ try {
     $nota_fiscal = $_POST['nota_fiscal'] ?? '';
     $vencimento  = $_POST['vencimento']  ?? '';
     $fazenda     = $_POST['fazenda']     ?? '';
+    
+    // Tratamento numérico
     $desc_avista = floatval(str_replace(',', '.', $_POST['desc-avista'] ?? '0'));
-
-    // descontos fixos
+    
+    // Descontos fixos
     $desc_funrural = floatval(str_replace(',', '.', $_POST['desc_funrural']     ?? '0'));
     $desc_ima      = floatval(str_replace(',', '.', $_POST['desc_ima']          ?? '0'));
     $desc_abanorte = floatval(str_replace(',', '.', $_POST['desc_abanorte']     ?? '0'));
     $desc_taxaadm  = floatval(str_replace(',', '.', $_POST['valor_taxa_adm']    ?? '0'));
 
-    // Configurações extras
+    // Configurações extras (serialize/json)
     $funrural_config_info       = $_POST['info_funrural'] ?? null;
     $funrural_config_preco_unit = isset($_POST['preco_unit_funrural']) && $_POST['preco_unit_funrural'] !== '' ? floatval(str_replace(',', '.', $_POST['preco_unit_funrural'])) : null;
 
@@ -65,12 +74,13 @@ try {
     $taxa_adm_config_taxa_perc  = isset($_POST['taxa_adm_percent']) && $_POST['taxa_adm_percent'] !== '' ? floatval(str_replace(',', '.', $_POST['taxa_adm_percent'])) : null;
     $taxa_adm_config_preco_unit = isset($_POST['preco_unit_taxa_adm']) && $_POST['preco_unit_taxa_adm'] !== '' ? floatval(str_replace(',', '.', $_POST['preco_unit_taxa_adm'])) : null;
 
-
     // --- PROCESSAMENTO DE DESCONTOS DIVERSOS ---
+    gravarLog("--- PROCESSANDO DESCONTOS DIVERSOS ---");
     $tipos   = $_POST['desconto_tipo']  ?? [];
     $valores = $_POST['desconto_valor'] ?? [];
     $obs     = $_POST['desconto_obs']   ?? [];
     $descontos_diversos = [];
+    
     foreach ($tipos as $i => $tipo) {
         $v_str = str_replace(',', '.', $valores[$i] ?? '0');
         if ($tipo !== '' && is_numeric($v_str)) {
@@ -83,7 +93,7 @@ try {
         }
     }
     $descontos_json = count($descontos_diversos) > 0 ? json_encode($descontos_diversos, JSON_UNESCAPED_UNICODE) : null;
-
+    gravarLog("JSON Gerado para Descontos Diversos: " . ($descontos_json ?? 'NULL'));
 
     // --- ARRAYS DE PRODUTOS ---
     $quant_caixa_1 = $_POST['quant_caixa_1'] ?? [];
@@ -93,17 +103,17 @@ try {
     $preco_unit_1  = $_POST['preco_unit_1']  ?? [];
     $valor_1       = $_POST['valor_1']       ?? [];
 
-    // --- VALIDAÇÕES BÁSICAS ---
+    // --- VALIDAÇÕES ---
+    gravarLog("--- INICIANDO VALIDAÇÕES ---");
     $erros = [];
     if (empty($fornecedor) || $fornecedor == '0') $erros[] = "Selecione um fornecedor";
     if (empty($cliente)    || $cliente    == '0') $erros[] = "Selecione um cliente";
     if (empty($data))                             $erros[] = "Data é obrigatória";
     if (empty($plano_pgto) || $plano_pgto == '0') $erros[] = "Selecione um plano de pagamento";
 
-    // valida desconto à vista
+    // Valida desconto à vista
     $nomePlanoPgtoSelecionado = '';
     if (!empty($plano_pgto) && is_numeric($plano_pgto)) {
-        gravarLog("Consultando Plano de Pagamento ID: $plano_pgto");
         $queryPlano = $pdo->prepare("SELECT nome FROM planos_pgto WHERE id = ?");
         $queryPlano->execute([$plano_pgto]);
         $nomePlanoPgtoSelecionado = $queryPlano->fetchColumn();
@@ -113,12 +123,13 @@ try {
     }
 
     // --- CÁLCULO DE TOTAIS ---
+    gravarLog("--- CALCULANDO TOTAIS ---");
     $total_bruto      = array_reduce($valor_1, fn($c, $v_prod) => $c + floatval(str_replace(',', '.', $v_prod)), 0);
     $total_bruto_desc = $total_bruto * (1 - ($desc_avista / 100));
     $soma_outros_descontos_fixos = $desc_funrural + $desc_ima + $desc_abanorte + $desc_taxaadm;
     $total_liquido = $total_bruto_desc - $soma_outros_descontos_fixos;
 
-    // Adicionar soma dos descontos diversos ao total_liquido
+    // Adicionar soma dos descontos diversos
     $soma_descontos_diversos_val = 0;
     foreach ($descontos_diversos as $dd_item) {
         if ($dd_item['tipo'] === '-') {
@@ -129,45 +140,32 @@ try {
     }
     $total_liquido += $soma_descontos_diversos_val;
     
-    gravarLog("Total Líquido Calculado: $total_liquido");
+    gravarLog("Total Bruto: $total_bruto");
+    gravarLog("Total Líquido Final: $total_liquido");
 
-    // --- VALIDAÇÃO DE PRODUTOS ---
+    // Validação de Produtos (existência)
     $tem_produtos = false;
     foreach ($valor_1 as $k_prod => $v_prod_str) {
         $v_prod = floatval(str_replace(',', '.', $v_prod_str));
         if ($v_prod_str !== '' && $v_prod > 0) {
             $tem_produtos = true;
             if (empty($produto_1[$k_prod])) {
-                $erros[] = "Selecione variedade em todos os produtos com valor";
-                break;
-            }
-            if (empty($tipo_cx_1[$k_prod])) {
-                $erros[] = "Selecione tipo de caixa em todos os produtos com valor";
-                break;
-            }
-            if (empty($quant_caixa_1[$k_prod]) || floatval(str_replace(',', '.', $quant_caixa_1[$k_prod])) <= 0) {
-                $erros[] = "Quantidade de caixas deve ser maior que zero para produtos com valor";
-                break;
+                $erros[] = "Selecione variedade na linha " . ($k_prod + 1);
             }
         }
     }
     if (!$tem_produtos && count(array_filter($valor_1)) > 0) {
-        $erros[] = "Adicione produtos válidos ao romaneio.";
-    } else if (count(array_filter($valor_1)) == 0) {
-        $erros[] = "Adicione pelo menos um produto ao romaneio.";
+        $erros[] = "Adicione produtos válidos.";
     }
 
     if ($erros) {
-        gravarLog("ERROS DE VALIDAÇÃO:");
-        gravarLog($erros);
+        gravarLog("ERRO DE VALIDAÇÃO DETECTADO: " . json_encode($erros));
         throw new Exception(implode("<br>", $erros));
     }
 
-    // --- PREPARAÇÃO DOS ARRAYS DE PRODUTOS ---
+    // Prepara arrays limpos
     function filtrar(array $a) {
-        return array_values(array_filter($a, function ($v) {
-            return $v !== '' && $v !== null;
-        }));
+        return array_values(array_filter($a, function ($v) { return $v !== '' && $v !== null; }));
     }
     $quant_caixa_1_val = filtrar($quant_caixa_1);
     $produto_1_val     = filtrar($produto_1);
@@ -176,28 +174,20 @@ try {
     $preco_unit_1_val  = filtrar($preco_unit_1);
     $valor_1_val       = filtrar($valor_1);
 
-
     // =================================================================================
-    // INÍCIO DO BLOCO DE TRANSAÇÃO E SQL
+    // BANCO DE DADOS - INÍCIO
     // =================================================================================
+    gravarLog(">>> INICIANDO TRANSAÇÃO (PDO beginTransaction) <<<");
+    $pdo->beginTransaction(); 
 
-    gravarLog("Iniciando Transação (beginTransaction)");
-    $pdo->beginTransaction(); // Inicia transação segura
-
-    // 2. TRATAMENTO DA DATA
+    // Conversão Data
     $data_mysql = $data;
     if (!empty($data) && strpos($data, '/') !== false) {
         $timestamp = strtotime(str_replace('/', '-', $data));
-        if ($timestamp) {
-            $data_mysql = date('Y-m-d H:i:s', $timestamp);
-        } else {
-            $data_mysql = date('Y-m-d H:i:s');
-        }
-    } elseif (empty($data)) {
-        $data_mysql = date('Y-m-d H:i:s');
+        $data_mysql = $timestamp ? date('Y-m-d H:i:s', $timestamp) : date('Y-m-d H:i:s');
     }
 
-    // 3. INSERT OU UPDATE DO CABEÇALHO
+    // Parâmetros para Insert/Update
     $params = [
         ':forn'   => $fornecedor,
         ':cli'    => $cliente,
@@ -225,6 +215,8 @@ try {
     ];
 
     if ($id === '') {
+        // --- INSERT ---
+        gravarLog("Malandragem: ID vazio, então é INSERT.");
         $sql = "INSERT INTO {$tabela}
             (fornecedor, cliente, quant_dias, data, nota_fiscal, plano_pgto, vencimento,
              total_liquido, fazenda, desc_avista,
@@ -243,32 +235,28 @@ try {
               :atctp, :atcpu,
               0)";
         
-        gravarLog("SQL INSERT Romaneio: " . $sql);
-        gravarLog("Params INSERT: " . json_encode($params));
+        gravarLog("SQL PREPARADO: " . $sql);
+        gravarLog("PARÂMETROS INSERT: " . json_encode($params));
 
         $stmt = $pdo->prepare($sql);
-        
         if (!$stmt->execute($params)) {
             $err = $stmt->errorInfo();
-            gravarLog("ERRO SQL INSERT: " . $err[2]);
-            throw new Exception("Erro fatal ao inserir Romaneio: " . $err[2]);
+            throw new Exception("Erro INSERT Tabela Principal: " . $err[2]);
         }
         
         $romaneioId = $pdo->lastInsertId();
-        gravarLog("Romaneio Inserido ID: " . $romaneioId);
-        
-        if (empty($romaneioId)) {
-            throw new Exception("O banco de dados não retornou um ID válido.");
-        }
+        gravarLog("SUCESSO: Romaneio Criado com ID: " . $romaneioId);
 
     } else {
+        // --- UPDATE ---
+        gravarLog("Malandragem: ID existente ($id), então é UPDATE.");
         $sql = "UPDATE {$tabela} SET
-             fornecedor      = :forn, cliente        = :cli, quant_dias      = :qd,
-             data            = :dt,      nota_fiscal      = :nf, plano_pgto    = :pp,
-             vencimento      = :ven,    total_liquido    = :tl, fazenda           = :faz,
-             desc_avista     = :da,
-             desc_funrural   = :df,      desc_ima         = :di, desc_abanorte    = :dab,
-             desc_taxaadm    = :dtadm, descontos_diversos = :dd,
+             fornecedor       = :forn, cliente        = :cli, quant_dias       = :qd,
+             data             = :dt,      nota_fiscal      = :nf, plano_pgto       = :pp,
+             vencimento       = :ven,     total_liquido    = :tl, fazenda           = :faz,
+             desc_avista      = :da,
+             desc_funrural    = :df,      desc_ima         = :di, desc_abanorte    = :dab,
+             desc_taxaadm     = :dtadm, descontos_diversos = :dd,
              funrural_config_info = :fci, funrural_config_preco_unit = :fcpu,
              ima_config_info = :ici, ima_config_preco_unit = :icpu,
              abanorte_config_info = :aci, abanorte_config_preco_unit = :acpu,
@@ -277,56 +265,53 @@ try {
         
         $params[':id_val'] = $id;
 
-        gravarLog("SQL UPDATE Romaneio: " . $sql);
-        gravarLog("Params UPDATE: " . json_encode($params));
+        gravarLog("SQL PREPARADO: " . $sql);
+        gravarLog("PARÂMETROS UPDATE: " . json_encode($params));
 
         $stmt = $pdo->prepare($sql);
-        
         if (!$stmt->execute($params)) {
             $err = $stmt->errorInfo();
-            gravarLog("ERRO SQL UPDATE: " . $err[2]);
-            throw new Exception("Erro fatal ao atualizar Romaneio: " . $err[2]);
+            throw new Exception("Erro UPDATE Tabela Principal: " . $err[2]);
         }
         $romaneioId = $id;
-        gravarLog("Romaneio Atualizado ID: " . $romaneioId);
+        gravarLog("SUCESSO: Romaneio ID $id Atualizado.");
     }
 
-    // 4. INSERÇÃO DOS PRODUTOS
-    gravarLog("Limpando produtos antigos do romaneio " . $romaneioId);
+    // 4. PRODUTOS
+    gravarLog("=== INICIO ETAPA PRODUTOS ===");
+    
+    // Deletar antigos
+    gravarLog("Deletando itens antigos do romaneio $romaneioId...");
     $delProd = $pdo->prepare("DELETE FROM linha_produto_compra WHERE id_romaneio = ?");
-    if (!$delProd->execute([$romaneioId])) {
-        throw new Exception("Erro ao limpar produtos antigos.");
-    }
+    $delProd->execute([$romaneioId]);
+    gravarLog("Itens antigos deletados.");
 
+    // Inserir novos
     if (count($quant_caixa_1_val) > 0) {
         $sqlProd = "INSERT INTO linha_produto_compra
              (id_romaneio, quant, variedade, preco_kg, tipo_caixa, preco_unit, valor)
              VALUES (?, ?, ?, ?, ?, ?, ?)";
-        
         $insertLinha = $pdo->prepare($sqlProd);
 
         foreach ($quant_caixa_1_val as $key => $q_val) {
-            if (!isset($produto_1_val[$key], $valor_1_val[$key], $tipo_cx_1_val[$key])) {
-                continue;
-            }
+            if (!isset($produto_1_val[$key], $valor_1_val[$key], $tipo_cx_1_val[$key])) continue;
 
-            $v_final     = str_replace(',', '.', $valor_1_val[$key]);
-            $var_final   = $produto_1_val[$key];
-            $pkg_final   = isset($preco_kg_1_val[$key]) ? str_replace(',', '.', $preco_kg_1_val[$key]) : '0';
-            $pun_final   = isset($preco_unit_1_val[$key]) ? str_replace(',', '.', $preco_unit_1_val[$key]) : '0';
-            $tipo_cx_str = $tipo_cx_1_val[$key];
+            // Prepara dados do loop
+            $v_final    = str_replace(',', '.', $valor_1_val[$key]);
+            $var_final  = $produto_1_val[$key];
+            $pkg_final  = isset($preco_kg_1_val[$key]) ? str_replace(',', '.', $preco_kg_1_val[$key]) : '0';
+            $pun_final  = isset($preco_unit_1_val[$key]) ? str_replace(',', '.', $preco_unit_1_val[$key]) : '0';
+            $tipo_cx_str= $tipo_cx_1_val[$key];
 
-            // Busca ou cadastra tipo caixa
+            // Verifica tipo caixa
             $stmtTipoCx = $pdo->prepare("SELECT id FROM tipo_caixa WHERE tipo = ?");
             $stmtTipoCx->execute([$tipo_cx_str]);
             $tipoCxId = $stmtTipoCx->fetchColumn();
 
             if (!$tipoCxId) {
-                gravarLog("Cadastrando novo tipo de caixa: $tipo_cx_str");
+                gravarLog("Aviso: Tipo de caixa '$tipo_cx_str' não existe. Criando agora.");
                 $stmtInsTipoCx = $pdo->prepare("INSERT INTO tipo_caixa (tipo, unidade_medida) VALUES (?,1)");
-                if (!$stmtInsTipoCx->execute([$tipo_cx_str])) {
-                      throw new Exception("Erro ao cadastrar novo tipo de caixa: $tipo_cx_str");
-                }
+                $stmtInsTipoCx->execute([$tipo_cx_str]);
                 $tipoCxId = $pdo->lastInsertId();
             }
 
@@ -340,22 +325,24 @@ try {
                 $v_final
             ];
 
-            gravarLog("Inserindo produto (Linha $key): " . json_encode($paramsProd));
-
+            gravarLog("Inserindo Produto [Index $key]: " . json_encode($paramsProd));
+            
             if (!$insertLinha->execute($paramsProd)) {
                 $errP = $insertLinha->errorInfo();
-                gravarLog("ERRO INSERT PRODUTO: " . $errP[2]);
-                throw new Exception("Erro ao inserir produto (Linha $key): " . $errP[2]);
+                throw new Exception("Erro INSERT Produto $key: " . $errP[2]);
             }
         }
+    } else {
+        gravarLog("Atenção: Nenhum produto válido encontrado nos arrays para inserir.");
     }
 
-    // 5. CONTAS A PAGAR
-    gravarLog("Limpando contas a pagar (pagar) do romaneio " . $romaneioId);
+    // 5. FINANCEIRO (CONTAS A PAGAR)
+    gravarLog("=== INICIO ETAPA FINANCEIRO ===");
+    
+    // Deleta anterior
     $deleteRec = $pdo->prepare("DELETE FROM pagar WHERE id_ref = :id_ref AND referencia = 'romaneio_compra'");
-    if (!$deleteRec->execute([':id_ref' => $romaneioId])) {
-        throw new Exception("Erro ao limpar financeiro antigo.");
-    }
+    $deleteRec->execute([':id_ref' => $romaneioId]);
+    gravarLog("Financeiro antigo deletado.");
 
     if ($total_liquido > 0) {
         $formaPgtoRec   = is_numeric($plano_pgto) ? (int)$plano_pgto : null;
@@ -380,19 +367,22 @@ try {
             'usuario_pgto'   => null,
             'id_ref_pagar'   => $romaneioId
         ];
-        
-        gravarLog("Inserindo Financeiro: " . json_encode($paramsPagar));
+
+        gravarLog("Criando Conta a Pagar: " . json_encode($paramsPagar));
 
         if (!$insRec->execute($paramsPagar)) {
              $errFin = $insRec->errorInfo();
-             gravarLog("ERRO INSERT FINANCEIRO: " . $errFin[2]);
-             throw new Exception("Erro ao gerar Contas a Pagar: " . $errFin[2]);
+             throw new Exception("Erro INSERT Financeiro: " . $errFin[2]);
         }
+        gravarLog("Financeiro gerado com sucesso.");
+    } else {
+        gravarLog("Pulei o financeiro: Total Líquido é zero ou negativo.");
     }
 
-    // SE CHEGOU AQUI, TUDO DEU CERTO.
+    // CONFIRMA TUDO
     $pdo->commit();
-    gravarLog("Commit realizado com sucesso!");
+    gravarLog(">>> COMMIT REALIZADO COM SUCESSO <<<");
+    gravarLog("Script finalizado corretamente.");
 
     echo json_encode([
         'status'   => 'sucesso',
@@ -400,18 +390,20 @@ try {
         'id'       => $romaneioId
     ], JSON_UNESCAPED_UNICODE);
 
-} catch (Throwable $e) { // Usamos Throwable para pegar Erros Fatais e Exceptions
-    
+} catch (Throwable $e) {
+    // ERRO
     $msgErro = $e->getMessage();
-    gravarLog("ERRO NO CATCH: " . $msgErro);
+    $linhaErro = $e->getLine();
+    
+    gravarLog("!!! ERRO FATAL !!!");
+    gravarLog("Mensagem: " . $msgErro);
+    gravarLog("Linha: " . $linhaErro);
 
-    // SE DER ERRO EM QUALQUER LUGAR (Mesmo antes da transaction)
     if (isset($pdo) && $pdo->inTransaction()) {
         $pdo->rollBack();
-        gravarLog("Rollback realizado.");
+        gravarLog("ROLLBACK executado (alterações desfeitas).");
     }
     
-    // Retorna JSON para o Javascript não quebrar
     echo json_encode([
         'status'   => 'erro',
         'mensagem' => 'Erro: ' . $msgErro
