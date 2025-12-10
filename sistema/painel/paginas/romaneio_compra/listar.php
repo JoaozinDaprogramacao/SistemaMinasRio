@@ -13,119 +13,114 @@ $params = [];
 
 // Adiciona filtro de data
 if (!empty($dataInicial) && !empty($dataFinal)) {
-  $where[] = "data >= :dataInicial AND data <= :dataFinal";
-  $params[':dataInicial'] = $dataInicial;
-  $params[':dataFinal'] = $dataFinal;
+    $where[] = "rc.data >= :dataInicial AND rc.data <= :dataFinal"; // Adicionei o alias rc. para evitar ambiguidade
+    $params[':dataInicial'] = $dataInicial;
+    $params[':dataFinal'] = $dataFinal;
 }
 
 // Adiciona filtro de fornecedor
 if (!empty($fornecedor)) {
-  $where[] = "fornecedor = :fornecedor";
-  $params[':fornecedor'] = $fornecedor;
+    $where[] = "rc.fornecedor = :fornecedor";
+    $params[':fornecedor'] = $fornecedor;
 }
 
 // Combina as condições do WHERE
 $filtrar = '';
 if (count($where) > 0) {
-  $filtrar = ' WHERE ' . implode(' AND ', $where);
+    $filtrar = ' WHERE ' . implode(' AND ', $where);
 }
 
-// Consulta SQL com filtros
-$query = $pdo->prepare("SELECT rc.*, f.nome_atacadista as nome_fornecedor 
-	FROM $tabela rc
-	LEFT JOIN fornecedores f ON rc.fornecedor = f.id" .
-  $filtrar . " ORDER BY rc.id DESC");
+// --- ALTERAÇÃO 1: Adicionei o JOIN com a tabela de clientes ---
+// Assumi que a tabela se chama 'clientes' e o campo 'nome'. Ajuste se necessário.
+$query = $pdo->prepare("SELECT rc.*, 
+        f.nome_atacadista as nome_fornecedor,
+        c.nome as nome_cliente 
+    FROM $tabela rc
+    LEFT JOIN fornecedores f ON rc.fornecedor = f.id
+    LEFT JOIN clientes c ON rc.cliente = c.id " .
+    $filtrar . " ORDER BY rc.id DESC");
 
 $query->execute($params);
 $res = $query->fetchAll(PDO::FETCH_ASSOC);
 $linhas = @count($res);
-if ($linhas > 0) {
-  echo <<<HTML
 
-	<table class="table table-bordered text-nowrap border-bottom dt-responsive" id="tabela">
-	<thead> 
-	<tr> 
-	<th align="center" width="5%" class="text-center">Selecionar</th>
-	<th>Room N°</th>	
-	<th>Fornecedor</th>	
-	<th>Data</th>	
-	<th>Ações</th>
-	</tr> 
-	</thead> 
-	<tbody>	
+if ($linhas > 0) {
+    echo <<<HTML
+    <table class="table table-bordered text-nowrap border-bottom dt-responsive" id="tabela">
+    <thead> 
+    <tr> 
+    <th align="center" width="5%" class="text-center">Selecionar</th>
+    <th>Room N°</th>    
+    <th>Fornecedor</th>    
+    <th>Cliente</th> <th>Data</th>    
+    <th>Ações</th>
+    </tr> 
+    </thead> 
+    <tbody> 
 HTML;
 
-  for ($i = 0; $i < $linhas; $i++) {
-    $id = $res[$i]['id'];
-    $fornecedor = $res[$i]['fornecedor'];
-    $data = $res[$i]['data'];
+    for ($i = 0; $i < $linhas; $i++) {
+        $id = $res[$i]['id'];
+        $data = $res[$i]['data'];
+        
+        // Formatação da data
+        $dataF = implode('/', array_reverse(@explode('-', explode(' ', $data)[0])));
 
-    $dataF = implode('/', array_reverse(@explode('-', $data)));
+        // Pegando nomes vindos direto do SQL (Muito mais rápido que fazer consulta extra)
+        $fornecedor_nome = $res[$i]['nome_fornecedor'] ? $res[$i]['nome_fornecedor'] : 'Fornecedor não encontrado';
+        
+        // --- ALTERAÇÃO 3: Lógica para pegar nome do cliente ---
+        $cliente_nome = $res[$i]['nome_cliente'] ? $res[$i]['nome_cliente'] : 'Sem Cliente';
 
-    // Consulta para pegar o nome do fornecedor
-    $query_nome_fornecedor = $pdo->query("SELECT nome_atacadista FROM fornecedores WHERE id = '$fornecedor'");
+        // IDs originais para as funções JS
+        $id_fornecedor_fk = $res[$i]['fornecedor'];
 
-    // Fetch o resultado da consulta
-    $fornecedor_nome_array = $query_nome_fornecedor->fetch(PDO::FETCH_ASSOC);
-
-    // Verifique se o resultado foi encontrado e extraia o nome do fornecedor
-    if ($fornecedor_nome_array) {
-      $fornecedor_nome = $fornecedor_nome_array['nome_atacadista'];
-    } else {
-      // Caso o fornecedor não seja encontrado
-      $fornecedor_nome = "Fornecedor não encontrado";
-    }
-
-    echo <<<HTML
+        echo <<<HTML
 <tr style="">
-<td align="center">
-<div class="custom-checkbox custom-control">
-<input type="checkbox" class="custom-control-input" id="seletor-{$id}" onchange="selecionar('{$id}')">
-<label for="seletor-{$id}" class="custom-control-label mt-1 text-dark"></label>
-</div>
-</td>
-<td>{$id}</td>
-<td>{$fornecedor_nome}</td>
-<td>{$data}</td>
+    <td align="center">
+        <div class="custom-checkbox custom-control">
+            <input type="checkbox" class="custom-control-input" id="seletor-{$id}" onchange="selecionar('{$id}')">
+            <label for="seletor-{$id}" class="custom-control-label mt-1 text-dark"></label>
+        </div>
+    </td>
+    <td>{$id}</td>
+    <td>{$fornecedor_nome}</td>
+    <td>{$cliente_nome}</td> <td>{$dataF}</td>
 
-<td>
-	<big><a class="btn btn-info btn-sm" href="#" onclick="editar('{$id}','{$fornecedor}','{$dataF}')" title="Editar Dados"><i class="fa fa-edit "></i></a></big>
+    <td>
+        <big><a class="btn btn-info btn-sm" href="#" onclick="editar('{$id}')" title="Editar Dados"><i class="fa fa-edit "></i></a></big>
 
-	<div class="dropdown" style="display: inline-block;">                      
-                        <a class="btn btn-danger btn-sm" href="#" aria-expanded="false" aria-haspopup="true" data-bs-toggle="dropdown" class="dropdown"><i class="fa fa-trash "></i> </a>
-                        <div  class="dropdown-menu tx-13">
-                        <div style="width: 240px; padding:15px 5px 0 10px;" class="dropdown-item-text">
-                        <p>Confirmar Exclusão? <a href="#" onclick="excluir('{$id}')"><span class="text-danger">Sim</span></a></p>
-                        </div>
-                        </div>
-                        </div>
+        <div class="dropdown" style="display: inline-block;">                      
+            <a class="btn btn-danger btn-sm" href="#" aria-expanded="false" aria-haspopup="true" data-bs-toggle="dropdown" class="dropdown"><i class="fa fa-trash "></i> </a>
+            <div  class="dropdown-menu tx-13">
+                <div style="width: 240px; padding:15px 5px 0 10px;" class="dropdown-item-text">
+                    <p>Confirmar Exclusão? <a href="#" onclick="excluir('{$id}')"><span class="text-danger">Sim</span></a></p>
+                </div>
+            </div>
+        </div>
 
+        <button type="button" class="btn btn-info btn-sm" onclick="mostrar('{$id}')" title="Ver Dados">
+            <i class="bi bi-info-circle"></i>
+        </button>
 
-<button type="button" class="btn btn-info btn-sm" onclick="mostrar('{$id}')" title="Ver Dados">
-    <i class="bi bi-info-circle"></i>
-</button>
-
-<big><a class="btn btn-primary btn-sm" href="#" onclick="imprimir('{$id}')" title="Imprimir"><i class="fa fa-file-pdf-o"></i></a>
-</td>
+        <big><a class="btn btn-primary btn-sm" href="#" onclick="imprimir('{$id}')" title="Imprimir"><i class="fa fa-file-pdf-o"></i></a></big>
+    </td>
 </tr>
 HTML;
-  }
+    }
 } else {
-  echo 'Não possui nenhum cadastro!';
+    echo 'Não possui nenhum cadastro!';
 }
-
 
 echo <<<HTML
 </tbody>
 <small><div align="center" id="mensagem-excluir"></div></small>
 </table>
 
-<br>		
-			<p align="right" style="margin-top: -10px">
-				<span style="margin-right: 10px">Total Itens  <span > {$linhas} </span></span>
-				
-			</p>
-
+<br>        
+<p align="right" style="margin-top: -10px">
+    <span style="margin-right: 10px">Total Itens  <span > {$linhas} </span></span>
+</p>
 HTML;
 ?>
 
