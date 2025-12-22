@@ -147,7 +147,7 @@ HTML;
 </td>
 <td>{$id}</td>
 <td>{$fornecedor_nome}</td>
-<td></td>
+<td>{$data_exibicao}</td>
 
 <td>
 <big><a class="btn btn-info btn-sm" href="#" onclick="editar('{$id}')" title="Editar Dados"><i class="fa fa-edit"></i></a></big>
