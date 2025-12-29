@@ -105,15 +105,19 @@ $res = $query->fetch(PDO::FETCH_ASSOC);
 $total_recebidas = $res['total'] ?? 0;
 $total_recebidasF = number_format($total_recebidas, 2, ',', '.');
 
-$query = $pdo->query("SELECT SUM(valor) as total FROM $tabela WHERE vencimento = curDate() AND pago = 'Não' $sql_usuario_lanc $sql_atacadista $sql_pgto");
-$res = $query->fetch(PDO::FETCH_ASSOC);
-$total_hoje = $res['total'] ?? 0;
-$total_hojeF = number_format($total_hoje, 2, ',', '.');
+// TOTAL A VENCER (Pendentes de hoje em diante, dentro do intervalo de datas selecionado)
+$query = $pdo->query("SELECT SUM(valor) as total FROM $tabela 
+                      WHERE vencimento >= curDate() 
+                      AND pago = 'Não' 
+                      AND $tipo_data >= '$dataInicial' 
+                      AND $tipo_data <= '$dataFinal' 
+                      $sql_usuario_lanc 
+                      $sql_atacadista 
+                      $sql_pgto");
 
-$query = $pdo->query("SELECT SUM(valor) as total FROM $tabela WHERE vencimento = '$data_amanha' AND pago = 'Não' $sql_usuario_lanc $sql_atacadista $sql_pgto");
 $res = $query->fetch(PDO::FETCH_ASSOC);
-$total_amanha = $res['total'] ?? 0;
-$total_amanhaF = number_format($total_amanha, 2, ',', '.');
+$total_a_vencer = $res['total'] ?? 0;
+$total_a_vencerF = number_format($total_a_vencer, 2, ',', '.');
 
 $query = $pdo->query("SELECT SUM(valor) as total FROM $tabela WHERE $tipo_data >= '$dataInicial' AND $tipo_data <= '$dataFinal' $sql_usuario_lanc $sql_atacadista $sql_pgto");
 $res = $query->fetch(PDO::FETCH_ASSOC);
@@ -121,21 +125,25 @@ $total_total = $res['total'] ?? 0;
 $total_totalF = number_format($total_total, 2, ',', '.');
 
 if ($filtro == 'Vencidas') {
-	$query = $pdo->query("SELECT * from $tabela where $tipo_data < curDate() and pago = 'Não' $sql_usuario_lanc $sql_atacadista $sql_pgto order by id desc ");
+	// Vencidas: Vencimento menor que hoje, pendente e dentro do período de datas selecionado
+	$query = $pdo->query("SELECT * from $tabela where vencimento < curDate() and pago = 'Não' and $tipo_data >= '$dataInicial' and $tipo_data <= '$dataFinal' $sql_usuario_lanc $sql_atacadista $sql_pgto order by id desc ");
 } else if ($filtro == 'Recebidas') {
-	$query = $pdo->query("SELECT * from $tabela where pago = 'Sim' $sql_usuario_lanc $sql_atacadista $sql_pgto order by id desc ");
-} else if ($filtro == 'Hoje') {
-	$query = $pdo->query("SELECT * from $tabela where $tipo_data = curDate() and pago = 'Não' $sql_usuario_lanc $sql_atacadista $sql_pgto order by id desc ");
-} else if ($filtro == 'Amanha') {
-	$query = $pdo->query("SELECT * from $tabela where $tipo_data = '$data_amanha' and pago = 'Não' $sql_usuario_lanc $sql_atacadista $sql_pgto order by id desc ");
+	// Recebidas: Pago e dentro do período de datas selecionado
+	$query = $pdo->query("SELECT * from $tabela where pago = 'Sim' and $tipo_data >= '$dataInicial' and $tipo_data <= '$dataFinal' $sql_usuario_lanc $sql_atacadista $sql_pgto order by id desc ");
+} else if ($filtro == 'AVencer') {
+	// A Vencer: Vencimento hoje ou futuro e que ainda não foi pago
+	// Geralmente este filtro ignora o range de datas fixo para mostrar todo o futuro pendente
+	$query = $pdo->query("SELECT * from $tabela where vencimento >= curDate() and pago = 'Não' $sql_usuario_lanc $sql_atacadista $sql_pgto order by vencimento asc ");
 } else if ($filtro == 'Todas') {
+	// Todas: Respeita a permissão de visualização e filtros de atacadista/pgto
 	if ($mostrar_registros == 'Não') {
 		$query = $pdo->query("SELECT * from $tabela where usuario_lanc = '$id_usuario' $sql_atacadista $sql_pgto order by id desc ");
 	} else {
-		$query = $pdo->query("SELECT * from $tabela $sql_atacadista $sql_pgto order by id desc ");
+		$query = $pdo->query("SELECT * from $tabela where 1=1 $sql_atacadista $sql_pgto order by id desc ");
 	}
 } else {
-	$query = $pdo->query("SELECT * from $tabela WHERE $tipo_data >= '$dataInicial' and vencimento <= '$dataFinal' $sql_usuario_lanc $sql_atacadista $sql_pgto order by id desc ");
+	// Filtro padrão: Por intervalo de datas selecionado no calendário
+	$query = $pdo->query("SELECT * from $tabela WHERE $tipo_data >= '$dataInicial' and $tipo_data <= '$dataFinal' $sql_usuario_lanc $sql_atacadista $sql_pgto order by id desc ");
 }
 
 
@@ -453,8 +461,7 @@ HTML;
 		$('#total_itens').text('R$ <?= $total_valorF ?>');
 		$('#total_total').text('R$ <?= $total_totalF ?>');
 		$('#total_vencidas').text('R$ <?= $total_vencidasF ?>');
-		$('#total_hoje').text('R$ <?= $total_hojeF ?>');
-		$('#total_amanha').text('R$ <?= $total_amanhaF ?>');
+		$('#total_a_vencer').text('R$ <?= $total_a_vencerF ?>');
 		$('#total_recebidas').text('R$ <?= $total_recebidasF ?>');
 	});
 </script>
