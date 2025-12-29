@@ -571,7 +571,7 @@ if (@count($res1) > 0) {
 		<!-- FOOTER -->
 		<div class="main-footer">
 			<div class="container-fluid pt-0 ht-100p">
-				Copyright © <?php echo date('Y'); ?> <a href="javascript:void(0);" class="text-primary">PORTAL HUGO CURSOS</a>. Todos os direitos reservados
+				Copyright © <?php echo date('Y'); ?> <a href="javascript:void(0);" class="text-primary">SISTEMA MINAS RIO</a>. Todos os direitos reservados
 			</div>
 		</div> <!-- FOOTER END -->
 
