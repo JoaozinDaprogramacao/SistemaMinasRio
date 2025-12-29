@@ -127,72 +127,71 @@ if (@$produtos == 'ocultar') {
 				<div id="mensagem-erro"></div>
 				<div id="mensagem-sucesso"></div>
 				<div class="container-fluid px-4">
-					<div class="row">
+					<div class="row g-3">
+
 						<div class="col-md-6">
-							<div class="row g-2">
-								<div class="col-md-6">
-									<label class="form-label">Data</label>
-									<input type="date" class="form-control form-control-sm data_atual" name="data" value="<?= date('Y-m-d'); ?>" onchange="calcularVencimento()">
-								</div>
+							<div class="mb-2">
+								<label class="form-label">Data</label>
+								<input type="date" class="form-control form-control-sm data_atual" name="data" value="<?= date('Y-m-d'); ?>" onchange="calcularVencimento()">
+							</div>
 
-								<div class="col-md-6">
-									<label class="form-label">Plano Pgto</label>
-									<select id="plano_pgto" name="plano_pgto" class="form-select form-select-sm sel2" onchange="calculaTotais()">
-										<option value="0">Escolher Plano</option>
-										<?php
-										$query = $pdo->query("SELECT * from planos_pgto order by id asc");
-										$res = $query->fetchAll(PDO::FETCH_ASSOC);
-										$linhas = @count($res);
-										if ($linhas > 0) {
-											for ($i = 0; $i < $linhas; $i++) { ?>
-												<option value="<?php echo $res[$i]['id'] ?>"><?php echo $res[$i]['nome'] ?></option>
-										<?php }
-										} ?>
-									</select>
-								</div>
+							<div class="mb-2">
+								<label class="form-label">Plano Pgto</label>
+								<select id="plano_pgto" name="plano_pgto" class="form-select form-select-sm sel2" onchange="calculaTotais()">
+									<option value="0">Escolher Plano</option>
+									<?php
+									$query = $pdo->query("SELECT * from planos_pgto order by id asc");
+									$res = $query->fetchAll(PDO::FETCH_ASSOC);
+									$linhas = @count($res);
+									if ($linhas > 0) {
+										for ($i = 0; $i < $linhas; $i++) { ?>
+											<option value="<?php echo $res[$i]['id'] ?>"><?php echo $res[$i]['nome'] ?></option>
+									<?php }
+									} ?>
+								</select>
+							</div>
 
-								<div class="col-md-6">
-									<label class="form-label">Dias</label>
-									<input type="number" id="quant_dias" class="form-control form-control-sm" name="quant_dias" placeholder="Dias" onkeyup="calcularVencimento()">
-								</div>
-
-								<div class="col-md-6">
-									<label class="form-label">Vencimento</label>
-									<input type="date" class="form-control form-control-sm" name="vencimento" id="vencimento" value="<?= date('Y-m-d'); ?>">
-								</div>
+							<div class="mb-2">
+								<label class="form-label">Vencimento</label>
+								<input type="date" class="form-control form-control-sm" name="vencimento" id="vencimento" value="<?= date('Y-m-d'); ?>">
 							</div>
 						</div>
 
 						<div class="col-md-6">
-							<div class="row g-2">
-								<div class="col-md-12">
-									<label class="form-label">Romaneios de Compra</label>
-									<div class="lista-romaneios form-control form-control-md" id="lista-romaneios-compra">
-										<p class="text-secondary text-center">Selecione um Cliente para carregar os Romaneios de Compra relacionados.</p>
-									</div>
-								</div>
+							<div class="mb-2">
+								<label class="form-label">Cliente</label>
+								<select id="cliente_modal" name="cliente" class="form-select form-select-sm" onchange="buscarDadosCliente(this.value); atualizarListaRomaneiosCompra(this.value); calculaTotais();">
+									<option value="0">Escolher Cliente</option>
+									<?php
+									// Mantido a ordenação por NOME
+									$query = $pdo->query("SELECT * from clientes order by nome asc");
+									$res = $query->fetchAll(PDO::FETCH_ASSOC);
+									$linhas = @count($res);
+									if ($linhas > 0) {
+										for ($i = 0; $i < $linhas; $i++) { ?>
+											<option value="<?php echo $res[$i]['id'] ?>"><?php echo $res[$i]['nome'] ?></option>
+									<?php }
+									} ?>
+								</select>
+							</div>
 
-								<div class="col-md-6">
-									<label class="form-label">Nota Fiscal</label>
-									<input type="text" class="form-control form-control-sm" id="nota_fiscal" name="nota_fiscal" placeholder="NF">
-								</div>
-<div class="col-md-6">
-									<label class="form-label">Cliente</label>
-									<select id="cliente_modal" name="cliente" class="form-select form-select-sm" onchange="buscarDadosCliente(this.value); atualizarListaRomaneiosCompra(this.value); calculaTotais();">
-										<option value="0">Escolher Cliente</option>
-										<?php
-										// Mantido a ordenação por NOME (vinda da master) pois é melhor para a usabilidade
-										$query = $pdo->query("SELECT * from clientes order by nome asc");
-										
-										$res = $query->fetchAll(PDO::FETCH_ASSOC);
-										$linhas = @count($res);
-										if ($linhas > 0) {
-											for ($i = 0; $i < $linhas; $i++) { ?>
-												<option value="<?php echo $res[$i]['id'] ?>"><?php echo $res[$i]['nome'] ?></option>
-										<?php }
-										} ?>
-									</select>
-								</div>
+							<div class="mb-2">
+								<label class="form-label">Dias</label>
+								<input type="number" id="quant_dias" class="form-control form-control-sm" name="quant_dias" placeholder="Dias" onkeyup="calcularVencimento()">
+							</div>
+
+							<div class="mb-2">
+								<label class="form-label">Nota Fiscal</label>
+								<input type="text" class="form-control form-control-sm" id="nota_fiscal" name="nota_fiscal" placeholder="NF">
+							</div>
+						</div>
+					</div>
+
+					<div class="row mt-3">
+						<div class="col-md-12">
+							<label class="form-label">Romaneios de Compra</label>
+							<div class="lista-romaneios form-control form-control-md" id="lista-romaneios-compra" style="min-height: 80px;">
+								<p class="text-secondary text-center pt-2">Selecione um Cliente para carregar os Romaneios de Compra relacionados.</p>
 							</div>
 						</div>
 					</div>

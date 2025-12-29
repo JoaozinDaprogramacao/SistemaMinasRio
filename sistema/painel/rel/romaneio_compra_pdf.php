@@ -39,34 +39,25 @@ $produtos = $query->fetchAll(PDO::FETCH_ASSOC);
 // Decodificar descontos diversos (JSON)
 $descontos = json_decode($romaneio['descontos_diversos'] ?? '[]', true) ?: [];
 
-// --- CÁLCULOS COM A SOLUÇÃO DEFINITIVA ---
+// --- CÁLCULOS ---
 $total_bruto = array_sum(array_column($produtos, 'valor'));
-
-// 1. Converte o texto "6.00" do banco para o número 6.0 (float)
 $percentual_desconto = floatval($romaneio['desc_avista'] ?? 0);
-
-// 2. O resto dos cálculos funciona normalmente
 $valor_desconto_calculado = ($total_bruto * $percentual_desconto) / 100;
 $total_liquido_parcial = $total_bruto - $valor_desconto_calculado;
 
 
-// --- SOLUÇÃO BASE64 PARA A LOGO (Para garantir a exibição no PDF) ---
-
-// Caminho físico relativo à este arquivo (romaneio_compra_pdf.php)
+// --- SOLUÇÃO BASE64 PARA A LOGO ---
 $caminho_fisico = "../../img/logo.jpg";
 $logo_src = "";
 
 if (file_exists($caminho_fisico)) {
   $dados_imagem = file_get_contents($caminho_fisico);
   $extensao = pathinfo($caminho_fisico, PATHINFO_EXTENSION);
-  // Cria a string Base64 (Data URI)
   $logo_src = 'data:image/' . $extensao . ';base64,' . base64_encode($dados_imagem);
 } else {
-  // Fallback: Presume que $url_sistema vem de conexao.php.
   $logo_src = $url_sistema . "img/logo.jpg";
 }
-
-// --- FIM DA SOLUÇÃO BASE64 PARA A LOGO ---
+// --- FIM DA SOLUÇÃO BASE64 ---
 ?>
 <!DOCTYPE html>
 <html lang="pt-BR">
@@ -127,11 +118,19 @@ if (file_exists($caminho_fisico)) {
     .info-label {
       font-weight: bold;
       width: 15%;
+      /* Mantivemos a largura, mas agora o texto cabe melhor com a quebra */
+      background-color: #f9f9f9;
+      line-height: 1.2;
+      /* Ajuste leve para o texto quebrado não ficar muito grudado */
     }
 
     .info-value {
       text-align: center;
       width: 20%;
+    }
+
+    .tabela-dados {
+      margin-top: 10px;
     }
 
     .tabela-dados th {
@@ -217,7 +216,8 @@ if (file_exists($caminho_fisico)) {
     <tr>
       <td class="info-label">DATA:</td>
       <td class="info-value"><?= date('d/m/Y', strtotime($romaneio['data'])) ?></td>
-      <td class="info-label">CLIENTE - ATAC.</td>
+
+      <td class="info-label">Cliente<br>Atacadista</td>
       <td class="info-value"><?= $romaneio['nome_cliente'] ?></td>
     </tr>
     <tr>
@@ -228,11 +228,21 @@ if (file_exists($caminho_fisico)) {
     </tr>
   </table>
 
-  <table>
+  <table style="margin-top: 5px;">
     <tr>
-      <td colspan="5" style="font-weight:bold;">
-        FORNECEDOR - PROD. RURAL: <?= $romaneio['nome_fornecedor'] ?> /
-        FAZENDA: <?= $romaneio['fazenda'] ?>
+      <td class="info-label">FORNECEDOR:</td>
+      <td colspan="3" style="font-weight: bold; padding-left: 10px;">
+        <?= $romaneio['nome_fornecedor'] ?>
+      </td>
+    </tr>
+    <tr>
+      <td class="info-label">FAZENDA:</td>
+      <td style="font-weight: bold; padding-left: 10px;">
+        <?= $romaneio['fazenda'] ?>
+      </td>
+      <td class="info-label" style="text-align: center;">NFe:</td>
+      <td style="font-weight: bold; text-align: left;">
+        <?= $romaneio['nota_fiscal'] ?? '' ?>
       </td>
     </tr>
   </table>
