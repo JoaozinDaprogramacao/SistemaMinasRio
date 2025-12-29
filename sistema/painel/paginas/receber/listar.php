@@ -83,45 +83,42 @@ $total_hojeF = "0,00";
 $total_amanha = 0;
 $total_amanhaF = "0,00";
 $total_recebidas = 0;
-$total_rece_pendentes = 0; // Para o rodapé da tabela
-$total_recebidasF = "0,00";
+$total_rece_pendentes = 0;
 
-// 1. TOTAL PENDENTES GERAL (respeitando atacadista)
-$query = $pdo->query("SELECT SUM(valor) as total from $tabela where pago = 'Não' $sql_usuario_lanc $sql_atacadista $sql_pgto");
-$res = $query->fetchAll(PDO::FETCH_ASSOC);
-$total_valor = $res[0]['total'] ?? 0;
-$total_valorF = @number_format($total_valor, 2, ',', '.');
 
-// 2. TOTAL GERAL (Tudo: Pago e Não Pago)
-$query = $pdo->query("SELECT SUM(valor) as total from $tabela where 1=1 $sql_usuario_lanc $sql_atacadista $sql_pgto");
-$res = $query->fetchAll(PDO::FETCH_ASSOC);
-$total_total = $res[0]['total'] ?? 0;
-$total_totalF = @number_format($total_total, 2, ',', '.');
+$sql_vencidas = "SELECT SUM(valor) as total FROM $tabela 
+                 WHERE vencimento < curDate() 
+                 AND pago = 'Não' 
+                 AND $tipo_data >= '$dataInicial' 
+                 AND $tipo_data <= '$dataFinal' 
+                 $sql_usuario_lanc 
+                 $sql_atacadista 
+                 $sql_pgto";
 
-// 3. TOTAL VENCIDAS
-$query = $pdo->query("SELECT SUM(valor) as total from $tabela where vencimento < curDate() and pago = 'Não' $sql_usuario_lanc $sql_atacadista $sql_pgto");
-$res = $query->fetchAll(PDO::FETCH_ASSOC);
-$total_vencidas = $res[0]['total'] ?? 0;
-$total_vencidasF = @number_format($total_vencidas, 2, ',', '.');
+$query = $pdo->query($sql_vencidas);
+$res = $query->fetch(PDO::FETCH_ASSOC);
+$total_vencidas = $res['total'] ?? 0;
+$total_vencidasF = number_format($total_vencidas, 2, ',', '.');
 
-// 4. TOTAL HOJE
-$query = $pdo->query("SELECT SUM(valor) as total from $tabela where vencimento = curDate() and pago = 'Não' $sql_usuario_lanc $sql_atacadista $sql_pgto");
-$res = $query->fetchAll(PDO::FETCH_ASSOC);
-$total_hoje = $res[0]['total'] ?? 0;
-$total_hojeF = @number_format($total_hoje, 2, ',', '.');
+$query = $pdo->query("SELECT SUM(subtotal) as total FROM $tabela WHERE pago = 'Sim' AND data_pgto >= '$dataInicial' AND data_pgto <= '$dataFinal' $sql_usuario_lanc $sql_atacadista $sql_pgto");
+$res = $query->fetch(PDO::FETCH_ASSOC);
+$total_recebidas = $res['total'] ?? 0;
+$total_recebidasF = number_format($total_recebidas, 2, ',', '.');
 
-// 5. TOTAL RECEBIDAS
-$query = $pdo->query("SELECT SUM(subtotal) as total from $tabela where pago = 'Sim' $sql_usuario_lanc $sql_atacadista $sql_pgto");
-$res = $query->fetchAll(PDO::FETCH_ASSOC);
-$total_recebidas = $res[0]['total'] ?? 0;
-$total_recebidasF = @number_format($total_recebidas, 2, ',', '.');
+$query = $pdo->query("SELECT SUM(valor) as total FROM $tabela WHERE vencimento = curDate() AND pago = 'Não' $sql_usuario_lanc $sql_atacadista $sql_pgto");
+$res = $query->fetch(PDO::FETCH_ASSOC);
+$total_hoje = $res['total'] ?? 0;
+$total_hojeF = number_format($total_hoje, 2, ',', '.');
 
-// 6. TOTAL AMANHÃ
-$data_amanha = date('Y-m-d', strtotime("+1 days"));
-$query = $pdo->query("SELECT SUM(valor) as total from $tabela where vencimento = '$data_amanha' and pago = 'Não' $sql_usuario_lanc $sql_atacadista $sql_pgto");
-$res = $query->fetchAll(PDO::FETCH_ASSOC);
-$total_amanha = $res[0]['total'] ?? 0;
-$total_amanhaF = @number_format($total_amanha, 2, ',', '.');
+$query = $pdo->query("SELECT SUM(valor) as total FROM $tabela WHERE vencimento = '$data_amanha' AND pago = 'Não' $sql_usuario_lanc $sql_atacadista $sql_pgto");
+$res = $query->fetch(PDO::FETCH_ASSOC);
+$total_amanha = $res['total'] ?? 0;
+$total_amanhaF = number_format($total_amanha, 2, ',', '.');
+
+$query = $pdo->query("SELECT SUM(valor) as total FROM $tabela WHERE $tipo_data >= '$dataInicial' AND $tipo_data <= '$dataFinal' $sql_usuario_lanc $sql_atacadista $sql_pgto");
+$res = $query->fetch(PDO::FETCH_ASSOC);
+$total_total = $res['total'] ?? 0;
+$total_totalF = number_format($total_total, 2, ',', '.');
 
 if ($filtro == 'Vencidas') {
 	$query = $pdo->query("SELECT * from $tabela where $tipo_data < curDate() and pago = 'Não' $sql_usuario_lanc $sql_atacadista $sql_pgto order by id desc ");
