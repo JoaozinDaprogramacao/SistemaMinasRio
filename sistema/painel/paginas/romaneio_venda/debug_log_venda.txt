@@ -1,0 +1,16 @@
+[29/12/2025 18:54:20] ----------------------------------------------------------------
+[29/12/2025 18:54:20] INICIANDO SALVAR VENDA
+[29/12/2025 18:54:20] DADOS RECEBIDOS (_POST):
+[29/12/2025 18:54:20] {"romaneios_selecionados":"171","data":"2025-12-29","plano_pgto":"1","vencimento":"2026-01-05","cliente":"25","quant_dias":"7","nota_fiscal":"","quant_caixa_1":["","214"],"produto_1":["","38"],"preco_kg_1":["","0,04"],"tipo_cx_1":["","3"],"preco_unit_1":["","0,58"],"valor_1":["","124,12"],"desc-avista":"6","desc_2":["",""],"quant_caixa_2":["",""],"preco_kg_2":["",""],"tipo_cx_2":["",""],"preco_unit_2":["",""],"valor_2":["",""],"obs_3":["",""],"material":["",""],"quant_3":["",""],"preco_unit_3":["",""],"valor_3":["",""],"descricao_adicional":"","valor_adicional":"0,00","descricao_desconto":"","valor_desconto":"0,00","valor_liquido":"116,67","id":""}
+[29/12/2025 18:54:20] Iniciando Cálculos Matemáticos...
+[29/12/2025 18:54:20] Total Bruto Produtos: 124.12
+[29/12/2025 18:54:20] Total Comissões: 0
+[29/12/2025 18:54:20] Total Materiais: 0
+[29/12/2025 18:54:20] Total Líquido Final Calculado: 116.6728
+[29/12/2025 18:54:20] Iniciando Transação (beginTransaction)
+[29/12/2025 18:54:20] Executando INSERT CABEÇALHO
+[29/12/2025 18:54:20] ID Romaneio Venda: 143
+[29/12/2025 18:54:20] Iniciando Contas a Receber...
+[29/12/2025 18:54:20] Inserindo novo Receber.
+[29/12/2025 18:54:20] Marcando romaneios de compra como usados: 171
+[29/12/2025 18:54:20] Sucesso! Commit realizado.
