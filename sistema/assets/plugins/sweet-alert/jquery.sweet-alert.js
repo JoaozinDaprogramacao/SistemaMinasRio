@@ -31,21 +31,23 @@ $(function(e) {
 	});
 	
 	//Warning Message
-	$('#swal-warning').click(function () {
+	function excluirtest(id) {
 		$('body').removeClass('timer-alert');
 		swal({
-		  title: "Are you sure?",
-		  text: "Your will not be able to recover this imaginary file!",
-		  type: "warning",
+		  title: "Tem certeza?",
+		  text: "Você não conseguirá recuperar esse arquivo novamente!",
+		  type: "error",
 		  showCancelButton: true,
 		  confirmButtonClass: "btn btn-danger",
-		  confirmButtonText: "Yes, delete it!",
+		  confirmButtonText: "Sim, Deletar!",
 		  closeOnConfirm: false
+			
 		},
 		function(){
-		  swal("Deleted!", "Your imaginary file has been deleted.", "success");
+			excluir(id)
+		  swal("Excluído(a)!", "Seu arquivo imaginário foi excluído.", "success");
 		});
-	});
+	}
 	
 	//Parameter
 	$('#swal-parameter').click(function () {
@@ -81,24 +83,7 @@ $(function(e) {
 		})
 	});
 	
-	//Auto Close Timer
-	$('#swal-timer').click(function () {
-		$('body').removeClass('timer-alert');
-		swal({
-			title: 'Auto close alert!',
-			text: 'I will close in 1 seconds.',
-			timer: 1000
-		})?.then(
-			function () {
-			},
-			// handling the promise rejection
-			function (dismiss) {
-				if (dismiss === 'timer') {
-					console.log('I was closed by the timer')
-				}
-			}
-		)
-	});
+
 	
 	
 	//Ajax with Loader Alert
