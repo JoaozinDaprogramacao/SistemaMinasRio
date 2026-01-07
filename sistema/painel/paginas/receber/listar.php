@@ -469,6 +469,7 @@ HTML;
 
 <script type="text/javascript">
 	function editar(id, descricao, valor, cliente, vencimento, data_pgto, forma_pgto, frequencia, obs, arquivo) {
+		console.log("Log1: entrou");
 		$('#mensagem').text('');
 		$('#titulo_inserir').text('Editar Registro');
 
@@ -481,11 +482,13 @@ HTML;
 		$('#forma_pgto').val(forma_pgto).change();
 		$('#frequencia').val(frequencia).change();
 		$('#obs').val(obs);
+		console.log("Log2: continuou");
 
 		$('#arquivo').val('');
 		$('#target').attr('src', 'images/contas/' + arquivo);
 
 		$('#modalForm').modal('show');
+		console.log("Log3: finalizou");
 	}
 
 

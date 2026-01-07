@@ -67,6 +67,14 @@ RewriteRule ^vendas(.*)$ index.php?pagina=vendas [L]
 RewriteRule ^compras(.*)$ index.php?pagina=compras [L]
 RewriteRule ^orcamento(.*)$ index.php?pagina=orcamento [L]
 
+
+# ==========================================================
+# MÓDULO DE ROMANEIOS DETALHES
+# ==========================================================
+RewriteRule ^romaneio_venda_detalhes(.*)$ index.php?pagina=romaneio_venda_detalhes [L]
+RewriteRule ^romaneio_compra_detalhes(.*)$ index.php?pagina=romaneio_compra_detalhes [L]
+RewriteRule ^romaneio_baldeio_detalhes(.*)$ index.php?pagina=romaneio_baldeio_detalhes [L]
+
 # ==========================================================
 # MÓDULO DE ROMANEIOS
 # ==========================================================
@@ -74,6 +82,7 @@ RewriteRule ^romaneio_venda(.*)$ index.php?pagina=romaneio_venda [L]
 RewriteRule ^romaneio_compra(.*)$ index.php?pagina=romaneio_compra [L]
 RewriteRule ^romaneio_baldeio(.*)$ index.php?pagina=romaneio_baldeio [L]
 RewriteRule ^descricao_romaneio(.*)$ index.php?pagina=descricao_romaneio [L]
+
 
 # ==========================================================
 # MÓDULO DE COMISSÕES E RELATÓRIOS
