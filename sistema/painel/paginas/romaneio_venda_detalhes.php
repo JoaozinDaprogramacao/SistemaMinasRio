@@ -13,7 +13,6 @@ if (@$produtos == 'ocultar') {
 <div class="justify-content-between">
 	<div class="left-content mt-2 mb-3">
 		<div class="row g-2 mb-3 mt-1 align-items-center">
-			<!-- Filtro de Atacadista -->
 			<div class="col-auto">
 				<select name="cliente" id="cliente" class="form-select form-select-sm" onchange="buscar()">
 					<option value="">Cliente</option>
@@ -25,103 +24,92 @@ if (@$produtos == 'ocultar') {
 					}
 					?>
 				</select>
-
 			</div>
-			<!-- Filtro de Data Inicial -->
+
 			<div class="col-auto">
-				<input type="date" name="dataInicial" id="dataInicial" class="form-control form-control-sm" onchange="buscar()">
+				<input type="date" name="dataInicial" id="dataInicial" class="date form-control form-control-sm" onchange="buscar()">
 			</div>
 
-			<!-- Filtro de Data Final -->
 			<div class="col-auto">
-				<input type="date" name="dataFinal" id="dataFinal" class="form-control form-control-sm" onchange="buscar()">
+				<input type="date" name="dataFinal" id="dataFinal" class="date form-control form-control-sm" onchange="buscar()">
 			</div>
-		</div>
 
-
-
-	</div>
-
-
-	<form id="relatorio" action="rel/romaneio_venda_recibo.php" target="_blank" method="POST">
-		<input type="hidden" name="dataInicial" id="dataInicialRel">
-		<input type="hidden" name="dataFinal" id="dataFinalRel">
-		<input type="hidden" name="cliente" id="clienteRel">
-		<div style="position:absolute; right:10px; margin-bottom: 10px; top:70px">
-			<button style="width:40px" type="submit" class="btn btn-danger ocultar_mobile_app" title="Gerar Relatório">
-				<i class="fa fa-file-pdf-o"></i>
-			</button>
-		</div>
-	</form>
-
-</div>
-
-<?php include_once("../painel/paginas/romaneio_venda_detalhes/romaneio_venda_detalhes/tabela.php")?>
-
-
-<div class="row row-sm">
-	<div class="col-lg-12">
-		<div class="card custom-card">
-			<div class="card-body" id="listar">
-
+			<div class="col-auto">
+				<button type="button" class="btn btn-outline-secondary btn-sm" onclick="limparFiltros()" title="Limpar Filtros">
+					<i class="fa fa-eraser"></i> Limpar
+				</button>
 			</div>
 		</div>
 	</div>
-</div>
 
-<?php include_once("../painel/paginas/romaneio_venda_detalhes/romaneio_venda_detalhes/modais.php"); ?>
+	<div class="card shadow mb-4" style="border-top: 4px solid #2b7a00;">
+		<div class="card-body" id="listar-resumo">
+		</div>
+	</div>
 
-<input type="hidden" id="ids">
+	<div class="row row-sm">
+		<div class="col-lg-12">
+			<div class="card custom-card">
+				<div class="card-body" id="listar">
 
-<script>
-	var pag = "<?= $pag ?>";
-	// Inicializa a lista ao carregar a página
-	window.onload = function() {
-		if (typeof buscar === 'function') buscar();
-	};
-</script>
+				</div>
+			</div>
+		</div>
+	</div>
 
-<script src="../painel/paginas/romaneio_venda_detalhes/romaneio_venda_detalhes/romaneio_venda_detalhes_scripts.js"></script>
+	<?php include_once("../painel/paginas/romaneio_venda_detalhes/romaneio_venda_detalhes/modais.php"); ?>
 
-<script type="text/javascript">
-	var pag = "<?= $pag ?>"
-</script>
+	<input type="hidden" id="ids">
 
-<script type="text/javascript">
-	$(document).ready(function() {
-		$('.select2').select2({
-			placeholder: "Selecione os romaneios",
-			allowClear: true,
-			width: 'resolve'
-		});
-	});
-</script>
-
-
-<script type="text/javascript">
-	function carregarImg() {
-		var target = document.getElementById('target');
-		var file = document.querySelector("#foto").files[0];
-
-		var reader = new FileReader();
-
-		reader.onloadend = function() {
-			target.src = reader.result;
+	<script>
+		var pag = "<?= $pag ?>";
+		// Inicializa a lista ao carregar a página
+		window.onload = function() {
+			if (typeof buscar === 'function') buscar();
 		};
+	</script>
 
-		if (file) {
-			reader.readAsDataURL(file);
+	<script src="../painel/paginas/romaneio_venda_detalhes/romaneio_venda_detalhes/romaneio_venda_detalhes_scripts.js"></script>
 
-		} else {
-			target.src = "";
+	<script type="text/javascript">
+		var pag = "<?= $pag ?>"
+	</script>
+
+	<script type="text/javascript">
+		$(document).ready(function() {
+			$('.select2').select2({
+				placeholder: "Selecione os romaneios",
+				allowClear: true,
+				width: 'resolve'
+			});
+		});
+	</script>
+
+
+	<script type="text/javascript">
+		function carregarImg() {
+			var target = document.getElementById('target');
+			var file = document.querySelector("#foto").files[0];
+
+			var reader = new FileReader();
+
+			reader.onloadend = function() {
+				target.src = reader.result;
+			};
+
+			if (file) {
+				reader.readAsDataURL(file);
+
+			} else {
+				target.src = "";
+			}
 		}
-	}
-</script>
+	</script>
 
 
-<script type="text/javascript">
-	function buscarCat(id) {
-		$('#cat').val(id);
-		listar(id)
-	}
-</script>
+	<script type="text/javascript">
+		function buscarCat(id) {
+			$('#cat').val(id);
+			listar(id)
+		}
+	</script>
