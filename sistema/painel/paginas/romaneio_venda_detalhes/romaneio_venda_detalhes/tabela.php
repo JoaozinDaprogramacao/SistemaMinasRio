@@ -1,16 +1,23 @@
 <?php
-// 1. BUSCA DINÂMICA DE QUALIDADES (Extraindo do nome da CATEGORIA)
+// Função para padronizar a qualidade (Transforma ª em °)
+function padronizarQualidade($texto)
+{
+    return str_replace('ª', '°', $texto);
+}
+
+// 1. BUSCA DINÂMICA DE QUALIDADES
 $qualidades = [];
 $query_cat = $pdo->query("SELECT nome FROM categorias");
 while ($c = $query_cat->fetch(PDO::FETCH_ASSOC)) {
-    if (preg_match('/(\d+ª|\d+°)$/', $c['nome'], $matches)) {
-        $qualidades[] = $matches[1];
+    if (preg_match('/(\d+ª|\d+°)$/u', $c['nome'], $matches)) {
+        // Padronizamos aqui para o header da tabela
+        $qualidades[] = padronizarQualidade($matches[1]);
     }
 }
 $qualidades = array_unique($qualidades);
-sort($qualidades);
+sort($qualidades); // Ordena 1°, 2°...
 
-// 2. BUSCA DE DADOS (Corrigido para buscar cat.vendas)
+// 2. BUSCA DE DADOS
 $query = $pdo->query("SELECT p.nome as nome_prod, cat.nome as nome_cat, cat.vendas 
                       FROM produtos p 
                       INNER JOIN categorias cat ON p.categoria = cat.id 
@@ -21,22 +28,35 @@ $res = $query->fetchAll(PDO::FETCH_ASSOC);
 $dados_tabela = [];
 
 foreach ($res as $item) {
-    $cat_limpa = preg_replace('/\s+(DE\s+)?(\d+ª|\d+°)$/i', '', $item['nome_cat']);
+    // A) LIMPA A CATEGORIA: Remove "1°", "1ª", "DE 1ª", etc.
+    // Usamos o modificador 'u' para caracteres UTF-8 como ª e °
+    $cat_limpa = preg_replace('/\s+(DE\s+)?(\d+ª|\d+°)$/ui', '', $item['nome_cat']);
+
+    // B) CRIA A CHAVE: PRODUTO - CATEGORIA (Ex: BANANA - NANICA)
     $chave = mb_strtoupper($item['nome_prod'] . ' - ' . $cat_limpa);
 
+    // C) EXTRAI E PADRONIZA A QUALIDADE DO ITEM
     $qualidade_item = '';
-    if (preg_match('/(\d+ª|\d+°)$/', $item['nome_cat'], $matches)) {
-        $qualidade_item = $matches[1];
+    if (preg_match('/(\d+ª|\d+°)$/u', $item['nome_cat'], $matches)) {
+        $qualidade_item = padronizarQualidade($matches[1]);
     }
 
+    // D) INICIALIZA A LINHA SE NÃO EXISTIR
     if (!isset($dados_tabela[$chave])) {
         foreach ($qualidades as $q) {
             $dados_tabela[$chave][$q] = 0;
         }
     }
 
-    if ($qualidade_item != '') {
+    // E) SOMA AS VENDAS NA COLUNA PADRONIZADA
+    if ($qualidade_item != '' && isset($dados_tabela[$chave][$qualidade_item])) {
         $dados_tabela[$chave][$qualidade_item] += $item['vendas'];
+    } else {
+        // Se o produto não tem 1° ou 2° no nome (Ex: BANANA - PRATA), 
+        // ele vai para a primeira coluna disponível ou você pode criar uma lógica para "Geral"
+        // Aqui, para não sumir do Total, vamos garantir que ele some ao menos no cálculo da linha
+        if (!isset($dados_tabela[$chave]['TOTAL_AVULSO'])) $dados_tabela[$chave]['TOTAL_AVULSO'] = 0;
+        $dados_tabela[$chave]['TOTAL_AVULSO'] += $item['vendas'];
     }
 }
 ?>
@@ -62,11 +82,10 @@ foreach ($res as $item) {
                             </td>
 
                             <?php
-                            $soma_linha = 0;
+                            $soma_linha = isset($valores['TOTAL_AVULSO']) ? $valores['TOTAL_AVULSO'] : 0;
                             foreach ($qualidades as $q):
                                 $v = $valores[$q];
                                 $soma_linha += $v;
-                                // Formata para 1.000, 10.000 etc
                                 $v_formatado = number_format($v, 0, ',', '.');
                             ?>
                                 <td><?php echo $v_formatado; ?></td>
