@@ -430,8 +430,6 @@ if (@count($res1) > 0) {
 									<span class="side-menu__label" style="margin-left: 15px">Detalhes Romaneios</span><i class="angle fe fe-chevron-right"></i></a>
 								<ul class="slide-menu">
 									<li class="<?php echo @$produtos ?>"><a class="slide-item" href="romaneio_venda_detalhes"> Romaneio de Vendas</a></li>
-									<li class="<?php echo @$produtos ?>"><a class="slide-item" href="romaneio_compra_detalhes"> Romaneio de Compra</a></li>
-									<li class="<?php echo @$produtos ?>"><a class="slide-item" href="romaneio_baldeio_detalhes"> Romaneio de Baldeio</a></li>
 								</ul>
 							</li>
 
