@@ -420,8 +420,20 @@ if (@count($res1) > 0) {
 									<li class="<?php echo @$produtos ?>"><a class="slide-item" href="romaneio_compra"> Romaneio de Compra</a></li>
 									<li class="<?php echo @$produtos ?>"><a class="slide-item" href="romaneio_baldeio"> Romaneio de Baldeio</a></li>
 								</ul>
+
 							</li>
 
+
+							<li class="slide <?php echo @$menu_romaneio_detalhes ?>">
+								<a class="side-menu__item" data-bs-toggle="slide" href="javascript:void(0);">
+									<i class="fa fa-table" aria-hidden="true"></i>.
+									<span class="side-menu__label" style="margin-left: 15px">Detalhes Romaneios</span><i class="angle fe fe-chevron-right"></i></a>
+								<ul class="slide-menu">
+									<li class="<?php echo @$produtos ?>"><a class="slide-item" href="romaneio_venda_detalhes"> Romaneio de Vendas</a></li>
+									<li class="<?php echo @$produtos ?>"><a class="slide-item" href="romaneio_compra_detalhes"> Romaneio de Compra</a></li>
+									<li class="<?php echo @$produtos ?>"><a class="slide-item" href="romaneio_baldeio_detalhes"> Romaneio de Baldeio</a></li>
+								</ul>
+							</li>
 
 							<li class="slide <?php echo @$menu_produtos ?>">
 								<a class="side-menu__item" data-bs-toggle="slide" href="javascript:void(0);">
