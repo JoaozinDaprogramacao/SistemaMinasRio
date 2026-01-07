@@ -98,3 +98,32 @@ function mostrar(id) {
         }
     });
 }
+
+function buscar() {
+    var dataInicial = $('#dataInicial').val();
+    var dataFinal = $('#dataFinal').val();
+    var cliente = $('#cliente').val();
+
+    // Atualiza os campos ocultos do formulário de relatório (PDF)
+    $('#dataInicialRel').val(dataInicial);
+    $('#dataFinalRel').val(dataFinal);
+    $('#clienteRel').val(cliente);
+
+    listar(dataInicial, dataFinal, cliente);
+}
+
+function listar(dataInicial, dataFinal, cliente) {
+    $.ajax({
+        url: 'paginas/' + pag + '/listar.php', // Certifique-se que o caminho está correto
+        method: 'POST',
+        data: {
+            dataInicial: dataInicial,
+            dataFinal: dataFinal,
+            cliente: cliente
+        },
+        dataType: "html",
+        success: function (result) {
+            $("#listar").html(result);
+        }
+    });
+}

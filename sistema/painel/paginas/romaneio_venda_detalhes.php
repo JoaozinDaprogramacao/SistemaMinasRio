@@ -56,7 +56,7 @@ if (@$produtos == 'ocultar') {
 
 </div>
 
-<?php include_once("../painel/paginas/romaneio_venda_detalhes/romaneio_venda_detalhes/cards.php")?>
+<?php include_once("../painel/paginas/romaneio_venda_detalhes/romaneio_venda_detalhes/tabela.php")?>
 
 
 <div class="row row-sm">
