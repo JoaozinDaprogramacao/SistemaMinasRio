@@ -59,3 +59,18 @@
 [29/12/2025 19:44:47] Inserindo novo Receber.
 [29/12/2025 19:44:47] Marcando romaneios de compra como usados: 
 [29/12/2025 19:44:47] Sucesso! Commit realizado.
+[07/01/2026 17:06:01] ----------------------------------------------------------------
+[07/01/2026 17:06:01] INICIANDO SALVAR VENDA
+[07/01/2026 17:06:01] DADOS RECEBIDOS (_POST):
+[07/01/2026 17:06:01] {"romaneios_selecionados":"","data":"2026-01-07","plano_pgto":"1","vencimento":"2026-01-14","cliente":"25","quant_dias":"7","nota_fiscal":"5134","quant_caixa_1":["","5214",""],"produto_1":["","38",""],"preco_kg_1":["","4,00",""],"tipo_cx_1":["","5",""],"preco_unit_1":["","40,00",""],"valor_1":["","208560,00",""],"desc-avista":"5","desc_2":["",""],"quant_caixa_2":["",""],"preco_kg_2":["",""],"tipo_cx_2":["",""],"preco_unit_2":["",""],"valor_2":["",""],"obs_3":["",""],"material":["",""],"quant_3":["",""],"preco_unit_3":["",""],"valor_3":["",""],"descricao_adicional":"","valor_adicional":"0,00","descricao_desconto":"","valor_desconto":"0,00","valor_liquido":"198132,00","id":""}
+[07/01/2026 17:06:01] ERRO: SQLSTATE[HY000]: General error: 1364 Field 'usuario_pgto' doesn't have a default value
+[07/01/2026 17:06:11] ----------------------------------------------------------------
+[07/01/2026 17:06:11] INICIANDO SALVAR VENDA
+[07/01/2026 17:06:11] DADOS RECEBIDOS (_POST):
+[07/01/2026 17:06:11] {"romaneios_selecionados":"","data":"2026-01-07","plano_pgto":"1","vencimento":"2026-01-14","cliente":"25","quant_dias":"7","nota_fiscal":"5134","quant_caixa_1":["","5214",""],"produto_1":["","38",""],"preco_kg_1":["","4,00",""],"tipo_cx_1":["","5",""],"preco_unit_1":["","40,00",""],"valor_1":["","208560,00",""],"desc-avista":"5","desc_2":["",""],"quant_caixa_2":["",""],"preco_kg_2":["",""],"tipo_cx_2":["",""],"preco_unit_2":["",""],"valor_2":["",""],"obs_3":["",""],"material":["",""],"quant_3":["",""],"preco_unit_3":["",""],"valor_3":["",""],"descricao_adicional":"","valor_adicional":"0,00","descricao_desconto":"","valor_desconto":"0,00","valor_liquido":"198132,00","id":""}
+[07/01/2026 17:06:11] ERRO: SQLSTATE[HY000]: General error: 1364 Field 'usuario_pgto' doesn't have a default value
+[07/01/2026 17:08:20] ----------------------------------------------------------------
+[07/01/2026 17:08:20] INICIANDO SALVAR VENDA
+[07/01/2026 17:08:20] DADOS RECEBIDOS (_POST):
+[07/01/2026 17:08:20] {"romaneios_selecionados":"","data":"2026-01-07","plano_pgto":"1","vencimento":"2026-01-14","cliente":"25","quant_dias":"7","nota_fiscal":"5134","quant_caixa_1":["","5214",""],"produto_1":["","38",""],"preco_kg_1":["","4,00",""],"tipo_cx_1":["","5",""],"preco_unit_1":["","40,00",""],"valor_1":["","208560,00",""],"desc-avista":"5","desc_2":["",""],"quant_caixa_2":["",""],"preco_kg_2":["",""],"tipo_cx_2":["",""],"preco_unit_2":["",""],"valor_2":["",""],"obs_3":["",""],"material":["",""],"quant_3":["",""],"preco_unit_3":["",""],"valor_3":["",""],"descricao_adicional":"","valor_adicional":"0,00","descricao_desconto":"","valor_desconto":"0,00","valor_liquido":"198132,00","id":""}
+[07/01/2026 17:11:03] INICIANDO SALVAR VENDA
