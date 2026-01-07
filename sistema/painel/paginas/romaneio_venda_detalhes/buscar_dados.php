@@ -1,9 +1,8 @@
 <?php
 require_once("../../../conexao.php");
 
-// 1. Validação da Entrada
 if (empty($_POST['id'])) {
-    http_response_code(400); // Bad Request
+    http_response_code(400);
     echo json_encode(['error' => 'ID do romaneio não fornecido.']);
     exit();
 }
@@ -11,8 +10,7 @@ if (empty($_POST['id'])) {
 $id = $_POST['id'];
 
 try {
-    // 2. Buscar o Romaneio Principal (Cabeçalho)
-    // Ao fazer "rv.*", trazemos também a coluna 'id_romaneio_compra'
+    // 1. Cabeçalho do Romaneio
     $query_romaneio = $pdo->prepare("
         SELECT 
             rv.*, 
@@ -27,21 +25,22 @@ try {
     $query_romaneio->execute();
     $romaneio = $query_romaneio->fetch(PDO::FETCH_ASSOC);
 
-    // Se o romaneio não existir, encerra com erro 404.
     if (!$romaneio) {
         http_response_code(404);
-        echo json_encode(['error' => 'Romaneio com ID ' . htmlspecialchars($id) . ' não encontrado.']);
+        echo json_encode(['error' => 'Romaneio não encontrado.']);
         exit();
     }
 
-    // 3. Buscar as Linhas de Produto
+    // 2. Linhas de Produto (Double JOIN: linha -> produtos -> categorias)
     $query_produtos = $pdo->prepare("
         SELECT 
             lp.*,
             p.nome AS nome_produto,
+            cat.nome AS nome_variedade,
             CONCAT(tc.tipo, ' ', um.unidade) AS tipo_caixa_completo
         FROM linha_produto AS lp
         LEFT JOIN produtos AS p ON lp.variedade = p.id
+        LEFT JOIN categorias AS cat ON p.categoria = cat.id
         LEFT JOIN tipo_caixa AS tc ON lp.tipo_caixa = tc.id
         LEFT JOIN unidade_medida AS um ON tc.unidade_medida = um.id
         WHERE lp.id_romaneio = :id_romaneio
@@ -51,14 +50,16 @@ try {
     $query_produtos->execute();
     $produtos = $query_produtos->fetchAll(PDO::FETCH_ASSOC);
 
-    // 4. Buscar as Linhas de Comissão
+    // 3. Linhas de Comissão (Double JOIN: linha -> produtos -> categorias)
     $query_comissoes = $pdo->prepare("
         SELECT 
             lc.*,
             p.nome AS nome_produto,
+            cat.nome AS nome_variedade,
             CONCAT(tc.tipo, ' ', um.unidade) AS tipo_caixa_completo
         FROM linha_comissao AS lc
         LEFT JOIN produtos AS p ON lc.descricao = p.id 
+        LEFT JOIN categorias AS cat ON p.categoria = cat.id
         LEFT JOIN tipo_caixa AS tc ON lc.tipo_caixa = tc.id
         LEFT JOIN unidade_medida AS um ON tc.unidade_medida = um.id
         WHERE lc.id_romaneio = :id_romaneio
@@ -68,7 +69,7 @@ try {
     $query_comissoes->execute();
     $comissoes = $query_comissoes->fetchAll(PDO::FETCH_ASSOC);
 
-    // 5. Buscar as Linhas de Materiais/Observações
+    // 4. Linhas de Materiais
     $query_materiais = $pdo->prepare("
         SELECT 
             lo.*,
@@ -82,32 +83,23 @@ try {
     $query_materiais->execute();
     $materiais = $query_materiais->fetchAll(PDO::FETCH_ASSOC);
 
-    // ==================================================================================
-    // 6. [AJUSTADO] Obter IDs dos Romaneios de Compra
-    // ==================================================================================
-    // Não precisamos fazer outra consulta SQL. O dado já veio no passo 2 
-    // dentro da variável $romaneio['id_romaneio_compra'].
-
     $ids_compras = [];
-
-    // Verificamos se existe valor na coluna e adicionamos ao array
     if (!empty($romaneio['id_romaneio_compra'])) {
         $ids_compras[] = $romaneio['id_romaneio_compra'];
     }
 
-    // 7. Montar a Resposta Final
     $dados_finais = [
         'romaneio'    => $romaneio,
         'produtos'    => $produtos,
         'comissoes'   => $comissoes,
         'materiais'   => $materiais,
-        'ids_compras' => $ids_compras // Array contendo o ID (ex: [10]) ou vazio []
+        'ids_compras' => $ids_compras
     ];
 
-    // 8. Enviar a resposta como JSON
     header('Content-Type: application/json');
     echo json_encode($dados_finais, JSON_PRETTY_PRINT | JSON_NUMERIC_CHECK);
+
 } catch (PDOException $e) {
     http_response_code(500);
-    echo json_encode(['error' => 'Erro interno ao buscar dados: ' . $e->getMessage()]);
+    echo json_encode(['error' => 'Erro interno: ' . $e->getMessage()]);
 }

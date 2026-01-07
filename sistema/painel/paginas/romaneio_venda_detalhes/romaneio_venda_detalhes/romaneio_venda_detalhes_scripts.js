@@ -2,78 +2,99 @@ function mostrar(id) {
     $.ajax({
         url: 'paginas/romaneio_venda_detalhes/buscar_dados.php',
         method: 'POST',
-        data: { id: id },
+        data: {
+            id: id
+        },
         dataType: 'json',
         success: function (dados) {
-            const r = dados.romaneio;
+            console.log("DADOS COMPLETOS:", dados);
 
-            // Preenchimento dos campos de texto do modal
-            $('#id_dados').text(r.id);
-            $('#data_dados').text(r.data ? new Date(r.data).toLocaleDateString('pt-BR') : '-');
-            $('#cliente_dados').text(r.nome_cliente);
-            $('#nota_fiscal_dados').text(r.nota_fiscal || '-');
-            $('#plano_pgto_dados').text(r.nome_plano || '-');
-            $('#vencimento_dados').text(r.vencimento ? new Date(r.vencimento).toLocaleDateString('pt-BR') : '-');
+            // Cabeçalho Principal
+            $('#id_dados').text(dados.romaneio.id);
 
-            // Tabela de Produtos (Nome - Categoria)
-            let htmlProd = '<table class="table table-sm table-bordered"><thead><tr class="table-active"><th>Produto - Categoria</th><th>Qtd</th><th>Tipo</th><th>Vl. Unit</th><th>Subtotal</th></tr></thead><tbody>';
+            let dataFormatada = new Date(dados.romaneio.data).toLocaleDateString('pt-BR');
+            let vencimentoFormatado = new Date(dados.romaneio.vencimento).toLocaleDateString('pt-BR');
+
+            $('#data_dados').text(dataFormatada);
+            $('#cliente_dados').text(dados.romaneio.nome_cliente);
+            $('#nota_fiscal_dados').text(dados.romaneio.nota_fiscal || '-');
+            $('#plano_pgto_dados').text(dados.romaneio.nome_plano);
+            $('#vencimento_dados').text(vencimentoFormatado);
+
+            // --- TABELA DE PRODUTOS (PRODUTO - VARIEDADE) ---
+            let htmlProdutos = '<table class="table table-striped"><thead><tr><th>Produto - Variedade</th><th>Qtd</th><th>Tipo Cx</th><th>Preço KG</th><th>Preço Unit</th><th>Valor</th></tr></thead><tbody>';
             if (dados.produtos && dados.produtos.length > 0) {
-                dados.produtos.forEach(item => {
-                    let exibicao = `${item.nome_produto} - ${item.nome_categoria || 'S/V'}`;
-                    htmlProd += `<tr>
-                        <td>${exibicao}</td>
-                        <td>${item.quant}</td>
-                        <td>${item.tipo_caixa_completo || '-'}</td>
-                        <td>R$ ${parseFloat(item.preco_unit).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>
-                        <td>R$ ${parseFloat(item.valor).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>
-                    </tr>`;
+                dados.produtos.forEach(function (item) {
+                    // Unindo Produto e Variedade (Categoria) conforme sua lógica
+                    let nomeExibicao = `${item.nome_produto || '-'} - ${item.nome_variedade || ''}`;
+
+                    htmlProdutos += `<tr>
+            <td>${nomeExibicao}</td>
+            <td>${item.quant || '0'}</td>
+            <td>${item.tipo_caixa_completo || '-'}</td>
+            <td>R$ ${parseFloat(item.preco_kg || 0).toFixed(2).replace('.', ',')}</td>
+            <td>R$ ${parseFloat(item.preco_unit || 0).toFixed(2).replace('.', ',')}</td>
+            <td>R$ ${parseFloat(item.valor || 0).toFixed(2).replace('.', ',')}</td>
+          </tr>`;
                 });
             } else {
-                htmlProd += '<tr><td colspan="5" class="text-center">Nenhum produto.</td></tr>';
+                htmlProdutos += '<tr><td colspan="6" class="text-center">Nenhum produto encontrado.</td></tr>';
             }
-            htmlProd += '</tbody></table>';
-            $('#itens_dados').html(htmlProd);
+            htmlProdutos += '</tbody></table>';
+            $('#itens_dados').html(htmlProdutos);
 
-            // Tabela de Comissões
-            let htmlCom = '<table class="table table-sm table-bordered"><thead><tr class="table-active"><th>Descrição</th><th>Qtd</th><th>Valor</th></tr></thead><tbody>';
+            // --- TABELA DE COMISSÕES (PRODUTO - VARIEDADE) ---
+            let htmlComissoes = '<table class="table table-striped"><thead><tr><th>Descrição</th><th>Qtd Cx</th><th>Tipo Cx</th><th>Preço KG</th><th>Preço Unit</th><th>Valor</th></tr></thead><tbody>';
             if (dados.comissoes && dados.comissoes.length > 0) {
-                dados.comissoes.forEach(item => {
-                    htmlCom += `<tr>
-                        <td>${item.nome_produto || 'Comissão'}</td>
-                        <td>${item.quant_caixa || '0'}</td>
-                        <td>R$ ${parseFloat(item.valor).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>
-                    </tr>`;
+                dados.comissoes.forEach(function (item) {
+                    // Aplicando a mesma lógica de nome composto para comissões
+                    let descComissao = item.nome_produto ? `${item.nome_produto} - ${item.nome_variedade || ''}` : `Comissão ID ${item.descricao}`;
+
+                    htmlComissoes += `<tr>
+            <td>${descComissao}</td>
+            <td>${item.quant_caixa || '0'}</td>
+            <td>${item.tipo_caixa_completo || '-'}</td>
+            <td>R$ ${parseFloat(item.preco_kg || 0).toFixed(2).replace('.', ',')}</td>
+            <td>R$ ${parseFloat(item.preco_unit || 0).toFixed(2).replace('.', ',')}</td>
+            <td>R$ ${parseFloat(item.valor || 0).toFixed(2).replace('.', ',')}</td>
+          </tr>`;
                 });
             } else {
-                htmlCom += '<tr><td colspan="3" class="text-center">Nenhuma comissão.</td></tr>';
+                htmlComissoes += '<tr><td colspan="6" class="text-center">Nenhuma comissão encontrada.</td></tr>';
             }
-            htmlCom += '</tbody></table>';
-            $('#comissoes_dados').html(htmlCom);
+            htmlComissoes += '</tbody></table>';
+            $('#comissoes_dados').html(htmlComissoes);
 
-            // Tabela de Materiais
-            let htmlMat = '<table class="table table-sm table-bordered"><thead><tr class="table-active"><th>Material</th><th>Qtd</th><th>Observações</th></tr></thead><tbody>';
+            // --- TABELA DE MATERIAIS ---
+            let htmlMateriais = '<table class="table table-striped"><thead><tr><th>Observações</th><th>Material</th><th>Qtd</th><th>Preço Unit</th><th>Valor</th></tr></thead><tbody>';
             if (dados.materiais && dados.materiais.length > 0) {
-                dados.materiais.forEach(item => {
-                    htmlMat += `<tr>
-                        <td>${item.nome_material || '-'}</td>
-                        <td>${item.quant || '0'}</td>
-                        <td>${item.observacoes || '-'}</td>
-                    </tr>`;
+                dados.materiais.forEach(function (item) {
+                    htmlMateriais += `<tr>
+            <td>${item.observacoes || '-'}</td>
+            <td>${item.nome_material || '-'}</td>
+            <td>${item.quant || '0'}</td> 
+            <td>R$ ${parseFloat(item.preco_unit || 0).toFixed(2).replace('.', ',')}</td>
+            <td>R$ ${parseFloat(item.valor || 0).toFixed(2).replace('.', ',')}</td>
+          </tr>`;
                 });
             } else {
-                htmlMat += '<tr><td colspan="3" class="text-center">Nenhum material.</td></tr>';
+                htmlMateriais += '<tr><td colspan="5" class="text-center">Nenhum material encontrado.</td></tr>';
             }
-            htmlMat += '</tbody></table>';
-            $('#materiais_dados').html(htmlMat);
+            htmlMateriais += '</tbody></table>';
+            $('#materiais_dados').html(htmlMateriais);
 
-            // Rodapé Financeiro
-            $('#descricao_a_dados').text(r.descricao_a || 'Nenhuma');
-            $('#adicional_dados').text('R$ ' + parseFloat(r.adicional || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 }));
-            $('#descricao_d_dados').text(r.descricao_d || 'Nenhuma');
-            $('#desconto_dados').text('R$ ' + parseFloat(r.desconto || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 }));
-            $('#total_liquido_dados').text('R$ ' + parseFloat(r.total_liquido || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 }));
+            // --- RODAPÉ FINANCEIRO ---
+            $('#adicional_dados').text('R$ ' + parseFloat(dados.romaneio.adicional || 0).toFixed(2).replace('.', ','));
+            $('#descricao_a_dados').text(dados.romaneio.descricao_a || '-');
+            $('#desconto_dados').text('R$ ' + parseFloat(dados.romaneio.desconto || 0).toFixed(2).replace('.', ','));
+            $('#descricao_d_dados').text(dados.romaneio.descricao_d || '-');
+            $('#total_liquido_dados').text('R$ ' + parseFloat(dados.romaneio.total_liquido || 0).toFixed(2).replace('.', ','));
 
             $('#modalDados').modal('show');
+        },
+        error: function (xhr, status, error) {
+            console.error('Erro na requisição AJAX:', status, error);
+            alert('Ocorreu um erro ao buscar os dados.');
         }
     });
 }
