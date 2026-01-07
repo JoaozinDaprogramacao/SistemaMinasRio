@@ -1,21 +1,23 @@
 <?php
-// Função para padronizar a qualidade (Transforma ª em °)
+// 0. GARANTIR UTF-8 NA CONEXÃO
+$pdo->exec("SET NAMES utf8");
+
 function padronizarQualidade($texto)
 {
-    return str_replace('ª', '°', $texto);
+    $num = preg_replace('/[^0-9]/', '', $texto);
+    return $num . '°';
 }
 
 // 1. BUSCA DINÂMICA DE QUALIDADES
 $qualidades = [];
 $query_cat = $pdo->query("SELECT nome FROM categorias");
 while ($c = $query_cat->fetch(PDO::FETCH_ASSOC)) {
-    if (preg_match('/(\d+ª|\d+°)$/u', $c['nome'], $matches)) {
-        // Padronizamos aqui para o header da tabela
-        $qualidades[] = padronizarQualidade($matches[1]);
+    if (preg_match('/(\d+)(\xAA|\xB0|ª|°)$/u', $c['nome'], $matches)) {
+        $qualidades[] = padronizarQualidade($matches[0]);
     }
 }
 $qualidades = array_unique($qualidades);
-sort($qualidades); // Ordena 1°, 2°...
+sort($qualidades);
 
 // 2. BUSCA DE DADOS
 $query = $pdo->query("SELECT p.nome as nome_prod, cat.nome as nome_cat, cat.vendas 
@@ -24,39 +26,32 @@ $query = $pdo->query("SELECT p.nome as nome_prod, cat.nome as nome_cat, cat.vend
                       ORDER BY p.nome ASC, cat.nome ASC");
 $res = $query->fetchAll(PDO::FETCH_ASSOC);
 
-// 3. PROCESSAMENTO PARA O FORMATO DE TABELA PIVÔ
+// 3. PROCESSAMENTO
 $dados_tabela = [];
 
 foreach ($res as $item) {
-    // A) LIMPA A CATEGORIA: Remove "1°", "1ª", "DE 1ª", etc.
-    // Usamos o modificador 'u' para caracteres UTF-8 como ª e °
-    $cat_limpa = preg_replace('/\s+(DE\s+)?(\d+ª|\d+°)$/ui', '', $item['nome_cat']);
+    // Limpeza para agrupar (remove 1°, 2°, etc)
+    $cat_limpa = preg_replace('/\s+(DE\s+)?\d+.*$/ui', '', $item['nome_cat']);
+    $prod_limpo = preg_replace('/\s+\d+.*$/ui', '', $item['nome_prod']);
+    $chave = mb_strtoupper($prod_limpo . ' - ' . $cat_limpa);
 
-    // B) CRIA A CHAVE: PRODUTO - CATEGORIA (Ex: BANANA - NANICA)
-    $chave = mb_strtoupper($item['nome_prod'] . ' - ' . $cat_limpa);
-
-    // C) EXTRAI E PADRONIZA A QUALIDADE DO ITEM
     $qualidade_item = '';
-    if (preg_match('/(\d+ª|\d+°)$/u', $item['nome_cat'], $matches)) {
-        $qualidade_item = padronizarQualidade($matches[1]);
+    if (preg_match('/(\d+)(\xAA|\xB0|ª|°)$/u', $item['nome_cat'], $matches)) {
+        $qualidade_item = padronizarQualidade($matches[0]);
     }
 
-    // D) INICIALIZA A LINHA SE NÃO EXISTIR
     if (!isset($dados_tabela[$chave])) {
         foreach ($qualidades as $q) {
             $dados_tabela[$chave][$q] = 0;
         }
+        $dados_tabela[$chave]['GERAL'] = 0; // Coluna para produtos tipo único
     }
 
-    // E) SOMA AS VENDAS NA COLUNA PADRONIZADA
-    if ($qualidade_item != '' && isset($dados_tabela[$chave][$qualidade_item])) {
+    if ($qualidade_item != '' && in_array($qualidade_item, $qualidades)) {
         $dados_tabela[$chave][$qualidade_item] += $item['vendas'];
     } else {
-        // Se o produto não tem 1° ou 2° no nome (Ex: BANANA - PRATA), 
-        // ele vai para a primeira coluna disponível ou você pode criar uma lógica para "Geral"
-        // Aqui, para não sumir do Total, vamos garantir que ele some ao menos no cálculo da linha
-        if (!isset($dados_tabela[$chave]['TOTAL_AVULSO'])) $dados_tabela[$chave]['TOTAL_AVULSO'] = 0;
-        $dados_tabela[$chave]['TOTAL_AVULSO'] += $item['vendas'];
+        // Aqui cai a Banana Maçã, que não tem 1° ou 2° no nome
+        $dados_tabela[$chave]['GERAL'] += $item['vendas'];
     }
 }
 ?>
@@ -64,11 +59,11 @@ foreach ($res as $item) {
 <div class="card shadow mb-4" style="border-top: 4px solid #2b7a00;">
     <div class="card-body">
         <div class="table-responsive">
-            <table class="table table-bordered">
+            <table class="table table-bordered table-hover">
                 <thead>
                     <tr class="text-center" style="background-color: #2b7a00; color: #ffffff;">
                         <th class="text-left" style="background-color: #1e5600;">PRODUTO - CATEGORIA</th>
-                        <?php foreach ($qualidades as $q): ?>
+                        <th width="10%">GERAL / ÚNICO</th> <?php foreach ($qualidades as $q): ?>
                             <th width="10%"><?php echo $q; ?></th>
                         <?php endforeach; ?>
                         <th width="12%" style="background-color: #1e5600;">TOTAL</th>
@@ -81,14 +76,17 @@ foreach ($res as $item) {
                                 <?php echo $nome_exibicao; ?>
                             </td>
 
+                            <td style="color: #2b7a00;">
+                                <?php echo number_format($valores['GERAL'], 0, ',', '.'); ?>
+                            </td>
+
                             <?php
-                            $soma_linha = isset($valores['TOTAL_AVULSO']) ? $valores['TOTAL_AVULSO'] : 0;
+                            $soma_linha = $valores['GERAL'];
                             foreach ($qualidades as $q):
                                 $v = $valores[$q];
                                 $soma_linha += $v;
-                                $v_formatado = number_format($v, 0, ',', '.');
                             ?>
-                                <td><?php echo $v_formatado; ?></td>
+                                <td><?php echo number_format($v, 0, ',', '.'); ?></td>
                             <?php endforeach; ?>
 
                             <td style="background-color: #c6e0b4; color: #1e5600;">
