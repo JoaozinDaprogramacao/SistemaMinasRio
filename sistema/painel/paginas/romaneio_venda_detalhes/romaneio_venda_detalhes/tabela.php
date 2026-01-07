@@ -8,10 +8,10 @@ while ($c = $query_cat->fetch(PDO::FETCH_ASSOC)) {
     }
 }
 $qualidades = array_unique($qualidades);
-sort($qualidades); // Ordena 1°, 2°...
+sort($qualidades);
 
-// 2. BUSCA DE DADOS (Produto + Categoria + Vendas)
-$query = $pdo->query("SELECT p.nome as nome_prod, cat.nome as nome_cat, p.vendas 
+// 2. BUSCA DE DADOS (Corrigido para buscar cat.vendas)
+$query = $pdo->query("SELECT p.nome as nome_prod, cat.nome as nome_cat, cat.vendas 
                       FROM produtos p 
                       INNER JOIN categorias cat ON p.categoria = cat.id 
                       ORDER BY p.nome ASC, cat.nome ASC");
@@ -21,24 +21,20 @@ $res = $query->fetchAll(PDO::FETCH_ASSOC);
 $dados_tabela = [];
 
 foreach ($res as $item) {
-    // A) LIMPA A CATEGORIA: Remove "DE 1ª", "1°", etc. do nome da categoria
     $cat_limpa = preg_replace('/\s+(DE\s+)?(\d+ª|\d+°)$/i', '', $item['nome_cat']);
-    
-    // B) CRIA A CHAVE: NOME DO PRODUTO - CATEGORIA LIMPA
     $chave = mb_strtoupper($item['nome_prod'] . ' - ' . $cat_limpa);
 
-    // C) EXTRAI A QUALIDADE DA CATEGORIA ORIGINAL
     $qualidade_item = '';
     if (preg_match('/(\d+ª|\d+°)$/', $item['nome_cat'], $matches)) {
         $qualidade_item = $matches[1];
     }
 
-    // D) INICIALIZA A LINHA
     if (!isset($dados_tabela[$chave])) {
-        foreach ($qualidades as $q) { $dados_tabela[$chave][$q] = 0; }
+        foreach ($qualidades as $q) {
+            $dados_tabela[$chave][$q] = 0;
+        }
     }
 
-    // E) SOMA AS VENDAS NA COLUNA CERTA
     if ($qualidade_item != '') {
         $dados_tabela[$chave][$qualidade_item] += $item['vendas'];
     }
@@ -65,17 +61,19 @@ foreach ($res as $item) {
                                 <?php echo $nome_exibicao; ?>
                             </td>
 
-                            <?php 
+                            <?php
                             $soma_linha = 0;
-                            foreach ($qualidades as $q): 
+                            foreach ($qualidades as $q):
                                 $v = $valores[$q];
                                 $soma_linha += $v;
+                                // Formata para 1.000, 10.000 etc
+                                $v_formatado = number_format($v, 0, ',', '.');
                             ?>
-                                <td><?php echo $v; ?></td>
+                                <td><?php echo $v_formatado; ?></td>
                             <?php endforeach; ?>
 
                             <td style="background-color: #c6e0b4; color: #1e5600;">
-                                <?php echo $soma_linha; ?>
+                                <?php echo number_format($soma_linha, 0, ',', '.'); ?>
                             </td>
                         </tr>
                     <?php endforeach; ?>
