@@ -56,6 +56,9 @@ if (@$produtos == 'ocultar') {
 
 </div>
 
+<?php include_once("../painel/paginas/romaneio_venda_detalhes/romaneio_venda_detalhes/cards.php")?>
+
+
 <div class="row row-sm">
 	<div class="col-lg-12">
 		<div class="card custom-card">
