@@ -1,5 +1,5 @@
 <?php
-$pag = 'romaneio_venda_detalhes';
+$pag = 'comissao_vendas';
 
 //verificar se ele tem a permissão de estar nessa página
 if (@$produtos == 'ocultar') {
@@ -57,7 +57,6 @@ if (@$produtos == 'ocultar') {
 		</div>
 	</div>
 
-	<?php include_once("../painel/paginas/romaneio_venda_detalhes/romaneio_venda_detalhes/modais.php"); ?>
 
 	<input type="hidden" id="ids">
 
@@ -69,7 +68,7 @@ if (@$produtos == 'ocultar') {
 		};
 	</script>
 
-	<script src="../painel/paginas/romaneio_venda_detalhes/romaneio_venda_detalhes/romaneio_venda_detalhes_scripts.js"></script>
+	<script src="../painel/paginas/comissao_vendas/comissao_vendas/comissao_vendas_scripts.js"></script>
 
 	<script type="text/javascript">
 		var pag = "<?= $pag ?>"
