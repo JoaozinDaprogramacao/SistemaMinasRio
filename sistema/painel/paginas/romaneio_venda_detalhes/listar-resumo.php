@@ -16,7 +16,7 @@ $query_cat = $pdo->query("SELECT nome FROM categorias");
 while ($c = $query_cat->fetch(PDO::FETCH_ASSOC)) {
     if (preg_match('/(\d+)(\xAA|\xB0|ª|°)$/u', $c['nome'], $matches)) {
         $num = preg_replace('/[^0-9]/', '', $matches[0]);
-        $qualidades[] = $num . '°';
+        $qualidades[] = $num . 'ª';
     }
 }
 $qualidades = array_unique($qualidades);
