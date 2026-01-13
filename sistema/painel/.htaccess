@@ -72,8 +72,7 @@ RewriteRule ^orcamento(.*)$ index.php?pagina=orcamento [L]
 # MÓDULO DE ROMANEIOS DETALHES
 # ==========================================================
 RewriteRule ^romaneio_venda_detalhes(.*)$ index.php?pagina=romaneio_venda_detalhes [L]
-RewriteRule ^romaneio_compra_detalhes(.*)$ index.php?pagina=romaneio_compra_detalhes [L]
-RewriteRule ^romaneio_baldeio_detalhes(.*)$ index.php?pagina=romaneio_baldeio_detalhes [L]
+RewriteRule ^comissao_vendas(.*)$ index.php?pagina=comissao_vendas [L]
 
 # ==========================================================
 # MÓDULO DE ROMANEIOS
