@@ -1,11 +1,35 @@
 <?php
 $pag = 'comissao_vendas';
 
-//verificar se ele tem a permissão de estar nessa página
+// verificar se ele tem a permissão de estar nessa página
 if (@$produtos == 'ocultar') {
 	echo "<script>window.location='../index.php'</script>";
 	exit();
 }
+
+// --- LÓGICA DE QUALIDADES (Mover para o topo do arquivo base) ---
+$pdo->exec("SET NAMES utf8");
+
+if (!function_exists('padronizarQualidade')) {
+	function padronizarQualidade($texto)
+	{
+		$num = preg_replace('/[^0-9]/', '', $texto);
+		return $num ? $num . '°' : '';
+	}
+}
+
+$qualidades = [];
+$query_cat = $pdo->query("SELECT nome FROM categorias");
+$res_cat = $query_cat->fetchAll(PDO::FETCH_ASSOC);
+
+foreach ($res_cat as $c) {
+	if (preg_match('/(\d+)(\xAA|\xB0|ª|°)$/u', $c['nome'], $matches)) {
+		$qualidades[] = padronizarQualidade($matches[0]);
+	}
+}
+$qualidades = array_unique($qualidades);
+sort($qualidades);
+// ----------------------------------------------------------------
 ?>
 
 <script src="js/ajax.js"></script>
@@ -51,28 +75,26 @@ if (@$produtos == 'ocultar') {
 		<div class="col-lg-12">
 			<div class="card custom-card">
 				<div class="card-body" id="listar">
-
 				</div>
 			</div>
 		</div>
 	</div>
 
+	<?php include_once("../painel/paginas/comissao_vendas/comissao_vendas/modais.php"); ?>
 
 	<input type="hidden" id="ids">
 
 	<script>
+		// Definindo a variável global aqui
+		window.listaQualidadesGlobal = <?php echo json_encode($qualidades); ?>;
 		var pag = "<?= $pag ?>";
-		// Inicializa a lista ao carregar a página
+
 		window.onload = function() {
 			if (typeof buscar === 'function') buscar();
 		};
 	</script>
 
 	<script src="../painel/paginas/comissao_vendas/comissao_vendas/comissao_vendas_scripts.js"></script>
-
-	<script type="text/javascript">
-		var pag = "<?= $pag ?>"
-	</script>
 
 	<script type="text/javascript">
 		$(document).ready(function() {
@@ -82,33 +104,24 @@ if (@$produtos == 'ocultar') {
 				width: 'resolve'
 			});
 		});
-	</script>
 
-
-	<script type="text/javascript">
 		function carregarImg() {
 			var target = document.getElementById('target');
 			var file = document.querySelector("#foto").files[0];
-
 			var reader = new FileReader();
-
 			reader.onloadend = function() {
 				target.src = reader.result;
 			};
-
 			if (file) {
 				reader.readAsDataURL(file);
-
 			} else {
 				target.src = "";
 			}
 		}
-	</script>
 
-
-	<script type="text/javascript">
 		function buscarCat(id) {
 			$('#cat').val(id);
 			listar(id)
 		}
 	</script>
+</div>
