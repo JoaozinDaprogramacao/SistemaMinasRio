@@ -234,17 +234,28 @@ HTML;
 	function editar(id, descricao, valor, fornecedor, funcionario, vencimento, data_pgto, forma_pgto, frequencia, obs, arquivo) {
 		$('#mensagem').text('');
 		$('#titulo_inserir').text('Editar Registro');
+
+		// IDs que devem existir no seu modalForm
 		$('#id').val(id);
 		$('#descricao').val(descricao);
 		$('#valor').val(valor);
-		$('#fornecedor').val(fornecedor).change();
+
+		// Verifique se o ID no modal é 'fornecedor' ou 'atacadista'
+		if ($('#fornecedor').length) $('#fornecedor').val(fornecedor).change();
+
 		$('#funcionario').val(funcionario).change();
 		$('#vencimento').val(vencimento);
 		$('#data_pgto').val(data_pgto);
-		$('#forma_pgto').val(forma_pgto).change();
+
+		// Verifique se o ID no modal é 'forma_pgto' ou 'formaPGTO'
+		if ($('#forma_pgto').length) $('#forma_pgto').val(forma_pgto).change();
+
 		$('#frequencia').val(frequencia).change();
 		$('#obs').val(obs);
+
 		$('#target').attr('src', 'images/contas/' + arquivo);
+
+		// Abre o modal
 		$('#modalForm').modal('show');
 	}
 

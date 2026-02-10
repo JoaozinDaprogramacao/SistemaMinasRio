@@ -116,69 +116,69 @@ function calculaTotais() {
         totalKgField.innerHTML = totalKgSoma.toFixed(2).replace('.', ',') + " KG";
         totalBrutoField.innerHTML = "R$ " + totalBrutoSoma.toFixed(2).replace('.', ',');
         totalDescField.innerHTML = "R$ " + descontoAvista.toFixed(2).replace('.', ',');
-        
+
         if (!totalGeralField.classList.contains("danger")) {
             totalGeralField.innerHTML = totalGeralSoma.toFixed(2).replace('.', ',');
             inputHidden.value = totalGeralSoma.toFixed(2).replace('.', ',');
         }
-    } catch (e) {}
+    } catch (e) { }
     updateLiquidPayable();
 }
 
 function calcularTotalAbatimentos() {
-    const { bruto, liquido, caixas, kg } = getTotals();
+    const totals = getTotals();
     let somaAbatimentos = 0;
 
     document.querySelectorAll(".linha-abatimentos").forEach(linha => {
         const inputDesc = linha.querySelector('input[id^="desc_"]');
-        const selInfo = linha.querySelector('select[id^="info_"], input[id^="taxa_adm_val_"]');
-        const selPreco = linha.querySelector('select[id^="preco_unit_"]');
-        const campoResultado = linha.querySelector('input[id^="valor_"]');
+        const selInfo = linha.querySelector('select[name^="info_"], input[name^="info_"]'); // Melhor usar name aqui
+        const selPreco = linha.querySelector('select[name^="preco_unit_"]');
+        const campoResultado = linha.querySelector('input[name^="valor_"]');
 
-        if(!inputDesc || !selInfo || !selPreco || !campoResultado) return;
+        if (!inputDesc || !selInfo || !selPreco || !campoResultado) return;
 
-        const desc = inputDesc.value.toUpperCase();
-        const infoVal = selInfo.value.toLowerCase();
+        const desc = inputDesc.value.toUpperCase().trim();
+        const infoVal = selInfo.value.toLowerCase().trim();
         const precoRaw = selPreco.value;
 
-        // Limpa o valor para cálculo (ex: "0,0025 %" -> 0.0025)
         let pUnit = parseFloat(precoRaw.replace(',', '.').replace('%', '').trim()) || 0;
-        let isPercent = precoRaw.includes('%');
         let valorCalculado = 0;
 
         if (desc === 'TAXA ADM') {
             let taxaInput = parseFloat(infoVal.replace(',', '.')) || 0;
             valorCalculado = taxaInput * pUnit;
-        } else if (desc === 'FUNRURAL') {
-            let base = (infoVal.includes('bruto')) ? bruto : (infoVal.includes('liquido')) ? liquido : 0;
+        }
+        else if (desc === 'FUNRURAL') {
+            // Verifica se a base selecionada é bruto ou liquido
+            let base = 0;
+            if (infoVal.includes('bruto')) base = totals.bruto;
+            else if (infoVal.includes('liquido') || infoVal.includes('líquido')) base = totals.liquido;
+
             valorCalculado = base * (pUnit / 100);
-        } else {
-            // Lógica para ABANORTE, IMA e outros
+        }
+        else {
+            // Lógica para KG, CX ou fixo
             if (infoVal === 'kg') {
-                // Se INFO é KG, multiplica Preço Unitário pelo Total de KG
-                // Mesmo que tenha %, tratamos como valor nominal por unidade de medida
-                valorCalculado = pUnit * kg;
-            } else if (infoVal === 'cx' || infoVal === 'caixa') {
-                valorCalculado = pUnit * caixas;
-            } else if (infoVal === '1' || infoVal === 'um') {
-                valorCalculado = pUnit;
+                valorCalculado = pUnit * totals.kg;
+            } else if (infoVal === 'cx' || infoVal === 'caixa' || infoVal === 'cxs') {
+                valorCalculado = pUnit * totals.caixas;
             } else {
-                // Caso não tenha uma unidade de medida clara e seja %, aplica sobre o bruto
-                if (isPercent) {
-                    valorCalculado = bruto * (pUnit / 100);
+                // Se for porcentagem mas não for Funrural, aplica sobre o bruto por padrão
+                if (precoRaw.includes('%')) {
+                    valorCalculado = totals.bruto * (pUnit / 100);
                 } else {
                     valorCalculado = pUnit;
                 }
             }
         }
 
-        campoResultado.value = valorCalculado.toFixed(2).replace('.', ',');
+        campoResultado.value = valorCalculado.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
         somaAbatimentos += valorCalculado;
     });
 
     const totalComissaoField = document.getElementById("total_comissao");
-    if(totalComissaoField) totalComissaoField.textContent = somaAbatimentos.toFixed(2).replace(".", ",");
-    
+    if (totalComissaoField) totalComissaoField.textContent = somaAbatimentos.toFixed(2).replace(".", ",");
+
     updateLiquidPayable();
 }
 
@@ -189,11 +189,19 @@ function parseBrasil(str) {
 }
 
 function getTotals() {
+    // Busca o texto, remove "R$", espaços e pontos de milhar, troca vírgula por ponto
+    const getVal = (selector) => {
+        const el = document.querySelector(selector);
+        if (!el) return 0;
+        let txt = el.textContent || el.value || "0";
+        return parseFloat(txt.replace('R$', '').replace(/\./g, '').replace(',', '.').trim()) || 0;
+    };
+
     return {
-        bruto: parseBrasil(document.querySelector('#total_bruto')?.textContent || ''),
-        liquido: parseBrasil(document.getElementById('valor_liquido')?.value || ''),
-        caixas: parseInt((document.querySelector('#total_caixa')?.textContent || '').replace(/\D/g, ''), 10) || 0,
-        kg: parseBrasil((document.querySelector('#total_kg')?.textContent || '').replace(/[^\d,]/g, '')),
+        bruto: getVal('#total_bruto'),
+        liquido: getVal('#valor_liquido'),
+        caixas: parseInt(document.querySelector('#total_caixa')?.textContent.replace(/\D/g, '') || '0', 10),
+        kg: getVal('#total_kg')
     };
 }
 
@@ -204,7 +212,7 @@ function addDiscountLine() {
     newLine.style.display = "block";
     newLine.id = "";
     newLine.querySelector('.desconto-type').addEventListener('change', calcularDescontosDiversos);
-    newLine.querySelector('.desconto-valor').addEventListener('input', function(e) {
+    newLine.querySelector('.desconto-valor').addEventListener('input', function (e) {
         mascara_moeda(e.target);
         calcularDescontosDiversos();
     });
