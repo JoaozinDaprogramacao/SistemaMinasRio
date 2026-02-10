@@ -81,6 +81,7 @@ RewriteRule ^romaneio_venda(.*)$ index.php?pagina=romaneio_venda [L]
 RewriteRule ^romaneio_compra(.*)$ index.php?pagina=romaneio_compra [L]
 RewriteRule ^romaneio_baldeio(.*)$ index.php?pagina=romaneio_baldeio [L]
 RewriteRule ^descricao_romaneio(.*)$ index.php?pagina=descricao_romaneio [L]
+RewriteRule ^taxas(.*)$ index.php?pagina=taxas [L]
 
 
 # ==========================================================

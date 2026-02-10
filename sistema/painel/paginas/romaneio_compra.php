@@ -266,126 +266,70 @@ if (@$produtos == 'ocultar') {
 					</div>
 				</div>
 
-				<div id="linha-container_2">
+<div id="linha-container_2">
+    <?php 
+    $query = $pdo->query("SELECT * FROM taxas_abatimentos ORDER BY id ASC");
+    $res = $query->fetchAll(PDO::FETCH_ASSOC);
+    
+    for ($i = 0; $i < @count($res); $i++) {
+        $id = $res[$i]['id'];
+        $descricao = $res[$i]['descricao'];
+        $info = $res[$i]['info'];
+        $valor_taxa = $res[$i]['valor_taxa'];
 
-					<div class="linha_2">
-						<div class="linha-inferior linha-abatimentos">
-							<div class="coluna_romaneio">
-								<label for="desc_funrural">Descrição</label>
-								<input id="desc_funrural" type="text" value="FUNRURAL" readonly>
-							</div>
-							<div class="coluna_romaneio">
-								<label for="info_funrural">INFO</label>
-								<select id="info_funrural" name="info_funrural" onchange="calcularTaxaFunrural()">
-									<option value="">Selecione</option>
-									<option value="liquido">V. LIQUIDO</option>
-									<option value="bruto">V. BRUTO</option>
-								</select>
-							</div>
-							<div class="coluna_romaneio">
-								<label for="preco_unit_funrural">PREÇO UNIT</label>
-								<select id="preco_unit_funrural" name="preco_unit_funrural" onchange="calcularTaxaFunrural()">
-									<option value="">Selecione</option>
-									<option value="1.50">1,50 %</option>
-									<option value="2.00">2,00 %</option>
-								</select>
-							</div>
-							<div class="coluna_romaneio">
-								<label for="valor_funrural">Valor</label>
-								<input id="valor_funrural" name="desc_funrural" type="text" class="valor_2" value="0,00" readonly>
-							</div>
-						</div>
-					</div>
+        $array_info = explode(';', $info);
+        $array_precos = explode(';', $valor_taxa);
 
-					<div class="linha_2">
-						<div class="linha-inferior linha-abatimentos">
-							<div class="coluna_romaneio">
-								<label for="desc_ima">Descrição</label>
-								<input id="desc_ima" type="text" value="IMA" readonly>
-							</div>
-							<div class="coluna_romaneio">
-								<label for="info_ima">INFO</label>
-								<select id="info_ima" name="info_ima" onchange="calcularTaxaIma()">
-									<option value="">Selecione</option>
-									<option value="cx">CX</option>
-									<option value="um">1</option>
-								</select>
-							</div>
-							<div class="coluna_romaneio">
-								<label for="preco_unit_ima">PREÇO UNIT</label>
-								<select id="preco_unit_ima" name="preco_unit_ima" onchange="calcularTaxaIma()">
-									<option value="">Selecione</option>
-									<option value="55.31">55,31</option>
-									<option value="0.25">0,25</option>
-									<option value="150.00">150,00</option>
-								</select>
-							</div>
-							<div class="coluna_romaneio">
-								<label for="valor_ima">Valor</label>
-								<input id="valor_ima" name="desc_ima" type="text" class="valor_2" value="0,00" readonly>
-							</div>
-						</div>
-					</div>
+        $identificador = strtolower(preg_replace('/[^a-zA-Z0-9]/', '_', $descricao));
+        $isTaxaAdm = (trim(strtoupper($descricao)) == 'TAXA ADM');
+    ?>
+    <div class="linha_2">
+        <div class="linha-inferior linha-abatimentos">
+            <div class="coluna_romaneio">
+                <label for="desc_<?php echo $identificador ?>">Descrição</label>
+                <input id="desc_<?php echo $identificador ?>" type="text" value="<?php echo $descricao ?>" readonly>
+            </div>
 
-					<div class="linha_2">
-						<div class="linha-inferior linha-abatimentos">
-							<div class="coluna_romaneio">
-								<label for="desc_abanorte">Descrição</label>
-								<input id="desc_abanorte" type="text" value="ABANORTE" readonly>
-							</div>
-							<div class="coluna_romaneio">
-								<label for="info_abanorte">INFO</label>
-								<select id="info_abanorte" name="info_abanorte" onchange="calcularTaxaAbanorte()">
-									<option value="">Selecione</option>
-									<option value="kg">KG</option>
-									<option value="um">1</option>
-								</select>
-							</div>
-							<div class="coluna_romaneio">
-								<label for="preco_unit_abanorte">PREÇO UNIT</label>
-								<select id="preco_unit_abanorte" name="preco_unit_abanorte" onchange="calcularTaxaAbanorte()">
-									<option value="">Selecione</option>
-									<option value="52.80">52,80 %</option>
-									<option value="0.0025">0,0025 %</option>
-								</select>
-							</div>
-							<div class="coluna_romaneio">
-								<label for="valor_abanorte">Valor</label>
-								<input id="valor_abanorte" name="desc_abanorte" type="text" class="valor_2" value="0,00" readonly>
-							</div>
-						</div>
-					</div>
+            <div class="coluna_romaneio">
+                <?php if ($isTaxaAdm): ?>
+                    <label for="taxa_adm_val_<?php echo $id ?>">Taxa</label>
+                    <input type="number" id="taxa_adm_val_<?php echo $id ?>" name="info_<?php echo $id ?>" class="form-control" oninput="calcularTotalAbatimentos()" placeholder="0" style="padding: 0.375rem 0.75rem;">
+                <?php else: ?>
+                    <label for="info_<?php echo $identificador ?>">INFO</label>
+                    <select id="info_<?php echo $identificador ?>" name="info_<?php echo $id ?>" class="form-select form-control" onchange="calcularTotalAbatimentos()" style="padding-top: 2px; padding-bottom: 2px;">
+                        <option value="">Selecione</option>
+                        <?php 
+                        foreach ($array_info as $item_info) {
+                            $item_info = trim($item_info);
+                            if ($item_info != "") echo "<option value='$item_info'>$item_info</option>";
+                        }
+                        ?>
+                    </select>
+                <?php endif; ?>
+            </div>
 
-					<div class="linha_2">
-						<div class="linha-inferior linha-abatimentos">
-							<div class="coluna_romaneio">
-								<label for="desc_taxa_adm">Descrição</label>
-								<input id="desc_taxa_adm" type="text" value="TAXA ADM" readonly>
-							</div>
-							<div class="coluna_romaneio">
-								<label for="taxa_adm_percent">Taxa</label>
-								<input
-									id="taxa_adm_percent"
-									name="taxa_adm_percent"
-									type="number"
-									oninput="calcularTaxaAdm()"
-									placeholder="0">
-							</div>
-							<div class="coluna_romaneio">
-								<label for="preco_unit_taxa_adm">PREÇO UNIT</label>
-								<select id="preco_unit_taxa_adm" name="preco_unit_taxa_adm" onchange="calcularTaxaAdm()">
-									<option value="">Selecione</option>
-									<option value="5">5,00</option>
-								</select>
-							</div>
-							<div class="coluna_romaneio">
-								<label for="valor_taxa_adm">Valor</label>
-								<input id="valor_taxa_adm" name="valor_taxa_adm" type="text" class="valor_2" value="0,00" readonly>
-							</div>
-						</div>
-					</div>
+            <div class="coluna_romaneio">
+                <label for="preco_unit_<?php echo $identificador ?>">PREÇO UNIT</label>
+                <select id="preco_unit_<?php echo $identificador ?>" name="preco_unit_<?php echo $id ?>" class="form-select form-control" onchange="calcularTotalAbatimentos()" style="padding-top: 2px; padding-bottom: 2px;">
+                    <option value="">Selecione</option>
+                    <?php 
+                    foreach ($array_precos as $item_preco) {
+                        $item_preco = trim($item_preco);
+                        if ($item_preco != "") echo "<option value='$item_preco'>$item_preco</option>";
+                    }
+                    ?>
+                </select>
+            </div>
 
-				</div>
+            <div class="coluna_romaneio">
+                <label for="valor_<?php echo $identificador ?>">Valor</label>
+                <input id="valor_<?php echo $identificador ?>" name="valor_<?php echo $id ?>" type="text" class="valor_2 total-taxas-dinamicas" value="0,00" readonly>
+            </div>
+        </div>
+    </div>
+    <?php } ?>
+</div>
+				
 				<div id="linha-container_2"></div>
 				<div class="resumo-tabela">
 					<div class="resumo-linha">
