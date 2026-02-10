@@ -246,6 +246,7 @@ function mostrar(id) {
             const rom = dados.romaneio || {};
             const comissoes = dados.comissoes || [];
             const materiais = dados.materiais || [];
+            const produtos = dados.produtos || [];
 
             // 1. CABEÇALHO
             $("#id_dados").text(rom.id ?? "-");
@@ -325,12 +326,17 @@ function mostrar(id) {
             }
             $("#corpo_materiais_detalhado").html(htmlMat);
 
-            // 4. RESUMO CONSOLIDADO E CÁLCULOS
+            // 4. CÁLCULO DA BANANA (LINHA_PRODUTO)
+            let totalBananaLiquido = 0;
+            produtos.forEach((p) => {
+                totalBananaLiquido += Number(p.valor || 0);
+            });
+
+            // 5. RESUMO CONSOLIDADO E CÁLCULOS FINAIS
             const totalComissaoMaterial = totalComissoes + totalMateriais;
-            const totalBananaLiquido = totalComissoes; // Definição de Banana Líquido
             const adicional = Number(rom.adicional || 0);
             const desconto = Number(rom.desconto || 0);
-            const totalLiquidoAReceber = totalComissaoMaterial + adicional - desconto;
+            const totalLiquidoAReceber = totalBananaLiquido + totalComissaoMaterial + adicional - desconto;
 
             let htmlResumo = `
                 <td class="text-center text-danger">R$ ${moneyBR(totalMateriais)}</td>
@@ -340,7 +346,7 @@ function mostrar(id) {
             `;
             $("#resumo_consolidado_dados").html(htmlResumo);
 
-            // 5. RODAPÉ DE AJUSTES
+            // 6. RODAPÉ DE AJUSTES
             $("#adicional_dados").text("R$ " + moneyBR(adicional));
             $("#descricao_a_dados").text(rom.obs_adicional || "Adicional");
             $("#desconto_dados").text("R$ " + moneyBR(desconto));

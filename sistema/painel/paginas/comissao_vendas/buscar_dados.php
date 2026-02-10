@@ -25,8 +25,6 @@ if (!$romaneio) {
     exit();
 }
 
-// 2. BUSCAR PRODUTOS (BANANA)
-// variedade (id do produto) -> categoria (id da categoria)
 $query_prod = $pdo->prepare("SELECT lp.*, p.nome as nome_produto, c.nome as nome_variedade 
                              FROM linha_produto lp 
                              LEFT JOIN produtos p ON lp.variedade = p.id 

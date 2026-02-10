@@ -394,6 +394,8 @@ if (@count($res1) > 0) {
 									<li class="<?php echo @$formas_pgto ?>"><a class="slide-item" href="planos_pgto"> Planos Pgto</a></li>
 
 									<li class="<?php echo @$descricao_romaneio ?>"><a class="slide-item" href="descricao_romaneio"> Descrição Romaneio</a></li>
+									
+									<li class="<?php echo @$taxas ?>"><a class="slide-item" href="taxas"> Taxas Romaneio</a></li>
 
 									<li class="<?php echo @$frequencias ?> "><a class="slide-item" href="frequencias"> Frequências</a></li>
 
