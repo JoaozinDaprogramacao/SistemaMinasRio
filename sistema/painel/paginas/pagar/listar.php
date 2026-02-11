@@ -17,192 +17,73 @@ $data_atual = date('Y-m-d');
 $mes_atual = Date('m');
 $ano_atual = Date('Y');
 $data_inicio_mes = $ano_atual . "-" . $mes_atual . "-01";
-$data_inicio_ano = $ano_atual . "-01-01";
-
-$data_ontem = date('Y-m-d', @strtotime("-1 days", @strtotime($data_atual)));
-$data_amanha = date('Y-m-d', @strtotime("+1 days", @strtotime($data_atual)));
-
 
 if ($mes_atual == '04' || $mes_atual == '06' || $mes_atual == '09' || $mes_atual == '11') {
 	$data_final_mes = $ano_atual . '-' . $mes_atual . '-30';
 } else if ($mes_atual == '02') {
 	$bissexto = date('L', @mktime(0, 0, 0, 1, 1, $ano_atual));
-	if ($bissexto == 1) {
-		$data_final_mes = $ano_atual . '-' . $mes_atual . '-29';
-	} else {
-		$data_final_mes = $ano_atual . '-' . $mes_atual . '-28';
-	}
+	$data_final_mes = ($bissexto == 1) ? $ano_atual . '-' . $mes_atual . '-29' : $ano_atual . '-' . $mes_atual . '-28';
 } else {
 	$data_final_mes = $ano_atual . '-' . $mes_atual . '-31';
 }
 
-$total_pago = 0;
-$total_pendentes = 0;
-
-$total_pagoF = 0;
-$total_pendentesF = 0;
-
-$dataInicial = @$_POST['p2'];
-$dataFinal = @$_POST['p3'];
+$dataInicial = @$_POST['p2'] ?: $data_inicio_mes;
+$dataFinal = @$_POST['p3'] ?: $data_final_mes;
 $filtro = @$_POST['p1'];
-$tipo_data = @$_POST['p4'];
+$tipo_data = @$_POST['p4'] ?: 'vencimento';
 $atacadista = @$_POST['p5'];
 $forma_pgto = @$_POST['p6'];
 $funcionario = @$_POST['p7'];
 $cargo = @$_POST['p8'];
 
-
-if ($tipo_data == "") {
-	$tipo_data = 'vencimento';
-}
-
-if ($dataInicial == "") {
-	$dataInicial = $data_inicio_mes;
-}
-
-if ($dataFinal == "") {
-	$dataFinal = $data_final_mes;
-}
-
 $sql_atacadista = "";
 if (!empty($atacadista)) {
-    $sql_atacadista = " AND cliente = '$atacadista'";
+	$sql_atacadista = " AND fornecedor = '$atacadista'";
 }
 
 $sql_pgto = "";
 if (!empty($forma_pgto)) {
-    $sql_pgto = " AND forma_pgto = '$forma_pgto'";
+	$sql_pgto = " AND forma_pgto = '$forma_pgto'";
 }
 
 $sql_funcionario = "";
 if (!empty($funcionario)) {
-    $sql_funcionario = " AND funcionario = '$funcionario'";
+	$sql_funcionario = " AND funcionario = '$funcionario'";
 }
 
+$query_base = "WHERE 1=1 $sql_usuario_lanc $sql_atacadista $sql_pgto $sql_funcionario";
+$periodo_filtro = " AND $tipo_data >= '$dataInicial' AND $tipo_data <= '$dataFinal'";
 
+$query = $pdo->query("SELECT SUM(valor) as total FROM $tabela $query_base AND pago = 'Não' AND vencimento < curDate() $periodo_filtro");
+$res = $query->fetch(PDO::FETCH_ASSOC);
+$total_vencidasF = number_format(($res['total'] ?? 0), 2, ',', '.');
 
-$total_valor = 0;
-$total_valorF = 0;
-$total_total = 0;
-$total_totalF = 0;
-$total_vencidas = 0;
-$total_vencidasF = 0;
-$total_hoje = 0;
-$total_hojeF = 0;
-$total_amanha = 0;
-$total_amanhaF = 0;
-$total_recebidas = 0;
-$total_recebidasF = 0;
+$query = $pdo->query("SELECT SUM(valor) as total FROM $tabela $query_base AND pago = 'Não' AND vencimento >= curDate() $periodo_filtro");
+$res = $query->fetch(PDO::FETCH_ASSOC);
+$total_hojeF = number_format(($res['total'] ?? 0), 2, ',', '.');
 
+$query = $pdo->query("SELECT SUM(subtotal) as total FROM $tabela $query_base AND pago = 'Sim' $periodo_filtro");
+$res = $query->fetch(PDO::FETCH_ASSOC);
+$total_recebidasF = number_format(($res['total'] ?? 0), 2, ',', '.');
 
+$query = $pdo->query("SELECT SUM(valor) as total FROM $tabela $query_base $periodo_filtro");
+$res = $query->fetch(PDO::FETCH_ASSOC);
+$total_totalF = number_format(($res['total'] ?? 0), 2, ',', '.');
 
-//PEGAR O TOTAL DAS CONTAS A PAGAR PENDENTES
-$query = $pdo->query("SELECT * from $tabela where pago = 'Não' $sql_usuario_lanc");
-$res = $query->fetchAll(PDO::FETCH_ASSOC);
-$total_reg = @count($res);
-if ($total_reg > 0) {
-	for ($i = 0; $i < $total_reg; $i++) {
-		foreach ($res[$i] as $key => $value) {
-		}
-		$total_valor += $res[$i]['valor'];
-		$total_valorF = @number_format($total_valor, 2, ',', '.');
-	}
-}
+$data_amanha = date('Y-m-d', strtotime("+1 days", strtotime($data_hoje)));
 
-//PEGAR O TOTAL DAS CONTAS A PAGAR
-if ($mostrar_registros == 'Não') {
-
-	$query = $pdo->query("SELECT * from $tabela where usuario_lanc = '$id_usuario'");
+if ($filtro == 'Vencidas') {
+	$query = $pdo->query("SELECT * from $tabela where $tipo_data < curDate() and pago = 'Não' $sql_usuario_lanc $sql_atacadista $sql_pgto $sql_funcionario order by id desc ");
+} else if ($filtro == 'Recebidas' || $filtro == 'Pagas') {
+	$query = $pdo->query("SELECT * from $tabela where pago = 'Sim' $sql_usuario_lanc $sql_atacadista $sql_pgto $sql_funcionario order by id desc ");
+} else if ($filtro == 'Hoje') {
+	$query = $pdo->query("SELECT * from $tabela where $tipo_data = curDate() and pago = 'Não' $sql_usuario_lanc $sql_atacadista $sql_pgto $sql_funcionario order by id desc ");
+} else if ($filtro == 'Amanha') {
+	$query = $pdo->query("SELECT * from $tabela where $tipo_data = '$data_amanha' and pago = 'Não' $sql_usuario_lanc $sql_atacadista $sql_pgto $sql_funcionario order by id desc ");
+} else if ($filtro == 'Todas') {
+	$query = $pdo->query("SELECT * from $tabela " . ($mostrar_registros == 'Não' ? "where usuario_lanc = '$id_usuario' " : "where 1=1 ") . "$sql_atacadista $sql_pgto $sql_funcionario order by id desc ");
 } else {
-	$query = $pdo->query("SELECT * from $tabela");
-}
-$res = $query->fetchAll(PDO::FETCH_ASSOC);
-$total_reg = @count($res);
-if ($total_reg > 0) {
-	for ($i = 0; $i < $total_reg; $i++) {
-		foreach ($res[$i] as $key => $value) {
-		}
-		$total_total += $res[$i]['valor'];
-		$total_totalF = @number_format($total_total, 2, ',', '.');
-	}
-}
-
-
-//PEGAR O TOTAL DAS CONTAS A PAGAR PEDENTES
-$query = $pdo->query("SELECT * from $tabela where vencimento < curDate() and pago = 'Não' $sql_usuario_lanc");
-$res = $query->fetchAll(PDO::FETCH_ASSOC);
-$total_reg = @count($res);
-if ($total_reg > 0) {
-	for ($i = 0; $i < $total_reg; $i++) {
-		foreach ($res[$i] as $key => $value) {
-		}
-		$total_vencidas += $res[$i]['valor'];
-		$total_vencidasF = @number_format($total_vencidas, 2, ',', '.');
-	}
-}
-
-//PEGAR O TOTAL DAS CONTAS A PAGAR QUE VENCE HOJE
-$query = $pdo->query("SELECT * from $tabela where vencimento = curDate() and pago = 'Não' $sql_usuario_lanc");
-$res = $query->fetchAll(PDO::FETCH_ASSOC);
-$total_am = @count($res);
-if ($total_am > 0) {
-	for ($i = 0; $i < $total_am; $i++) {
-		foreach ($res[$i] as $key => $value) {
-		}
-		$total_hoje += $res[$i]['valor'];
-		$total_hojeF = @number_format($total_hoje, 2, ',', '.');
-	}
-}
-
-
-//PEGAR O TOTAL DAS CONTAS A PAGAR RECEBIDAS
-$query = $pdo->query("SELECT * from $tabela where pago = 'Sim' $sql_usuario_lanc");
-$res = $query->fetchAll(PDO::FETCH_ASSOC);
-$total_pg = @count($res);
-if ($total_pg > 0) {
-	for ($i = 0; $i < $total_pg; $i++) {
-		foreach ($res[$i] as $key => $value) {
-		}
-		$total_recebidas += $res[$i]['valor'];
-		$total_recebidasF = @number_format($total_recebidas, 2, ',', '.');
-	}
-}
-
-
-$data_hoje = date('Y-m-d');
-$data_amanha = date('Y/m/d', @strtotime("+1 days", @strtotime($data_hoje)));
-
-
-//PEGAR O TOTAL DAS CONTAS A PAGAR QUE VENCE AMANHÃ
-$query = $pdo->query("SELECT * from $tabela where vencimento = '$data_amanha' and pago = 'Não' $sql_usuario_lanc");
-$res = $query->fetchAll(PDO::FETCH_ASSOC);
-$total_am = @count($res);
-if ($total_am > 0) {
-	for ($i = 0; $i < $total_am; $i++) {
-		foreach ($res[$i] as $key => $value) {
-		}
-		$total_amanha += $res[$i]['valor'];
-		$total_amanhaF = @number_format($total_amanha, 2, ',', '.');
-	}
-}
-
-
-if($filtro == 'Vencidas'){
-    $query = $pdo->query("SELECT * from $tabela where $tipo_data < curDate() and pago = 'Não' $sql_usuario_lanc $sql_atacadista $sql_pgto $sql_funcionario order by id desc ");
-} else if($filtro == 'Recebidas'){
-    $query = $pdo->query("SELECT * from $tabela where pago = 'Sim' $sql_usuario_lanc $sql_atacadista $sql_pgto $sql_funcionario order by id desc ");
-} else if($filtro == 'Hoje'){
-    $query = $pdo->query("SELECT * from $tabela where $tipo_data = curDate() and pago = 'Não' $sql_usuario_lanc $sql_atacadista $sql_pgto $sql_funcionario order by id desc ");
-} else if($filtro == 'Amanha'){
-    $query = $pdo->query("SELECT * from $tabela where $tipo_data = '$data_amanha' and pago = 'Não' $sql_usuario_lanc $sql_atacadista $sql_pgto $sql_funcionario order by id desc ");
-} else if($filtro == 'Todas'){
-    if($mostrar_registros == 'Não'){
-        $query = $pdo->query("SELECT * from $tabela where usuario_lanc = '$id_usuario' $sql_atacadista $sql_pgto $sql_funcionario order by id desc ");
-    } else {
-        $query = $pdo->query("SELECT * from $tabela $sql_atacadista $sql_pgto $sql_funcionario order by id desc ");
-    }
-} else {
-    $query = $pdo->query("SELECT * from $tabela WHERE $tipo_data >= '$dataInicial' and vencimento <= '$dataFinal' $sql_usuario_lanc $sql_atacadista $sql_pgto $sql_funcionario order by id desc ");
+	$query = $pdo->query("SELECT * from $tabela WHERE $tipo_data >= '$dataInicial' and vencimento <= '$dataFinal' $sql_usuario_lanc $sql_atacadista $sql_pgto $sql_funcionario order by id desc ");
 }
 
 $res = $query->fetchAll(PDO::FETCH_ASSOC);
@@ -210,24 +91,21 @@ $linhas = @count($res);
 if ($linhas > 0) {
 	echo <<<HTML
 <small>
-	<table class="table table-bordered text-nowrap border-bottom dt-responsive" id="tabela">
-	<thead> 
-	<tr> 
-	<th align="center" width="5%" class="text-center">Selecionar</th>
-	<th>Descrição</th>	
-	<th class="">Valor</th>	
-	<th class="esc">Pessoa</th>	
-	<th class="esc">Vencimento</th>	
-	<th class="esc">Pagamento</th>	
-	
-	<th class="esc">Arquivo</th>	
-	<th>Ações</th>
-	</tr> 
-	</thead> 
-	<tbody>	
-	<small>
+    <table class="table table-bordered text-nowrap border-bottom dt-responsive" id="tabela">
+    <thead> 
+    <tr> 
+    <th align="center" width="5%" class="text-center">Selecionar</th>
+    <th>Descrição</th>  
+    <th class="">Valor</th> 
+    <th class="esc">Pessoa</th> 
+    <th class="esc">Vencimento</th> 
+    <th class="esc">Pagamento</th>  
+    <th class="esc">Arquivo</th>    
+    <th>Ações</th>
+    </tr> 
+    </thead> 
+    <tbody> 
 HTML;
-
 
 	for ($i = 0; $i < $linhas; $i++) {
 		$id = $res[$i]['id'];
@@ -237,199 +115,52 @@ HTML;
 		$valor = $res[$i]['valor'];
 		$vencimento = $res[$i]['vencimento'];
 		$data_pgto = $res[$i]['data_pgto'];
-		$data_lanc = $res[$i]['data_lanc'];
 		$forma_pgto = $res[$i]['forma_pgto'];
 		$frequencia = $res[$i]['frequencia'];
 		$obs = $res[$i]['obs'];
 		$arquivo = $res[$i]['arquivo'];
-		$referencia = $res[$i]['referencia'];
 		$id_ref = $res[$i]['id_ref'];
-		$multa = $res[$i]['multa'];
-		$juros = $res[$i]['juros'];
-		$desconto = $res[$i]['desconto'];
-		$taxa = $res[$i]['taxa'];
 		$subtotal = $res[$i]['subtotal'];
 		$usuario_lanc = $res[$i]['usuario_lanc'];
 		$usuario_pgto = $res[$i]['usuario_pgto'];
 		$pago = $res[$i]['pago'];
 
-		$vencimentoF = implode('/', array_reverse(@explode('-', $vencimento)));
-		$data_pgtoF = implode('/', array_reverse(@explode('-', $data_pgto)));
-		$data_lancF = implode('/', array_reverse(@explode('-', $data_lanc)));
+		$vencimentoF = implode('/', array_reverse(explode('-', $vencimento)));
+		$data_pgtoF = ($data_pgto && $data_pgto != '0000-00-00') ? implode('/', array_reverse(explode('-', $data_pgto))) : '---';
+		$valor_finalF = number_format(($pago == "Sim" ? $subtotal : $valor), 2, ',', '.');
 
-
-
-		$valorF = @number_format($valor, 2, ',', '.');
-		$multaF = @number_format($multa, 2, ',', '.');
-		$jurosF = @number_format($juros, 2, ',', '.');
-		$descontoF = @number_format($desconto, 2, ',', '.');
-		$taxaF = @number_format($taxa, 2, ',', '.');
-		$subtotalF = @number_format($subtotal, 2, ',', '.');
-
-		if ($pago == "Sim") {
-			$valor_finalF = @number_format($subtotal, 2, ',', '.');
-		} else {
-			$valor_finalF = @number_format($valor, 2, ',', '.');
-		}
-
-
-
-		//extensão do arquivo
 		$ext = pathinfo($arquivo, PATHINFO_EXTENSION);
-		if ($ext == 'pdf' || $ext == 'PDF') {
-			$tumb_arquivo = 'pdf.png';
-		} else if ($ext == 'rar' || $ext == 'zip' || $ext == 'RAR' || $ext == 'ZIP') {
-			$tumb_arquivo = 'rar.png';
-		} else if ($ext == 'doc' || $ext == 'docx' || $ext == 'DOC' || $ext == 'DOCX') {
-			$tumb_arquivo = 'word.png';
-		} else if ($ext == 'xlsx' || $ext == 'xlsm' || $ext == 'xls') {
-			$tumb_arquivo = 'excel.png';
-		} else if ($ext == 'xml') {
-			$tumb_arquivo = 'xml.png';
-		} else {
-			$tumb_arquivo = $arquivo;
-		}
+		$tumb_arquivo = (in_array(strtolower($ext), ['pdf', 'rar', 'zip', 'doc', 'docx', 'xlsx', 'xlsm', 'xls', 'xml'])) ? strtolower($ext) . '.png' : $arquivo;
+		if (in_array(strtolower($ext), ['doc', 'docx'])) $tumb_arquivo = 'word.png';
+		if (in_array(strtolower($ext), ['xlsx', 'xlsm', 'xls'])) $tumb_arquivo = 'excel.png';
 
+		$query2 = $pdo->query("SELECT nome FROM usuarios where id = '$usuario_lanc'");
+		$nome_usu_lanc = $query2->fetchColumn() ?: 'Sem Usuário';
 
+		$query2 = $pdo->query("SELECT nome FROM usuarios where id = '$usuario_pgto'");
+		$nome_usu_pgto = $query2->fetchColumn() ?: 'Sem Usuário';
 
-		$query2 = $pdo->query("SELECT * FROM usuarios where id = '$usuario_lanc'");
-		$res2 = $query2->fetchAll(PDO::FETCH_ASSOC);
-		if (@count($res2) > 0) {
-			$nome_usu_lanc = $res2[0]['nome'];
-		} else {
-			$nome_usu_lanc = 'Sem Usuário';
-		}
+		$query2 = $pdo->query("SELECT frequencia FROM frequencias where dias = '$frequencia'");
+		$nome_frequencia = $query2->fetchColumn() ?: 'Sem Registro';
 
+		$query2 = $pdo->query("SELECT nome, taxa FROM formas_pgto where id = '$forma_pgto'");
+		$dados_pgto = $query2->fetch(PDO::FETCH_ASSOC);
+		$nome_pgto = $dados_pgto['nome'] ?? 'Sem Registro';
+		$taxa_pgto = $dados_pgto['taxa'] ?? 0;
 
-		$query2 = $pdo->query("SELECT * FROM usuarios where id = '$usuario_pgto'");
-		$res2 = $query2->fetchAll(PDO::FETCH_ASSOC);
-		if (@count($res2) > 0) {
-			$nome_usu_pgto = $res2[0]['nome'];
-		} else {
-			$nome_usu_pgto = 'Sem Usuário';
-		}
+		$classe_pago = ($pago == 'Sim') ? 'verde' : 'text-danger';
+		$ocultar = ($pago == 'Sim') ? 'ocultar' : '';
+		$classe_venc = (strtotime($vencimento) < strtotime($data_hoje) && $pago != 'Sim') ? 'text-danger' : '';
 
-
-		$query2 = $pdo->query("SELECT * FROM frequencias where dias = '$frequencia'");
-		$res2 = $query2->fetchAll(PDO::FETCH_ASSOC);
-		if (@count($res2) > 0) {
-			$nome_frequencia = $res2[0]['frequencia'];
-		} else {
-			$nome_frequencia = 'Sem Registro';
-		}
-
-		$query2 = $pdo->query("SELECT * FROM formas_pgto where id = '$forma_pgto'");
-		$res2 = $query2->fetchAll(PDO::FETCH_ASSOC);
-		if (@count($res2) > 0) {
-			$nome_pgto = $res2[0]['nome'];
-			$taxa_pgto = $res2[0]['taxa'];
-		} else {
-			$nome_pgto = 'Sem Registro';
-			$taxa_pgto = 0;
-		}
-
-
-
-		if ($pago == 'Sim') {
-			$classe_pago = 'verde';
-			$ocultar = 'ocultar';
-			$total_pago += $subtotal;
-			$ocultar_pendentes = '';
-		} else {
-			$classe_pago = 'text-danger';
-			$ocultar = '';
-			$total_pendentes += $valor;
-			$ocultar_pendentes = 'ocultar';
-		}
-
-		$valor_multa = 0;
-		$valor_juros = 0;
-		$classe_venc = '';
-		if (@strtotime($vencimento) < @strtotime($data_hoje)) {
-			$classe_venc = 'text-danger';
-			$valor_multa = $multa_atraso;
-
-			//pegar a quantidade de dias que o pagamento está atrasado
-			$dif = @strtotime($data_hoje) - @strtotime($vencimento);
-			$dias_vencidos = floor($dif / (60 * 60 * 24));
-
-			$valor_juros = ($valor * $juros_atraso / 100) * $dias_vencidos;
-		}
-
-		$total_pendentesF = @number_format($total_pendentes, 2, ',', '.');
-		$total_pagoF = @number_format($total_pago, 2, ',', '.');
-
-		$taxa_conta = $taxa_pgto * $valor / 100;
-
-
-
-
-		//PEGAR RESIDUOS DA CONTA
-		$total_resid = 0;
-		$valor_com_residuos = 0;
-		$query2 = $pdo->query("SELECT * FROM $tabela WHERE id_ref = '$id' and residuo = 'Sim'");
-		$res2 = $query2->fetchAll(PDO::FETCH_ASSOC);
-		if (@count($res2) > 0) {
-
-			$descricao = '(Resíduo) - ' . $descricao;
-
-			for ($i2 = 0; $i2 < @count($res2); $i2++) {
-				foreach ($res2[$i2] as $key => $value) {
-				}
-				$id_res = $res2[$i2]['id'];
-				$valor_resid = $res2[$i2]['valor'];
-				$total_resid += $valor_resid - $res2[$i2]['desconto'];
-			}
-
-
-			$valor_com_residuos = $valor + $total_resid;
-		}
-		if ($valor_com_residuos > 0) {
-			$vlr_antigo_conta = '(' . $valor_com_residuos . ')';
-			$descricao_link = '';
-			$descricao_texto = 'd-none';
-		} else {
-			$vlr_antigo_conta = '';
-			$descricao_link = 'd-none';
-			$descricao_texto = '';
-		}
-
-
-		$nome_pessoa = '';
-		$telefone_pessoa = '';
-		$pix_pessoa = '';
+		$nome_pessoa = 'Sem Registro';
 		$tipo_pessoa = 'Pessoa';
-		if ($fornecedor != 0 || $funcionario != 0) {
-			if ($fornecedor != 0) {
-				$tab = 'fornecedores';
-				$id_pessoa = $fornecedor;
-				$tipo_pessoa = 'Fornecedor';
-			}
-
-			if ($funcionario != 0) {
-				$tab = 'usuarios';
-				$id_pessoa = $funcionario;
-				$tipo_pessoa = 'Funcionário';
-			}
-
-			//nome pessoa
-			//$query2 = $pdo->query("SELECT * FROM $tab where id = '$id_pessoa'");
-			//$res2 = $query2->fetchAll(PDO::FETCH_ASSOC);
-			//$total_reg2 = @count($res2);
-			//if($total_reg2 > 0){
-			//	$nome_pessoa = $res2[0]['nome'];
-			//$telefone_pessoa = $res2[0]['telefone'];
-			//$pix_pessoa = $res2[0]['pix'];
-
-			//}else{
-			$nome_pessoa = '';
-			$telefone_pessoa = '';
-			$pix_pessoa = '';
-			//	}
-
-
+		if ($fornecedor != 0) {
+			$nome_pessoa = $pdo->query("SELECT nome_atacadista FROM fornecedores where id = '$fornecedor'")->fetchColumn();
+			$tipo_pessoa = 'Fornecedor';
+		} elseif ($funcionario != 0) {
+			$nome_pessoa = $pdo->query("SELECT nome FROM funcionarios where id = '$funcionario'")->fetchColumn();
+			$tipo_pessoa = 'Funcionário';
 		}
-
 
 		echo <<<HTML
 <tr>
@@ -440,277 +171,121 @@ HTML;
 </div>
 </td>
 <td><i class="fa fa-square {$classe_pago} mr-1"></i> {$descricao}</td>
-<td class="">R$ {$valor_finalF} <small><a href="#" onclick="mostrarResiduos('{$id}')" class="text-danger" title="Ver Resíduos">{$vlr_antigo_conta}</a></small></td>	
+<td>R$ {$valor_finalF}</td>   
 <td class="esc">{$nome_pessoa}</td>
 <td class="esc {$classe_venc}">{$vencimentoF}</td>
 <td class="esc">{$data_pgtoF}</td>
 <td class="esc"><a href="images/contas/{$arquivo}" target="_blank"><img src="images/contas/{$tumb_arquivo}" width="25px"></a></td>
 <td>
-	<big><a class="icones_mobile" href="#" onclick="editar('{$id}','{$descricao}','{$valor}','{$fornecedor}','{$funcionario}','{$vencimento}','{$data_pgto}','{$forma_pgto}','{$frequencia}','{$obs}','{$tumb_arquivo}')" title="Editar Dados"><i class="fa fa-edit text-primary"></i></a></big>
-
-		<div class="dropdown" style="display: inline-block;">                      
-                        <a class="icones_mobile" href="#" aria-expanded="false" aria-haspopup="true" data-bs-toggle="dropdown" class="dropdown"><i class="fa fa-trash text-danger"></i> </a>
-                        <div  class="dropdown-menu tx-13">
-                        <div class="dropdown-item-text botao_excluir">
-                        <p>Confirmar Exclusão? <a href="#" onclick="excluir('{$id}')"><span class="text-danger">Sim</span></a></p>
-                        </div>
-                        </div>
-                        </div>
-
-<big><a class="icones_mobile" href="#" onclick="mostrar('{$descricao}','{$valorF}','{$nome_pessoa}','{$vencimentoF}','{$data_pgtoF}','{$nome_pgto}','{$nome_frequencia}','{$obs}','{$tumb_arquivo}','{$multaF}','{$jurosF}','{$descontoF}','{$taxaF}','{$subtotalF}','{$nome_usu_lanc}','{$nome_usu_pgto}', '{$pago}', '{$arquivo}', '{$telefone_pessoa}', '{$pix_pessoa}', '{$tipo_pessoa}')" title="Mostrar Dados"><i class="fa fa-info-circle text-primary"></i></a></big>
-
-<big><a class="{$ocultar} icones_mobile" href="#" onclick="baixar('{$id}', '{$valor}', '{$descricao}', '{$forma_pgto}', '{$taxa_conta}', '{$valor_multa}', '{$valor_juros}', '{$banco}')" title="Baixar Conta"><i class="fa fa-check-square " style="color:#079934"></i></a></big>
-
-	<big><a class="{$ocultar} icones_mobile" href="#" onclick="parcelar('{$id}', '{$valor}', '{$descricao}')" title="Parcelar Conta"><i class="fa fa-calendar-o " style="color:#7f7f7f"></i></a></big>
-
-		<big><a class="icones_mobile" href="#" onclick="arquivo('{$id}', '{$descricao}')" title="Inserir / Ver Arquivos"><i class="fa fa-file-o text-primary"></i></a></big>
-
-
-	<form   method="POST" action="rel/imp_recibo_pagar.php" target="_blank" style="display:inline-block">
-					<input type="hidden" name="id" value="{$id}">
-					<big><button class="{$ocultar_pendentes} icones_mobile" title="Imprimir Recibo 80mmm" style="background:transparent; border:none; margin:0; padding:0"><i class="fa fa-print " style="color:#666464"></i></button></big>
-					</form>
+    <big><a href="#" onclick="editar('{$id}','{$descricao}','{$valor}','{$fornecedor}','{$funcionario}','{$vencimento}','{$data_pgto}','{$forma_pgto}','{$frequencia}','{$obs}','{$tumb_arquivo}')" title="Editar Dados"><i class="fa fa-edit text-primary"></i></a></big>
+    <div class="dropdown" style="display: inline-block;">                      
+        <a href="#" data-bs-toggle="dropdown"><i class="fa fa-trash text-danger"></i> </a>
+        <div class="dropdown-menu tx-13"><div class="dropdown-item-text"><p>Excluir? <a href="#" onclick="excluir('{$id}')"><span class="text-danger">Sim</span></a></p></div></div>
+    </div>
+    <big><a href="#" onclick="mostrar('{$descricao}','{$valor_finalF}','{$nome_pessoa}','{$vencimentoF}','{$data_pgtoF}','{$nome_pgto}','{$nome_frequencia}','{$obs}','{$tumb_arquivo}','','','','','','{$nome_usu_lanc}','{$nome_usu_pgto}', '{$pago}', '{$arquivo}', '', '', '{$tipo_pessoa}')" title="Mostrar Dados"><i class="fa fa-info-circle text-primary"></i></a></big>
+    <big><a class="{$ocultar}" href="#" onclick="baixar('{$id}', '{$valor}', '{$descricao}', '{$forma_pgto}', '', '', '')" title="Baixar Conta"><i class="fa fa-check-square " style="color:#079934"></i></a></big>
+    <big><a class="{$ocultar}" href="#" onclick="parcelar('{$id}', '{$valor}', '{$descricao}')" title="Parcelar Conta"><i class="fa fa-calendar-o " style="color:#7f7f7f"></i></a></big>
 HTML;
-// Bloco 2: Lógica condicional para o novo botão de impressão
-// Este botão só aparecerá se $id_ref não for vazio
-if (!empty($id_ref)) {
-    echo <<<HTML
-        <big><a class="icones_mobile" href="#" onclick="imprimir('{$id_ref}')" title="Visualizar Romaneio"><i class="fa fa-file-pdf-o text-info"></i></a></big>
-    HTML;
-}
-
-// Bloco 3: Fechamento da coluna e da linha
-echo <<<HTML
-    </td>
-</tr>
-HTML;
+		if (!empty($id_ref)) {
+			echo "<big><a href='#' onclick='imprimir(\"{$id_ref}\")' title='Visualizar Romaneio'><i class='fa fa-file-pdf-o text-info'></i></a></big>";
+		}
+		echo "</td></tr>";
 	}
-
-
-	echo <<<HTML
-</small>
-</tbody>
-<small><div align="center" id="mensagem-excluir"></div></small>
-
-</table>
-</small>
-<br>
-
-			<span class="ocultar_mobile" style="font-size: 13px; border:1px solid #6092a8; padding:5px; ">
-				Filtrar Por:  
-				<a href="#" onclick="tipoData('vencimento')">Vencimento</a> / 
-				<a href="#" onclick="tipoData('data_pgto')">Pagamento</a> /
-				<a href="#" onclick="tipoData('data_lanc')">Lançamento</a> 
-			</span>
-
-			<p align="right" style="margin-top: -10px">
-				<span style="margin-right: 10px">Total Pendentes  <span style="color:red">R$ {$total_pendentesF} </span></span>
-				<span>Total Pago  <span style="color:green">R$ {$total_pagoF} </span></span>
-			</p>
-
-HTML;
+	echo "</tbody></table></small>";
 } else {
 	echo 'Nenhum Registro Encontrado!';
 }
 ?>
 
-<script>
-	function imprimir(id) {
-		window.open('rel/gerar_pdf_romaneio_compra.php?id=' + id, '_blank');
-	}
-
-</script>
-
-
 <script type="text/javascript">
 	$(document).ready(function() {
 		$('#tabela').DataTable({
-			"language": {
-				//"url" : '//cdn.datatables.net/plug-ins/1.13.2/i18n/pt-BR.json'
-			},
 			"ordering": false,
 			"stateSave": true
 		});
 
-
-
-		$('#total_itens').text('R$ <?= $total_valorF ?>');
-		$('#total_total').text('R$ <?= $total_totalF ?>');
 		$('#total_vencidas').text('R$ <?= $total_vencidasF ?>');
-		$('#total_hoje').text('R$ <?= $total_hojeF ?>');
-		$('#total_amanha').text('R$ <?= $total_amanhaF ?>');
-		$('#total_recebidas').text('R$ <?= $total_recebidasF ?>');
+		$('#total_a_vencer').text('R$ <?= $total_hojeF ?>');
+		$('#total_pagas').text('R$ <?= $total_recebidasF ?>');
+		$('#total_total').text('R$ <?= $total_totalF ?>');
 	});
-</script>
 
+	function listar(p1, p2, p3, p4, p5, p6, p7, p8) {
+		$.ajax({
+			url: 'paginas/' + pag + "/listar.php",
+			method: 'POST',
+			data: {
+				p1,
+				p2,
+				p3,
+				p4,
+				p5,
+				p6,
+				p7,
+				p8
+			},
+			dataType: "html",
+			success: function(result) {
+				$("#listar").html(result);
+			}
+		});
+	}
 
-<script type="text/javascript">
 	function editar(id, descricao, valor, fornecedor, funcionario, vencimento, data_pgto, forma_pgto, frequencia, obs, arquivo) {
 		$('#mensagem').text('');
 		$('#titulo_inserir').text('Editar Registro');
 
+		// IDs que devem existir no seu modalForm
 		$('#id').val(id);
 		$('#descricao').val(descricao);
 		$('#valor').val(valor);
-		$('#fornecedor').val(fornecedor).change();
+
+		// Verifique se o ID no modal é 'fornecedor' ou 'atacadista'
+		if ($('#fornecedor').length) $('#fornecedor').val(fornecedor).change();
+
 		$('#funcionario').val(funcionario).change();
 		$('#vencimento').val(vencimento);
 		$('#data_pgto').val(data_pgto);
-		$('#forma_pgto').val(forma_pgto).change();
+
+		// Verifique se o ID no modal é 'forma_pgto' ou 'formaPGTO'
+		if ($('#forma_pgto').length) $('#forma_pgto').val(forma_pgto).change();
+
 		$('#frequencia').val(frequencia).change();
 		$('#obs').val(obs);
 
-		$('#arquivo').val('');
 		$('#target').attr('src', 'images/contas/' + arquivo);
 
+		// Abre o modal
 		$('#modalForm').modal('show');
 	}
 
-
 	function mostrar(descricao, valor, pessoa, vencimento, data_pgto, nome_pgto, frequencia, obs, arquivo, multa, juros, desconto, taxa, total, usu_lanc, usu_pgto, pago, arq, telefone, pix, tipo_pessoa) {
-
-		if (data_pgto == "") {
-			data_pgto = 'Pendente';
-		}
-
-		if (pessoa == "") {
-			pessoa = "Sem Registro";
-			$('#dados_pessoa').hide();
-		} else {
-			$('#dados_pessoa').show();
-		}
-
-		if (telefone == "") {
-			telefone = "Sem Registro";
-		}
-
-		if (pix == "") {
-			pix = "Sem Registro";
-		}
-
 		$('#titulo_dados').text(descricao);
 		$('#valor_dados').text(valor);
 		$('#cliente_dados').text(pessoa);
 		$('#vencimento_dados').text(vencimento);
-		$('#data_pgto_dados').text(data_pgto);
+		$('#data_pgto_dados').text(data_pgto || 'Pendente');
 		$('#nome_pgto_dados').text(nome_pgto);
 		$('#frequencia_dados').text(frequencia);
 		$('#obs_dados').text(obs);
-
-		$('#multa_dados').text(multa);
-		$('#juros_dados').text(juros);
-		$('#desconto_dados').text(desconto);
-		$('#taxa_dados').text(taxa);
-		$('#total_dados').text(total);
 		$('#usu_lanc_dados').text(usu_lanc);
 		$('#usu_pgto_dados').text(usu_pgto);
-		$('#telefone_dados').text(telefone);
-		$('#pix_dados').text(pix);
-		$('#tipo_pessoa').text(tipo_pessoa);
-
 		$('#pago_dados').text(pago);
 		$('#target_dados').attr("src", "images/contas/" + arquivo);
-		$('#target_link_dados').attr("href", "images/contas/" + arq);
-
 		$('#modalDados').modal('show');
 	}
 
-	function limparCampos() {
-		$('#id').val('');
-		$('#descricao').val('');
-		$('#valor').val('');
-		$('#vencimento').val("<?= $data_atual ?>");
-		$('#data_pgto').val('');
-		$('#obs').val('');
-		$('#arquivo').val('');
-		$('#fornecedor').val(0).change();
-		$('#funcionario').val(0).change();
-		$('#arquivo').val('');
-
-		$('#target').attr("src", "images/contas/sem-foto.png");
-
-		$('#ids').val('');
-		$('#btn-deletar').hide();
-		$('#btn-baixar').hide();
+	function baixar(id, valor, descricao, pgto, taxa, multa, juros) {
+		$('#id-baixar').val(id);
+		$('#descricao-baixar').text(descricao);
+		$('#valor-baixar').val(valor);
+		$('#saida-baixar').val(pgto).change();
+		$('#subtotal').val(valor);
+		$('#valor-juros').val(juros);
+		$('#valor-multa').val(multa);
+		$('#valor-taxa').val(taxa);
+		$('#modalBaixar').modal('show');
 	}
-
-	function selecionar(id) {
-
-		var ids = $('#ids').val();
-
-		if ($('#seletor-' + id).is(":checked") == true) {
-			var novo_id = ids + id + '-';
-			$('#ids').val(novo_id);
-		} else {
-			var retirar = ids.replace(id + '-', '');
-			$('#ids').val(retirar);
-		}
-
-		var ids_final = $('#ids').val();
-		if (ids_final == "") {
-			$('#btn-deletar').hide();
-			$('#btn-baixar').hide();
-		} else {
-			$('#btn-deletar').show();
-			$('#btn-baixar').show();
-		}
-	}
-
-	function deletarSel() {
-		var ids = $('#ids').val();
-		var id = ids.split("-");
-
-		for (i = 0; i < id.length - 1; i++) {
-			excluirMultiplos(id[i]);
-		}
-
-		setTimeout(() => {
-			listar();
-		}, 1000);
-
-		limparCampos();
-	}
-
-
-	function deletarSelBaixar() {
-		var ids = $('#ids').val();
-		var id = ids.split("-");
-
-		for (i = 0; i < id.length - 1; i++) {
-			var novo_id = id[i];
-			$.ajax({
-				url: 'paginas/' + pag + "/baixar_multiplas.php",
-				method: 'POST',
-				data: {
-					novo_id
-				},
-				dataType: "html",
-
-				success: function(result) {
-					//alert(result)
-
-				}
-			});
-		}
-
-		setTimeout(() => {
-			buscar();
-			limparCampos();
-		}, 1000);
-
-
-	}
-
-
-	function permissoes(id, nome) {
-
-		$('#id_permissoes').val(id);
-		$('#nome_permissoes').text(nome);
-
-		$('#modalPermissoes').modal('show');
-		listarPermissoes(id);
-	}
-
 
 	function parcelar(id, valor, nome) {
 		$('#id-parcelar').val(id);
@@ -719,55 +294,52 @@ HTML;
 		$('#nome-parcelar').text(nome);
 		$('#nome-input-parcelar').val(nome);
 		$('#modalParcelar').modal('show');
-		$('#mensagem-parcelar').text('');
 	}
 
-
-	function baixar(id, valor, descricao, pgto, taxa, multa, juros) {
-		$('#id-baixar').val(id);
-		$('#descricao-baixar').text(descricao);
-		$('#valor-baixar').val(valor);
-		$('#saida-baixar').val(pgto).change();
-		$('#subtotal').val(valor);
-
-
-		$('#valor-juros').val(juros);
-		$('#valor-desconto').val('');
-		$('#valor-multa').val(multa);
-		$('#valor-taxa').val(taxa);
-
-		totalizar()
-
-		$('#modalBaixar').modal('show');
-		$('#mensagem-baixar').text('');
-	}
-
-
-	function mostrarResiduos(id) {
-
+	function excluir(id) {
 		$.ajax({
-			url: 'paginas/' + pag + "/listar-residuos.php",
+			url: 'paginas/' + pag + "/excluir.php",
 			method: 'POST',
 			data: {
 				id
 			},
-			dataType: "html",
-
-			success: function(result) {
-				$("#listar-residuos").html(result);
+			success: function(mensagem) {
+				if (mensagem.trim() == "Excluído com Sucesso") {
+					buscar();
+				} else {
+					$('#mensagem-excluir').addClass('text-danger').text(mensagem);
+				}
 			}
 		});
-		$('#modalResiduos').modal('show');
-
-
 	}
 
-	function arquivo(id, nome) {
-		$('#id-arquivo').val(id);
-		$('#nome-arquivo').text(nome);
-		$('#modalArquivos').modal('show');
-		$('#mensagem-arquivo').text('');
-		$('#arquivo_conta').val('');
-		listarArquivos();
+	function selecionar(id) {
+		var ids = $('#ids').val();
+		if ($('#seletor-' + id).is(":checked")) {
+			$('#ids').val(ids + id + '-');
+		} else {
+			$('#ids').val(ids.replace(id + '-', ''));
+		}
+		var ids_final = $('#ids').val();
+		if (ids_final == "") {
+			$('#btn-deletar, #btn-baixar').hide();
+		} else {
+			$('#btn-deletar, #btn-baixar').show();
+		}
+	}
+
+	function imprimir(id) {
+		window.open('rel/gerar_pdf_romaneio_compra.php?id=' + id, '_blank');
+	}
+
+	function buscar() {
+		var filtro = $('#tipo_data_filtro').val();
+		var dataInicial = $('#dataInicial').val();
+		var dataFinal = $('#dataFinal').val();
+		var tipo_data = $('#tipo_data').val();
+		var atacadista = $('#atacadista').val();
+		var formaPGTO = $('#formaPGTO').val();
+		var funcionario = $('#funcionario_filtro').val();
+		listar(filtro, dataInicial, dataFinal, tipo_data, atacadista, formaPGTO, funcionario);
 	}
 </script>
