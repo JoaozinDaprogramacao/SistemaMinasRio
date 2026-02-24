@@ -507,6 +507,35 @@ HTML;
             descontoAtivado();
           }
 
+          const taxas = ['ima', 'funrural', 'abanorte', 'taxa_adm'];
+
+          taxas.forEach(taxa => {
+            // Pegamos o valor que veio do banco de dados para essa taxa específica
+            // r['desc_ima'] por exemplo contém o valor gravado
+            let valorGravado = r['desc_' + taxa];
+            let infoGravada = r[taxa + '_config_info']; // ex: '1' ou 'KG'
+            let precoUnitGravado = r[taxa + '_config_preco_unit']; // ex: '55.31'
+
+            if (precoUnitGravado) {
+              let selectPreco = $(`#preco_unit_${taxa}`);
+
+              // Verifica se o valor gravado existe nas opções do select
+              if (selectPreco.find(`option[value='${precoUnitGravado}']`).length === 0) {
+                // Se não existe, adiciona o valor antigo como uma opção para não quebrar o select
+                selectPreco.append(new Option(precoUnitGravado, precoUnitGravado));
+              }
+              selectPreco.val(precoUnitGravado);
+            }
+
+            if (infoGravada) {
+              let selectInfo = $(`#info_${taxa}`);
+              if (selectInfo.find(`option[value='${infoGravada}']`).length === 0) {
+                selectInfo.append(new Option(infoGravada, infoGravada));
+              }
+              selectInfo.val(infoGravada);
+            }
+          });
+
           // 8. Finaliza
           calculaTotais();
           calculaTotais2();
