@@ -11,9 +11,10 @@ header('Content-Type: application/json; charset=utf-8');
 $debug_log = [];
 
 // --- FUNÇÃO PARA ADICIONAR AO ARRAY DE DEBUG ---
-function addLog($mensagem, $dados = null) {
+function addLog($mensagem, $dados = null)
+{
     global $debug_log;
-    
+
     $entrada = [
         'hora' => date('H:i:s'),
         'msg'  => $mensagem
@@ -33,10 +34,11 @@ try {
         throw new Exception("Erro crítico: Variável de conexão inexistente.");
     }
 
-    $id_usuario = $_SESSION['id'] ?? 'NÃO LOGADO';
+    $id_usuario = $_POST['id_usuario_request'] ?? $_SESSION['id'] ?? 0;
     addLog("Usuário da Sessão: " . $id_usuario);
     addLog("Dados Recebidos (_POST)", $_POST);
 
+    // --- RECEBIMENTO DOS DADOS ---
     // --- RECEBIMENTO DOS DADOS ---
     $id          = $_POST['id']          ?? '';
     $fornecedor  = $_POST['fornecedor']  ?? '';
@@ -47,41 +49,81 @@ try {
     $nota_fiscal = $_POST['nota_fiscal'] ?? '';
     $vencimento  = $_POST['vencimento']  ?? '';
     $fazenda     = $_POST['fazenda']     ?? '';
-    
-    $desc_avista = floatval(str_replace(',', '.', $_POST['desc-avista'] ?? '0'));
-    
-    // Descontos fixos
-    $desc_funrural = floatval(str_replace(',', '.', $_POST['desc_funrural']     ?? '0'));
-    $desc_ima      = floatval(str_replace(',', '.', $_POST['desc_ima']          ?? '0'));
-    $desc_abanorte = floatval(str_replace(',', '.', $_POST['desc_abanorte']     ?? '0'));
-    $desc_taxaadm  = floatval(str_replace(',', '.', $_POST['valor_taxa_adm']    ?? '0'));
 
-    // Configurações extras
-    $funrural_config_info       = $_POST['info_funrural'] ?? null;
-    $funrural_config_preco_unit = isset($_POST['preco_unit_funrural']) && $_POST['preco_unit_funrural'] !== '' ? floatval(str_replace(',', '.', $_POST['preco_unit_funrural'])) : null;
+    // Função interna para limpar valores monetários (Ex: 1.250,50 -> 1250.50)
+    function limparMoeda($valor)
+    {
+        $limpo = str_replace(['R$', ' ', '.'], '', $valor ?? '0');
+        $limpo = str_replace(',', '.', $limpo);
+        return floatval($limpo);
+    }
 
-    $ima_config_info       = $_POST['info_ima'] ?? null;
-    $ima_config_preco_unit = isset($_POST['preco_unit_ima']) && $_POST['preco_unit_ima'] !== '' ? floatval(str_replace(',', '.', $_POST['preco_unit_ima'])) : null;
+    $desc_avista = limparMoeda($_POST['desc-avista'] ?? '0');
 
-    $abanorte_config_info       = $_POST['info_abanorte'] ?? null;
-    $abanorte_config_preco_unit = isset($_POST['preco_unit_abanorte']) && $_POST['preco_unit_abanorte'] !== '' ? floatval(str_replace(',', '.', $_POST['preco_unit_abanorte'])) : null;
+    // --- CAPTURA DOS IMPOSTOS E TAXAS (DINÂMICOS DO HTML) ---
 
-    $taxa_adm_config_taxa_perc  = isset($_POST['taxa_adm_percent']) && $_POST['taxa_adm_percent'] !== '' ? floatval(str_replace(',', '.', $_POST['taxa_adm_percent'])) : null;
-    $taxa_adm_config_preco_unit = isset($_POST['preco_unit_taxa_adm']) && $_POST['preco_unit_taxa_adm'] !== '' ? floatval(str_replace(',', '.', $_POST['preco_unit_taxa_adm'])) : null;
+    // --- CAPTURA DOS IMPOSTOS E TAXAS (TOTALMENTE DINÂMICO) ---
+
+    // Buscamos as taxas cadastradas no banco para saber quais nomes procurar no $_POST
+    $query_taxas = $pdo->query("SELECT id, descricao FROM taxas_abatimentos");
+    $taxas_cadastradas = $query_taxas->fetchAll(PDO::FETCH_ASSOC);
+
+    // Inicializamos as variáveis com 0
+    $desc_funrural = 0;
+    $desc_ima = 0;
+    $desc_abanorte = 0;
+    $desc_taxaadm = 0;
+    $funrural_config_info = null;
+    $ima_config_info = null;
+    $abanorte_config_info = null;
+    $taxa_adm_config_taxa_perc = null;
+    $funrural_config_preco_unit = null;
+    $ima_config_preco_unit = null;
+    $abanorte_config_preco_unit = null;
+    $taxa_adm_config_preco_unit = null;
+
+    foreach ($taxas_cadastradas as $taxa) {
+        $tid = $taxa['id'];
+        $nome_taxa = strtoupper(trim($taxa['descricao']));
+
+        // Pegamos os valores do POST usando o ID dinâmico (valor_2, valor_3...)
+        $v_valor = limparMoeda($_POST['valor_' . $tid] ?? '0');
+        $v_info  = $_POST['info_' . $tid] ?? null;
+        $v_unit  = isset($_POST['preco_unit_' . $tid]) ? limparMoeda($_POST['preco_unit_' . $tid]) : null;
+
+        // Agora mapeamos para a COLUNA correta do banco romaneio_compra baseada no NOME da taxa
+        if ($nome_taxa == 'FUNRURAL') {
+            $desc_funrural = $v_valor;
+            $funrural_config_info = $v_info;
+            $funrural_config_preco_unit = $v_unit;
+        } else if ($nome_taxa == 'IMA') {
+            $desc_ima = $v_valor;
+            $ima_config_info = $v_info;
+            $ima_config_preco_unit = $v_unit;
+        } else if ($nome_taxa == 'ABANORTE') {
+            $desc_abanorte = $v_valor;
+            $abanorte_config_info = $v_info;
+            $abanorte_config_preco_unit = $v_unit;
+        } else if ($nome_taxa == 'TAXA ADM') {
+            $desc_taxaadm = $v_valor;
+            $taxa_adm_config_taxa_perc = $v_info; // No seu HTML info_ID é o campo da taxa %
+            $taxa_adm_config_preco_unit = $v_unit;
+        }
+    }
 
     // --- PROCESSAMENTO DE DESCONTOS DIVERSOS ---
     $tipos   = $_POST['desconto_tipo']  ?? [];
     $valores = $_POST['desconto_valor'] ?? [];
     $obs     = $_POST['desconto_obs']   ?? [];
     $descontos_diversos = [];
-    
+
     foreach ($tipos as $i => $tipo) {
-        $v_str = str_replace(',', '.', $valores[$i] ?? '0');
-        if ($tipo !== '' && is_numeric($v_str)) {
-            $v = floatval($v_str);
+        $v_limpo = limparMoeda($valores[$i] ?? '0');
+
+        if ($v_limpo > 0 && $tipo !== '') {
             $descontos_diversos[] = [
                 'tipo'  => $tipo,
-                'valor' => $v,
+                'valor' => $v_limpo,
                 'obs'   => trim($obs[$i] ?? '')
             ];
         }
@@ -131,7 +173,7 @@ try {
         }
     }
     $total_liquido += $soma_descontos_diversos_val;
-    
+
     addLog("Cálculo Financeiro Realizado", [
         'Total Bruto' => $total_bruto,
         'Desc Avista' => $desc_avista,
@@ -159,8 +201,11 @@ try {
     }
 
     // Filtra arrays
-    function filtrar(array $a) {
-        return array_values(array_filter($a, function ($v) { return $v !== '' && $v !== null; }));
+    function filtrar(array $a)
+    {
+        return array_values(array_filter($a, function ($v) {
+            return $v !== '' && $v !== null;
+        }));
     }
     $quant_caixa_1_val = filtrar($quant_caixa_1);
     $produto_1_val     = filtrar($produto_1);
@@ -173,7 +218,7 @@ try {
     // BANCO DE DADOS
     // =================================================================================
     addLog("Iniciando Transação (beginTransaction)");
-    $pdo->beginTransaction(); 
+    $pdo->beginTransaction();
 
     // Tratamento data
     $data_mysql = $data;
@@ -229,7 +274,7 @@ try {
               :aci,  :acpu,
               :atctp, :atcpu,
               0)";
-        
+
         addLog("Executando SQL Romaneio (Insert)", ['sql' => $sql, 'params' => $params]);
 
         $stmt = $pdo->prepare($sql);
@@ -237,10 +282,9 @@ try {
             $err = $stmt->errorInfo();
             throw new Exception("Erro INSERT Romaneio: " . $err[2]);
         }
-        
+
         $romaneioId = $pdo->lastInsertId();
         addLog("Romaneio Inserido com Sucesso. ID: $romaneioId");
-
     } else {
         // --- UPDATE ---
         addLog("Modo UPDATE detectado (ID: $id)");
@@ -256,7 +300,7 @@ try {
              abanorte_config_info = :aci, abanorte_config_preco_unit = :acpu,
              taxa_adm_config_taxa_perc = :atctp, taxa_adm_config_preco_unit = :atcpu
             WHERE id = :id_val";
-        
+
         $params[':id_val'] = $id;
 
         addLog("Executando SQL Romaneio (Update)", ['sql' => $sql, 'params' => $params]);
@@ -288,7 +332,7 @@ try {
             $var_final  = $produto_1_val[$key];
             $pkg_final  = isset($preco_kg_1_val[$key]) ? str_replace(',', '.', $preco_kg_1_val[$key]) : '0';
             $pun_final  = isset($preco_unit_1_val[$key]) ? str_replace(',', '.', $preco_unit_1_val[$key]) : '0';
-            $tipo_cx_str= $tipo_cx_1_val[$key];
+            $tipo_cx_str = $tipo_cx_1_val[$key];
 
             // Verifica tipo caixa
             $stmtTipoCx = $pdo->prepare("SELECT id FROM tipo_caixa WHERE tipo = ?");
@@ -311,7 +355,7 @@ try {
                 $pun_final,
                 $v_final
             ];
-            
+
             addLog("Inserindo produto index $key", $paramsProd);
 
             if (!$insertLinha->execute($paramsProd)) {
@@ -349,12 +393,12 @@ try {
             'usuario_pgto'   => null,
             'id_ref_pagar'   => $romaneioId
         ];
-        
+
         addLog("Gerando Conta a Pagar", $paramsPagar);
 
         if (!$insRec->execute($paramsPagar)) {
-             $errFin = $insRec->errorInfo();
-             throw new Exception("Erro INSERT Financeiro: " . $errFin[2]);
+            $errFin = $insRec->errorInfo();
+            throw new Exception("Erro INSERT Financeiro: " . $errFin[2]);
         }
     } else {
         addLog("Financeiro pulado: Valor Líquido <= 0");
@@ -370,7 +414,6 @@ try {
         'id'       => $romaneioId,
         'debug'    => $debug_log // <--- AQUI ESTÁ A MÁGICA
     ], JSON_UNESCAPED_UNICODE);
-
 } catch (Throwable $e) {
     // ERRO
     $msgErro = $e->getMessage();
@@ -381,7 +424,7 @@ try {
         $pdo->rollBack();
         addLog("ROLLBACK executado.");
     }
-    
+
     // RETORNO DE ERRO COM O DEBUG COMPLETO
     echo json_encode([
         'status'   => 'erro',
@@ -390,4 +433,3 @@ try {
     ], JSON_UNESCAPED_UNICODE);
     exit;
 }
-?>
