@@ -266,70 +266,70 @@ if (@$produtos == 'ocultar') {
 					</div>
 				</div>
 
-<div id="linha-container_2">
-    <?php 
-    $query = $pdo->query("SELECT * FROM taxas_abatimentos ORDER BY id ASC");
-    $res = $query->fetchAll(PDO::FETCH_ASSOC);
-    
-    for ($i = 0; $i < @count($res); $i++) {
-        $id = $res[$i]['id'];
-        $descricao = $res[$i]['descricao'];
-        $info = $res[$i]['info'];
-        $valor_taxa = $res[$i]['valor_taxa'];
+				<div id="linha-container_2">
+					<?php
+					$query = $pdo->query("SELECT * FROM taxas_abatimentos ORDER BY id ASC");
+					$res = $query->fetchAll(PDO::FETCH_ASSOC);
 
-        $array_info = explode(';', $info);
-        $array_precos = explode(';', $valor_taxa);
+					for ($i = 0; $i < @count($res); $i++) {
+						$id = $res[$i]['id'];
+						$descricao = $res[$i]['descricao'];
+						$info = $res[$i]['info'];
+						$valor_taxa = $res[$i]['valor_taxa'];
 
-        $identificador = strtolower(preg_replace('/[^a-zA-Z0-9]/', '_', $descricao));
-        $isTaxaAdm = (trim(strtoupper($descricao)) == 'TAXA ADM');
-    ?>
-    <div class="linha_2">
-        <div class="linha-inferior linha-abatimentos">
-            <div class="coluna_romaneio">
-                <label for="desc_<?php echo $identificador ?>">Descrição</label>
-                <input id="desc_<?php echo $identificador ?>" type="text" value="<?php echo $descricao ?>" readonly>
-            </div>
+						$array_info = explode(';', $info);
+						$array_precos = explode(';', $valor_taxa);
 
-            <div class="coluna_romaneio">
-                <?php if ($isTaxaAdm): ?>
-                    <label for="taxa_adm_val_<?php echo $id ?>">Taxa</label>
-                    <input type="number" id="taxa_adm_val_<?php echo $id ?>" name="info_<?php echo $id ?>" class="form-control" oninput="calcularTotalAbatimentos()" placeholder="0" style="padding: 0.375rem 0.75rem;">
-                <?php else: ?>
-                    <label for="info_<?php echo $identificador ?>">INFO</label>
-                    <select id="info_<?php echo $identificador ?>" name="info_<?php echo $id ?>" class="form-select form-control" onchange="calcularTotalAbatimentos()" style="padding-top: 2px; padding-bottom: 2px;">
-                        <option value="">Selecione</option>
-                        <?php 
-                        foreach ($array_info as $item_info) {
-                            $item_info = trim($item_info);
-                            if ($item_info != "") echo "<option value='$item_info'>$item_info</option>";
-                        }
-                        ?>
-                    </select>
-                <?php endif; ?>
-            </div>
+						$identificador = strtolower(preg_replace('/[^a-zA-Z0-9]/', '_', $descricao));
+						$isTaxaAdm = (trim(strtoupper($descricao)) == 'TAXA ADM');
+					?>
+						<div class="linha_2">
+							<div class="linha-inferior linha-abatimentos">
+								<div class="coluna_romaneio">
+									<label for="desc_<?php echo $identificador ?>">Descrição</label>
+									<input id="desc_<?php echo $identificador ?>" type="text" value="<?php echo $descricao ?>" readonly>
+								</div>
 
-            <div class="coluna_romaneio">
-                <label for="preco_unit_<?php echo $identificador ?>">PREÇO UNIT</label>
-                <select id="preco_unit_<?php echo $identificador ?>" name="preco_unit_<?php echo $id ?>" class="form-select form-control" onchange="calcularTotalAbatimentos()" style="padding-top: 2px; padding-bottom: 2px;">
-                    <option value="">Selecione</option>
-                    <?php 
-                    foreach ($array_precos as $item_preco) {
-                        $item_preco = trim($item_preco);
-                        if ($item_preco != "") echo "<option value='$item_preco'>$item_preco</option>";
-                    }
-                    ?>
-                </select>
-            </div>
+								<div class="coluna_romaneio">
+									<?php if ($isTaxaAdm): ?>
+										<label for="taxa_adm_val_<?php echo $id ?>">Taxa</label>
+										<input type="number" id="taxa_adm_val_<?php echo $id ?>" name="info_<?php echo $id ?>" class="form-control" oninput="calcularTotalAbatimentos()" placeholder="0" style="padding: 0.375rem 0.75rem;">
+									<?php else: ?>
+										<label for="info_<?php echo $identificador ?>">INFO</label>
+										<select id="info_<?php echo $identificador ?>" name="info_<?php echo $id ?>" class="form-select form-control" onchange="calcularTotalAbatimentos()" style="padding-top: 2px; padding-bottom: 2px;">
+											<option value="">Selecione</option>
+											<?php
+											foreach ($array_info as $item_info) {
+												$item_info = trim($item_info);
+												if ($item_info != "") echo "<option value='$item_info'>$item_info</option>";
+											}
+											?>
+										</select>
+									<?php endif; ?>
+								</div>
 
-            <div class="coluna_romaneio">
-                <label for="valor_<?php echo $identificador ?>">Valor</label>
-                <input id="valor_<?php echo $identificador ?>" name="valor_<?php echo $id ?>" type="text" class="valor_2 total-taxas-dinamicas" value="0,00" readonly>
-            </div>
-        </div>
-    </div>
-    <?php } ?>
-</div>
-				
+								<div class="coluna_romaneio">
+									<label for="preco_unit_<?php echo $identificador ?>">PREÇO UNIT</label>
+									<select id="preco_unit_<?php echo $identificador ?>" name="preco_unit_<?php echo $id ?>" class="form-select form-control" onchange="calcularTotalAbatimentos()" style="padding-top: 2px; padding-bottom: 2px;">
+										<option value="">Selecione</option>
+										<?php
+										foreach ($array_precos as $item_preco) {
+											$item_preco = trim($item_preco);
+											if ($item_preco != "") echo "<option value='$item_preco'>$item_preco</option>";
+										}
+										?>
+									</select>
+								</div>
+
+								<div class="coluna_romaneio">
+									<label for="valor_<?php echo $identificador ?>">Valor</label>
+									<input id="valor_<?php echo $identificador ?>" name="valor_<?php echo $id ?>" type="text" class="valor_2 total-taxas-dinamicas" value="0,00" readonly>
+								</div>
+							</div>
+						</div>
+					<?php } ?>
+				</div>
+
 				<div id="linha-container_2"></div>
 				<div class="resumo-tabela">
 					<div class="resumo-linha">
