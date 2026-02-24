@@ -106,10 +106,9 @@ try {
             $abanorte_config_preco_unit = $v_unit;
         } else if ($nome_taxa == 'TAXA ADM') {
             $desc_taxaadm = $v_valor;
-            // Se $v_info estiver vazio, define como 0 para não dar erro no SQL
-            $taxa_adm_config_taxa_perc = ($v_info === '' || $v_info === null) ? 0 : limparMoeda($v_info);
+            $taxa_adm_config_taxa_perc = $v_info; // No seu HTML info_ID é o campo da taxa %
             $taxa_adm_config_preco_unit = $v_unit;
-        }   
+        }
     }
 
     // --- PROCESSAMENTO DE DESCONTOS DIVERSOS ---
