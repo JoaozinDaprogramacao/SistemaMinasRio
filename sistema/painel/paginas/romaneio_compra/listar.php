@@ -2,36 +2,29 @@
 $tabela = 'romaneio_compra';
 require_once("../../../conexao.php");
 
-// Variáveis de filtro
 $dataInicial = @$_POST['p1'];
 $dataFinal = @$_POST['p2'];
 $fornecedor = @$_POST['p3'];
 
-// Inicializa a cláusula WHERE
 $where = [];
 $params = [];
 
-// Adiciona filtro de data
 if (!empty($dataInicial) && !empty($dataFinal)) {
-  $where[] = "rc.data >= :dataInicial AND rc.data <= :dataFinal"; // Adicionei o alias rc. para evitar ambiguidade
+  $where[] = "rc.data >= :dataInicial AND rc.data <= :dataFinal"; 
   $params[':dataInicial'] = $dataInicial;
   $params[':dataFinal'] = $dataFinal;
 }
 
-// Adiciona filtro de fornecedor
 if (!empty($fornecedor)) {
   $where[] = "rc.fornecedor = :fornecedor";
   $params[':fornecedor'] = $fornecedor;
 }
 
-// Combina as condições do WHERE
 $filtrar = '';
 if (count($where) > 0) {
   $filtrar = ' WHERE ' . implode(' AND ', $where);
 }
 
-// --- ALTERAÇÃO 1: Adicionei o JOIN com a tabela de clientes ---
-// Assumi que a tabela se chama 'clientes' e o campo 'nome'. Ajuste se necessário.
 $query = $pdo->prepare("SELECT rc.*, 
         f.nome_atacadista as nome_fornecedor,
         c.nome as nome_cliente 
@@ -63,16 +56,12 @@ HTML;
     $id = $res[$i]['id'];
     $data = $res[$i]['data'];
 
-    // Formatação da data
     $dataF = implode('/', array_reverse(@explode('-', explode(' ', $data)[0])));
 
-    // Pegando nomes vindos direto do SQL (Muito mais rápido que fazer consulta extra)
     $fornecedor_nome = $res[$i]['nome_fornecedor'] ? $res[$i]['nome_fornecedor'] : 'Fornecedor não encontrado';
 
-    // --- ALTERAÇÃO 3: Lógica para pegar nome do cliente ---
     $cliente_nome = $res[$i]['nome_cliente'] ? $res[$i]['nome_cliente'] : 'Sem Cliente';
 
-    // IDs originais para as funções JS
     $id_fornecedor_fk = $res[$i]['fornecedor'];
 
     echo <<<HTML
@@ -200,7 +189,6 @@ HTML;
           addNewLine1();
         }
 
-        // 3. Deduções e Impostos (FUNRURAL, IMA, ABANORTE, TAXA ADM)
 
         // FUNRURAL
         $('#info_funrural').val(r.funrural_config_info || '');
