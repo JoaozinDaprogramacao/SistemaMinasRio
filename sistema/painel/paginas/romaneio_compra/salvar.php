@@ -86,12 +86,11 @@ try {
         $tid = $taxa['id'];
         $nome_taxa = strtoupper(trim($taxa['descricao']));
 
-        // Pegamos os valores do POST usando o ID dinâmico (valor_2, valor_3...)
         $v_valor = limparMoeda($_POST['valor_' . $tid] ?? '0');
-        $v_info  = $_POST['info_' . $tid] ?? null;
-        $v_unit  = isset($_POST['preco_unit_' . $tid]) ? limparMoeda($_POST['preco_unit_' . $tid]) : null;
+        // Se o info estiver vazio, coloca string vazia ou zero dependendo da lógica
+        $v_info  = $_POST['info_' . $tid] ?? '';
+        $v_unit  = isset($_POST['preco_unit_' . $tid]) ? limparMoeda($_POST['preco_unit_' . $tid]) : 0;
 
-        // Agora mapeamos para a COLUNA correta do banco romaneio_compra baseada no NOME da taxa
         if ($nome_taxa == 'FUNRURAL') {
             $desc_funrural = $v_valor;
             $funrural_config_info = $v_info;
@@ -106,7 +105,8 @@ try {
             $abanorte_config_preco_unit = $v_unit;
         } else if ($nome_taxa == 'TAXA ADM') {
             $desc_taxaadm = $v_valor;
-            $taxa_adm_config_taxa_perc = $v_info; // No seu HTML info_ID é o campo da taxa %
+            // Garante que se vier vazio, vire 0
+            $taxa_adm_config_taxa_perc = ($v_info === '') ? 0 : $v_info;
             $taxa_adm_config_preco_unit = $v_unit;
         }
     }
@@ -250,7 +250,7 @@ try {
         ':icpu'   => $ima_config_preco_unit,
         ':aci'    => $abanorte_config_info,
         ':acpu'   => $abanorte_config_preco_unit,
-        ':atctp'  => $taxa_adm_config_taxa_perc,
+        ':atctp'  => (empty($taxa_adm_config_taxa_perc)) ? 0 : $taxa_adm_config_taxa_perc,
         ':atcpu'  => $taxa_adm_config_preco_unit
     ];
 
