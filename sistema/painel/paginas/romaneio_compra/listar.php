@@ -13,21 +13,21 @@ $params = [];
 
 // Adiciona filtro de data
 if (!empty($dataInicial) && !empty($dataFinal)) {
-    $where[] = "rc.data >= :dataInicial AND rc.data <= :dataFinal"; // Adicionei o alias rc. para evitar ambiguidade
-    $params[':dataInicial'] = $dataInicial;
-    $params[':dataFinal'] = $dataFinal;
+  $where[] = "rc.data >= :dataInicial AND rc.data <= :dataFinal"; // Adicionei o alias rc. para evitar ambiguidade
+  $params[':dataInicial'] = $dataInicial;
+  $params[':dataFinal'] = $dataFinal;
 }
 
 // Adiciona filtro de fornecedor
 if (!empty($fornecedor)) {
-    $where[] = "rc.fornecedor = :fornecedor";
-    $params[':fornecedor'] = $fornecedor;
+  $where[] = "rc.fornecedor = :fornecedor";
+  $params[':fornecedor'] = $fornecedor;
 }
 
 // Combina as condições do WHERE
 $filtrar = '';
 if (count($where) > 0) {
-    $filtrar = ' WHERE ' . implode(' AND ', $where);
+  $filtrar = ' WHERE ' . implode(' AND ', $where);
 }
 
 // --- ALTERAÇÃO 1: Adicionei o JOIN com a tabela de clientes ---
@@ -38,14 +38,14 @@ $query = $pdo->prepare("SELECT rc.*,
     FROM $tabela rc
     LEFT JOIN fornecedores f ON rc.fornecedor = f.id
     LEFT JOIN clientes c ON rc.cliente = c.id " .
-    $filtrar . " ORDER BY rc.id DESC");
+  $filtrar . " ORDER BY rc.id DESC");
 
 $query->execute($params);
 $res = $query->fetchAll(PDO::FETCH_ASSOC);
 $linhas = @count($res);
 
 if ($linhas > 0) {
-    echo <<<HTML
+  echo <<<HTML
     <table class="table table-bordered text-nowrap border-bottom dt-responsive" id="tabela">
     <thead> 
     <tr> 
@@ -59,23 +59,23 @@ if ($linhas > 0) {
     <tbody> 
 HTML;
 
-    for ($i = 0; $i < $linhas; $i++) {
-        $id = $res[$i]['id'];
-        $data = $res[$i]['data'];
-        
-        // Formatação da data
-        $dataF = implode('/', array_reverse(@explode('-', explode(' ', $data)[0])));
+  for ($i = 0; $i < $linhas; $i++) {
+    $id = $res[$i]['id'];
+    $data = $res[$i]['data'];
 
-        // Pegando nomes vindos direto do SQL (Muito mais rápido que fazer consulta extra)
-        $fornecedor_nome = $res[$i]['nome_fornecedor'] ? $res[$i]['nome_fornecedor'] : 'Fornecedor não encontrado';
-        
-        // --- ALTERAÇÃO 3: Lógica para pegar nome do cliente ---
-        $cliente_nome = $res[$i]['nome_cliente'] ? $res[$i]['nome_cliente'] : 'Sem Cliente';
+    // Formatação da data
+    $dataF = implode('/', array_reverse(@explode('-', explode(' ', $data)[0])));
 
-        // IDs originais para as funções JS
-        $id_fornecedor_fk = $res[$i]['fornecedor'];
+    // Pegando nomes vindos direto do SQL (Muito mais rápido que fazer consulta extra)
+    $fornecedor_nome = $res[$i]['nome_fornecedor'] ? $res[$i]['nome_fornecedor'] : 'Fornecedor não encontrado';
 
-        echo <<<HTML
+    // --- ALTERAÇÃO 3: Lógica para pegar nome do cliente ---
+    $cliente_nome = $res[$i]['nome_cliente'] ? $res[$i]['nome_cliente'] : 'Sem Cliente';
+
+    // IDs originais para as funções JS
+    $id_fornecedor_fk = $res[$i]['fornecedor'];
+
+    echo <<<HTML
 <tr style="">
     <td align="center">
         <div class="custom-checkbox custom-control">
@@ -107,9 +107,9 @@ HTML;
     </td>
 </tr>
 HTML;
-    }
+  }
 } else {
-    echo 'Não possui nenhum cadastro!';
+  echo 'Não possui nenhum cadastro!';
 }
 
 echo <<<HTML
@@ -148,12 +148,10 @@ HTML;
   function editar(id) {
     console.log('=== editar() iniciado para ID:', id);
 
-    // 1) Limpa tudo e prepara o modal
-    limparCampos(); // Certifique-se que limparCampos reseta os selects de comissão também
+    limparCampos();
     $('#titulo_inserir').text('Editar Registro');
     $('#id').val(id);
 
-    // 2) Busca dados
     $.ajax({
       url: 'paginas/romaneio_compra/buscar_dados.php',
       type: 'POST',
@@ -164,14 +162,13 @@ HTML;
       success: function(res) {
         console.log('Resposta AJAX buscar_dados:', res);
         if (!res || !res.romaneio) {
-          console.error('Resposta inválida de buscar_dados.php:', res);
-          alert('Não foi possível carregar os dados do romaneio. Resposta do servidor inválida.');
+          alert('Erro ao carregar os dados do romaneio.');
           return;
         }
         const r = res.romaneio;
 
-        // ----- Cabeçalho -----
-        $('.data_atual').val(r.data ? r.data.split(' ')[0] : '');
+        // 1. Cabeçalho
+        $('input[name="data"]').val(r.data ? r.data.split(' ')[0] : '');
         $('#vencimento').val(r.vencimento ? r.vencimento.split(' ')[0] : '');
         $('#nota_fiscal').val(r.nota_fiscal || '');
         $('#plano_pgto').val(r.plano_pgto || '');
@@ -179,144 +176,104 @@ HTML;
         $('#fornecedor').val(r.fornecedor || '');
         $('#fazenda').val(r.fazenda || '');
         $('#cliente').val(r.cliente || '');
+        $('#desc-avista').val(r.desc_avista ? r.desc_avista.replace('.', ',') : '0,00');
 
-        // Desconto à vista
-        console.log('desc_avista RAW:', r.desc_avista);
-        $('#desc-avista').val(
-          r.desc_avista ? (parseFloat(r.desc_avista) || 0).toFixed(2).replace('.', ',') : '0,00'
-        );
-
-        // ----- Produtos -----
+        // 2. Produtos
         $('#linha-container_1').empty();
         if (res.produtos && res.produtos.length) {
           res.produtos.forEach((item, idx) => {
-            addNewLine1(); // Supondo que addNewLine1() cria a linha e a retorna ou podemos selecioná-la
-            const $linha = $('#linha-container_1 .linha_1').eq(idx); // Garanta que esta seleção é robusta
-
-            console.log(`--- Produto ${idx}`, item);
+            addNewLine1();
+            const $linha = $('#linha-container_1 .linha_1').eq(idx);
 
             $linha.find('.quant_caixa_1').val(item.quant || '');
             $linha.find('.produto_1').val(item.variedade || '');
-            $linha.find('.preco_kg_1').val(
-              item.preco_kg ? parseFloat(item.preco_kg).toFixed(2).replace('.', ',') : '0,00'
-            );
+            $linha.find('.preco_kg_1').val(item.preco_kg ? parseFloat(item.preco_kg).toFixed(2).replace('.', ',') : '0,00');
 
-            const rawTipo = item.tipo_caixa || ''; // ex: "14.50 G"
-            const numTipo = rawTipo.split(' ')[0]; // ex: "14.50"
-            console.log(`tipo_caixa raw [${idx}]:`, rawTipo, '→ num:', numTipo);
-            $linha.find('.tipo_cx_1').val(numTipo); // O valor do option deve ser "14.50"
+            const rawTipo = item.tipo_caixa || '';
+            const numTipo = rawTipo.split(' ')[0];
+            $linha.find('.tipo_cx_1').val(numTipo);
 
-            $linha.find('.preco_unit_1').val(
-              item.preco_unit ? parseFloat(item.preco_unit).toFixed(2).replace('.', ',') : '0,00'
-            );
-            $linha.find('.valor_1').val(
-              item.valor ? parseFloat(item.valor).toFixed(2).replace('.', ',') : '0,00'
-            );
-
-            // dispara recálculo desta linha
-            if (typeof calcularValores === 'function' && $linha.length) {
-              calcularValores($linha.get(0));
-            }
+            $linha.find('.preco_unit_1').val(item.preco_unit ? parseFloat(item.preco_unit).toFixed(2).replace('.', ',') : '0,00');
+            $linha.find('.valor_1').val(item.valor ? parseFloat(item.valor).toFixed(2).replace('.', ',') : '0,00');
           });
         } else {
-          addNewLine1(); // Adiciona uma linha de produto em branco se não houver produtos
+          addNewLine1();
         }
 
-
-        // ----- Comissões/Deduções fixas -----
-        console.log('Preenchendo configurações e valores das deduções fixas');
+        // 3. Deduções e Impostos (FUNRURAL, IMA, ABANORTE, TAXA ADM)
 
         // FUNRURAL
         $('#info_funrural').val(r.funrural_config_info || '');
-        // Para selects, o valor de r.funrural_config_preco_unit deve corresponder exatamente ao 'value' de uma tag <option>
-        // Se o valor no DB é 1.50 e o option value="1.50", está ok.
-        $('#preco_unit_funrural').val(r.funrural_config_preco_unit ? parseFloat(r.funrural_config_preco_unit).toFixed(2) : '');
-        $('#valor_funrural').val(
-          r.desc_funrural ? parseFloat(r.desc_funrural).toFixed(2).replace('.', ',') : '0,00'
-        );
+        if (r.funrural_config_preco_unit) {
+          let unitF = parseFloat(r.funrural_config_preco_unit).toFixed(2).replace('.', ',') + '%';
+          $('#preco_unit_funrural').val(unitF);
+        }
+        $('#valor_funrural').val(r.desc_funrural ? r.desc_funrural.replace('.', ',') : '0,00');
 
         // IMA
         $('#info_ima').val(r.ima_config_info || '');
-        $('#preco_unit_ima').val(r.ima_config_preco_unit ? parseFloat(r.ima_config_preco_unit).toFixed(2) : '');
-        $('#valor_ima').val(
-          r.desc_ima ? parseFloat(r.desc_ima).toFixed(2).replace('.', ',') : '0,00'
-        );
+        if (r.ima_config_preco_unit) {
+          let unitI = parseFloat(r.ima_config_preco_unit).toFixed(2).replace('.', ',');
+          $('#preco_unit_ima').val(unitI);
+        }
+        $('#valor_ima').val(r.desc_ima ? r.desc_ima.replace('.', ',') : '0,00');
 
         // ABANORTE
         $('#info_abanorte').val(r.abanorte_config_info || '');
-        // Se abanorte_config_preco_unit for 0.0025 (DECIMAL(10,4)), o toFixed(4) é necessário para casar com option value="0.0025"
-        // Se for um valor como 52.80 (DECIMAL(10,2)), toFixed(2) seria para option value="52.80"
-        // Usar diretamente o valor string do banco pode ser mais seguro se a formatação já estiver correta lá.
-        // Assumindo que r.abanorte_config_preco_unit vem como string formatada corretamente (ex: "0.0025" ou "52.80")
-        $('#preco_unit_abanorte').val(r.abanorte_config_preco_unit || '');
-        $('#valor_abanorte').val(
-          r.desc_abanorte ? parseFloat(r.desc_abanorte).toFixed(2).replace('.', ',') : '0,00'
-        );
+        if (r.abanorte_config_preco_unit) {
+          let valA = parseFloat(r.abanorte_config_preco_unit);
+          // Tenta casar com formato percentual ou decimal dependendo do option
+          let unitA = valA < 1 ? valA.toFixed(4).replace('.', ',') + '%' : valA.toFixed(2).replace('.', ',') + '%';
+          $('#preco_unit_abanorte').val(unitA);
+        }
+        $('#valor_abanorte').val(r.desc_abanorte ? r.desc_abanorte.replace('.', ',') : '0,00');
 
         // TAXA ADM
-        // taxa_adm_config_taxa_perc é o input de %
-        $('#taxa_adm_percent').val(r.taxa_adm_config_taxa_perc ? parseFloat(r.taxa_adm_config_taxa_perc).toFixed(2) : '');
-        // taxa_adm_config_preco_unit é o select, ex: option value="5"
-        $('#preco_unit_taxa_adm').val(r.taxa_adm_config_preco_unit ? parseFloat(r.taxa_adm_config_preco_unit).toFixed(0) : ''); // toFixed(0) para casar com value="5" se o DB tiver 5.00
-        $('#valor_taxa_adm').val(
-          r.desc_taxaadm ? parseFloat(r.desc_taxaadm).toFixed(2).replace('.', ',') : '0,00'
-        );
+        $('#taxa_adm_val_5').val(r.taxa_adm_config_taxa_perc ? parseFloat(r.taxa_adm_config_taxa_perc) : '');
+        if (r.taxa_adm_config_preco_unit) {
+          let unitT = parseFloat(r.taxa_adm_config_preco_unit).toFixed(2).replace('.', ',');
+          $('#preco_unit_taxa_adm').val(unitT);
+        }
+        $('#valor_taxa_adm').val(r.desc_taxaadm ? r.desc_taxaadm.replace('.', ',') : '0,00');
 
-        // Se as funções individuais de cálculo devem ser chamadas após setar os selects:
-        if (typeof calcularTaxaFunrural === 'function') calcularTaxaFunrural();
-        if (typeof calcularTaxaIma === 'function') calcularTaxaIma();
-        if (typeof calcularTaxaAbanorte === 'function') calcularTaxaAbanorte();
-        if (typeof calcularTaxaAdm === 'function') calcularTaxaAdm();
-        // E depois o totalizador geral de comissões
-        if (typeof calculaTotais2 === 'function') calculaTotais2();
-
-
-        // ----- Descontos Diversos -----
-        console.log('Preenchendo descontos diversos:', r.descontos_diversos);
-        $('#discount-container').empty(); // Limpa antes de adicionar
+        // 4. Descontos Diversos
+        $('#discount-container').empty();
         let descontos = [];
         try {
           if (r.descontos_diversos && r.descontos_diversos.trim() !== "") {
             descontos = JSON.parse(r.descontos_diversos);
           }
         } catch (e) {
-          console.warn('JSON inválido em descontos_diversos', r.descontos_diversos, e);
+          console.warn('Erro parse descontos_diversos', e);
         }
 
         if (descontos && descontos.length > 0) {
           descontos.forEach((d, i) => {
-            console.log(`– desconto ${i}`, d);
-            addDiscountLine(); // Supondo que addDiscountLine() adiciona uma nova linha
-            const $dlinha = $('#discount-container .linha_3').eq(i); // Garanta esta seleção
+            addDiscountLine();
+            const $dlinha = $('#discount-container .linha_3').eq(i);
             $dlinha.find('.desconto-type').val(d.tipo || '+');
-            $dlinha.find('.desconto-valor').val(
-              d.valor ? parseFloat(d.valor).toFixed(2).replace('.', ',') : '0,00'
-            );
+            $dlinha.find('.desconto-valor').val(d.valor ? parseFloat(d.valor).toFixed(2).replace('.', ',') : '0,00');
             $dlinha.find('.desconto-obs').val(d.obs || '');
           });
         } else {
-          addDiscountLine(); // Adiciona uma linha de desconto em branco se não houver descontos
+          addDiscountLine();
         }
 
-        // após inserir linhas e preencher comissões, recalcula totais gerais
+        // 5. Atualização de Totais da Tela
+        if (typeof calcularTotalAbatimentos === 'function') calcularTotalAbatimentos();
         if (typeof calcularDescontosDiversos === 'function') calcularDescontosDiversos();
-        if (typeof updateLiquidPayable === 'function') updateLiquidPayable(); // Atualiza o total líquido final
-        if (typeof calculaTotais === 'function') calculaTotais(); // Para garantir que tudo seja recalculado
+        if (typeof calculaTotais === 'function') calculaTotais();
 
-        // 4) Exibe o modal
         $('#modalForm').modal('show');
-        console.log('Modal de edição aberto');
       },
       error: function(err) {
-        console.error('Erro ao buscar dados do romaneio:', err);
-        alert('Não foi possível carregar os detalhes. Veja o console para mais informações.');
+        console.error('Erro ao buscar dados:', err);
+        alert('Não foi possível carregar os detalhes do registro.');
       }
     });
   }
 
 
-
-  // --- fazemos um guard dentro do handleInput para não adicionar linhas durante o editar() ---
   function handleInput(input) {
     if (isEditing) return; // IGNORA auto-add no fluxo de edição
     const linha = input.closest(".linha_1");
