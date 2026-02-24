@@ -109,6 +109,10 @@ function calculaTotais() {
                 totalGeralField.classList.remove("danger");
                 descontoAvista = (totalBrutoSoma * (dPerc / 100));
             }
+        } else {
+            // CORREÇÃO: Se não for desconto (A Prazo), limpa o erro e o valor do desconto
+            totalGeralField.classList.remove("danger");
+            descontoAvista = 0;
         }
 
         let totalGeralSoma = totalBrutoSoma - descontoAvista;
