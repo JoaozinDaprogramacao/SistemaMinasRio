@@ -49,23 +49,21 @@ function calcularValores(linha) {
     const valorField = linha.querySelector(".valor_1");
 
     try {
-        let precoKgValor = precoKgField.value.trim().replace(/[^\d,\.]/g, '').replace(',', '.');
-        const precoKg = parseFloat(precoKgValor || '0');
-        let tipoCxValor = tipoCxField.value.trim().replace(',', '.');
-        const tipoCx = parseFloat(tipoCxValor || '0');
-        const quantCx = parseInt(quantCxField.value || '0', 10);
+        let precoKgVal = parseFloat(precoKgField.value.replace(/\./g, '').replace(',', '.')) || 0;
+        let tipoCxVal = parseFloat(tipoCxField.value.replace(',', '.')) || 0;
+        let quantCxVal = parseInt(quantCxField.value || '0', 10);
 
-        if (isNaN(precoKg) || isNaN(tipoCx) || isNaN(quantCx)) {
+        if (isNaN(precoKgVal) || isNaN(tipoCxVal) || isNaN(quantCxVal)) {
             precoUnitField.value = "0,00";
             valorField.value = "0,00";
             return;
         }
 
-        const precoUnit = precoKg * tipoCx;
-        const valorTotal = precoUnit * quantCx;
+        const precoUnit = Math.round(precoKgVal * tipoCxVal * 100) / 100;
+        const valorTotal = Math.round(precoUnit * quantCxVal * 100) / 100;
 
-        precoUnitField.value = precoUnit.toFixed(2).replace(".", ",");
-        valorField.value = valorTotal.toFixed(2).replace(".", ",");
+        precoUnitField.value = precoUnit.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        valorField.value = valorTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     } catch (e) {
         precoUnitField.value = "0,00";
         valorField.value = "0,00";
@@ -85,57 +83,60 @@ function calculaTotais() {
 
         const planoPgto = document.querySelector("#plano_pgto");
         let selectedText = planoPgto.options[planoPgto.selectedIndex]?.text || "";
-        let desconto = selectedText.toUpperCase().includes("VISTA");
+        let temDesconto = selectedText.toUpperCase().includes("VISTA");
 
-        let totalBrutoSoma = 0, totalCaixaSoma = 0, totalKgSoma = 0;
+        let totalBrutoCents = 0;
+        let totalCaixaSoma = 0;
+        let totalKgSoma = 0;
 
         document.querySelectorAll(".linha_1").forEach((linha) => {
             if (linha.style.display === 'none') return;
             const q = parseFloat(linha.querySelector(".quant_caixa_1").value.replace(',', '.')) || 0;
             const t = parseFloat(linha.querySelector(".tipo_cx_1").value.replace(',', '.')) || 0;
-            const v = parseFloat(linha.querySelector(".valor_1").value.replace(/[^\d,]/g, '').replace(',', '.')) || 0;
+            const v = Math.round(parseBrasil(linha.querySelector(".valor_1").value) * 100);
+            
             totalCaixaSoma += q;
-            totalBrutoSoma += v;
+            totalBrutoCents += v;
             totalKgSoma += (q * t);
         });
 
-        let descontoAvista = 0;
-        if (desconto) {
+        let descontoCents = 0;
+        if (temDesconto) {
             const dPerc = parseFloat(descAvistaField.value.replace(',', '.')) || 0;
             if (dPerc <= 0) {
                 totalGeralField.innerHTML = "DESC. OBRIGATÓRIO";
                 totalGeralField.classList.add("danger");
             } else {
                 totalGeralField.classList.remove("danger");
-                descontoAvista = (totalBrutoSoma * (dPerc / 100));
+                descontoCents = Math.round(totalBrutoCents * (dPerc / 100));
             }
         } else {
-            // CORREÇÃO: Se não for desconto (A Prazo), limpa o erro e o valor do desconto
             totalGeralField.classList.remove("danger");
-            descontoAvista = 0;
         }
 
-        let totalGeralSoma = totalBrutoSoma - descontoAvista;
+        let totalGeralCents = totalBrutoCents - descontoCents;
+
         totalCaixaField.innerHTML = Math.round(totalCaixaSoma) + " CXS";
-        totalKgField.innerHTML = totalKgSoma.toFixed(2).replace('.', ',') + " KG";
-        totalBrutoField.innerHTML = "R$ " + totalBrutoSoma.toFixed(2).replace('.', ',');
-        totalDescField.innerHTML = "R$ " + descontoAvista.toFixed(2).replace('.', ',');
+        totalKgField.innerHTML = totalKgSoma.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+        totalBrutoField.innerHTML = "R$ " + (totalBrutoCents / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+        totalDescField.innerHTML = "R$ " + (descontoCents / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
 
         if (!totalGeralField.classList.contains("danger")) {
-            totalGeralField.innerHTML = totalGeralSoma.toFixed(2).replace('.', ',');
-            inputHidden.value = totalGeralSoma.toFixed(2).replace('.', ',');
+            const finalStr = (totalGeralCents / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+            totalGeralField.innerHTML = finalStr;
+            inputHidden.value = finalStr;
         }
     } catch (e) { }
-    updateLiquidPayable();
+    calcularTotalAbatimentos();
 }
 
 function calcularTotalAbatimentos() {
     const totals = getTotals();
-    let somaAbatimentos = 0;
+    let somaAbatimentosCents = 0;
 
     document.querySelectorAll(".linha-abatimentos").forEach(linha => {
         const inputDesc = linha.querySelector('input[id^="desc_"]');
-        const selInfo = linha.querySelector('select[name^="info_"], input[name^="info_"]'); // Melhor usar name aqui
+        const selInfo = linha.querySelector('select[name^="info_"], input[name^="info_"]');
         const selPreco = linha.querySelector('select[name^="preco_unit_"]');
         const campoResultado = linha.querySelector('input[name^="valor_"]');
 
@@ -144,44 +145,36 @@ function calcularTotalAbatimentos() {
         const desc = inputDesc.value.toUpperCase().trim();
         const infoVal = selInfo.value.toLowerCase().trim();
         const precoRaw = selPreco.value;
-
-        let pUnit = parseFloat(precoRaw.replace(',', '.').replace('%', '').trim()) || 0;
-        let valorCalculado = 0;
+        let pUnit = parseFloat(precoRaw.replace(/\./g, '').replace(',', '.').replace('%', '').trim()) || 0;
+        
+        let valorCalculadoCents = 0;
 
         if (desc === 'TAXA ADM') {
             let taxaInput = parseFloat(infoVal.replace(',', '.')) || 0;
-            valorCalculado = taxaInput * pUnit;
-        }
-        else if (desc === 'FUNRURAL') {
-            // Verifica se a base selecionada é bruto ou liquido
-            let base = 0;
-            if (infoVal.includes('bruto')) base = totals.bruto;
-            else if (infoVal.includes('liquido') || infoVal.includes('líquido')) base = totals.liquido;
-
-            valorCalculado = base * (pUnit / 100);
-        }
-        else {
-            // Lógica para KG, CX ou fixo
+            valorCalculadoCents = Math.round((taxaInput * pUnit) * 100);
+        } else if (desc === 'FUNRURAL') {
+            let base = infoVal.includes('bruto') ? totals.bruto : totals.liquido;
+            valorCalculadoCents = Math.round((base * 100) * (pUnit / 100));
+        } else {
             if (infoVal === 'kg') {
-                valorCalculado = pUnit * totals.kg;
+                valorCalculadoCents = Math.round((pUnit * totals.kg) * 100);
             } else if (infoVal === 'cx' || infoVal === 'caixa' || infoVal === 'cxs') {
-                valorCalculado = pUnit * totals.caixas;
+                valorCalculadoCents = Math.round((pUnit * totals.caixas) * 100);
             } else {
-                // Se for porcentagem mas não for Funrural, aplica sobre o bruto por padrão
                 if (precoRaw.includes('%')) {
-                    valorCalculado = totals.bruto * (pUnit / 100);
+                    valorCalculadoCents = Math.round((totals.bruto * 100) * (pUnit / 100));
                 } else {
-                    valorCalculado = pUnit;
+                    valorCalculadoCents = Math.round(pUnit * 100);
                 }
             }
         }
 
-        campoResultado.value = valorCalculado.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-        somaAbatimentos += valorCalculado;
+        campoResultado.value = (valorCalculadoCents / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        somaAbatimentosCents += valorCalculadoCents;
     });
 
     const totalComissaoField = document.getElementById("total_comissao");
-    if (totalComissaoField) totalComissaoField.textContent = somaAbatimentos.toFixed(2).replace(".", ",");
+    if (totalComissaoField) totalComissaoField.textContent = (somaAbatimentosCents / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
 
     updateLiquidPayable();
 }
@@ -240,9 +233,11 @@ function calcularDescontosDiversos() {
 }
 
 function updateLiquidPayable() {
-    const liquidBase = parseBrasil(document.getElementById('valor_liquido').value);
-    const comissao = parseBrasil(document.getElementById('total_comissao').textContent);
-    const descontos = parseBrasil(document.getElementById('total_descontos_diversos').textContent);
-    const finalLiquido = liquidBase - comissao + descontos;
-    document.getElementById('total_liquido_pagar').textContent = finalLiquido.toFixed(2).replace('.', ',');
+    const liquidBaseCents = Math.round(parseBrasil(document.getElementById('valor_liquido').value) * 100);
+    const comissaoCents = Math.round(parseBrasil(document.getElementById('total_comissao').textContent) * 100);
+    const descontosCents = Math.round(parseBrasil(document.getElementById('total_descontos_diversos').textContent) * 100);
+    
+    const finalLiquidoCents = liquidBaseCents - comissaoCents + descontosCents;
+    
+    document.getElementById('total_liquido_pagar').textContent = (finalLiquidoCents / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
 }
