@@ -2,86 +2,38 @@
 $tabela = 'romaneio_venda';
 require_once("../../../conexao.php");
 
-// Variáveis de filtro
-$dataInicial = @$_POST['p1'];
-$dataFinal = @$_POST['p2'];
-$cliente = @$_POST['p3'];
+$dataInicial = $_POST['p1'] ?? '';
+$dataFinal   = $_POST['p2'] ?? '';
+$cliente     = $_POST['p3'] ?? '';
 
-// Se as datas estiverem vazias, não aplicar filtro de data
-if (empty($dataInicial) || empty($dataFinal)) {
-  $filtro_data = "";
-} else {
-  $filtro_data = "WHERE data BETWEEN '$dataInicial' AND '$dataFinal'";
-}
-
-// Definir a variável $tipo_data
-$tipo_data = 'data'; // Substitua pelo nome da coluna que você deseja usar para filtrar as datas
-
-// Valores padrão para datas, caso não sejam fornecidos
-if ($dataInicial == "") {
-  $dataInicial = date('Y-m-01'); // Início do mês atual
-}
-
-if ($dataFinal == "") {
-  $dataFinal = date('Y-m-t'); // Final do mês atual
-}
-
-// Inicializa a cláusula WHERE
 $where = [];
 $params = [];
 
-// Adiciona filtro de cliente
+// Filtro por cliente
 if (!empty($cliente)) {
   $where[] = "atacadista = :cliente";
   $params[':cliente'] = $cliente;
 }
 
-// Combina as condições do WHERE
+// Filtro por data
+if (!empty($dataInicial) && !empty($dataFinal)) {
+  $where[] = "data BETWEEN :dataInicial AND :dataFinal";
+  $params[':dataInicial'] = $dataInicial;
+  $params[':dataFinal'] = $dataFinal;
+}
+
+// Monta o WHERE final
 $filtrar = '';
-if (count($where) > 0) {
-  $filtrar = ' WHERE ' . implode(' AND ', $where); // Adiciona espaço antes de WHERE
+if (!empty($where)) {
+  $filtrar = ' WHERE ' . implode(' AND ', $where);
 }
 
-// Consulta SQL com filtros
-$sql = "SELECT * FROM $tabela" . $filtrar . " ORDER BY id DESC";
-
-// Função para debug da query
-function debugQuery($query, $params)
-{
-  $keys = array();
-  $values = $params;
-
-  // Ordena os parâmetros pelo tamanho do nome
-  krsort($params);
-
-  foreach ($params as $key => $value) {
-    // Remove os dois pontos dos placeholders
-    $clean_key = str_replace(':', '', $key);
-
-    // Trata diferentes tipos de dados
-    if (is_string($value)) {
-      $value = "'" . addslashes($value) . "'";
-    } elseif (is_null($value)) {
-      $value = 'NULL';
-    } elseif (is_bool($value)) {
-      $value = $value ? 'TRUE' : 'FALSE';
-    }
-
-    // Substitui os placeholders na query
-    $query = str_replace(':' . $clean_key, $value, $query);
-  }
-
-  return $query;
-}
-
-// Debug da query antes da execução
-error_log("Query Debug: " . debugQuery($sql, $params));
-echo "<script>console.log('Query Debug:', " . json_encode(debugQuery($sql, $params)) . ")</script>";
+$sql = "SELECT * FROM $tabela $filtrar ORDER BY id DESC";
 
 $query = $pdo->prepare($sql);
 $query->execute($params);
 $res = $query->fetchAll(PDO::FETCH_ASSOC);
-$linhas = @count($res);
+$linhas = count($res);
 if ($linhas > 0) {
   echo <<<HTML
 
@@ -372,8 +324,9 @@ HTML;
 
   function editar(id) {
     carregando_dados = true;
+    console.log("deu erro aqui");
     limparCampos();
-    $('#titulo_inserir').text(`Editar Romaneio de Venda Nº ${id}`);
+    $('#titulo_inserir').text(`Editar Romaneio de Vendas Nº ${id}`);
     $('#id').val(id);
 
     $.ajax({
