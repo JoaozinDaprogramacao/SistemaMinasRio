@@ -106,21 +106,36 @@ function definirPeriodo(valor) {
 }
 
 function buscar() {
+    // p1 - Filtro de Status (Vencidas, Recebidas, etc)
     var filtro = $('#tipo_data_filtro').val() || '';
+
+    // p2 e p3 - Intervalo de Datas
     var dataInicial = $('#dataInicial').val();
     var dataFinal = $('#dataFinal').val();
-    var tipo_data = $('#tipo_data').val();
+
+    // p4 - Define se as datas acima são Vencimento ou Lançamento
+    // (Ajustado para o ID 'filtrar_por' que usamos no HTML)
+    var tipo_data = $('#filtrar_por').val() || 'vencimento';
+
+    // p5 - ID do Atacadista/Cliente
     var atacadista = $('#atacadista').val();
+
+    // p6 - ID da Forma de Pagamento
     var formaPGTO = $('#formaPGTO').val();
 
-    listar(filtro, dataInicial, dataFinal, tipo_data, atacadista, formaPGTO);
+    // p7 - NOVO: Filtro À Vista ou A Prazo
+    var tipo_conta = $('#tipo_conta').val();
+
+    // Chama a função listar passando os 7 parâmetros
+    listar(filtro, dataInicial, dataFinal, tipo_data, atacadista, formaPGTO, tipo_conta);
 }
 
-function listar(filtro, dataInicial, dataFinal, tipo_data, atacadista, formaPGTO) {
+function listar(p1, p2, p3, p4, p5, p6, p7) {
     $.ajax({
         url: 'paginas/' + pag + "/listar.php",
         method: 'POST',
-        data: { filtro, dataInicial, dataFinal, tipo_data, atacadista, formaPGTO },
+        // Enviamos p1 até p7 para bater exatamente com os @$_POST do seu PHP
+        data: { p1, p2, p3, p4, p5, p6, p7 },
         dataType: "html",
         success: function (result) {
             $("#listar").html(result);

@@ -6,7 +6,7 @@
             $query = $pdo->query("SELECT * FROM clientes ORDER BY nome ASC");
             $res = $query->fetchAll(PDO::FETCH_ASSOC);
             foreach ($res as $row) {
-                echo '<option value="'.$row['id'].'">'.$row['nome'].'</option>';
+                echo '<option value="' . $row['id'] . '">' . $row['nome'] . '</option>';
             }
             ?>
         </select>
@@ -19,9 +19,24 @@
             $query = $pdo->query("SELECT * FROM formas_pgto ORDER BY nome ASC");
             $res = $query->fetchAll(PDO::FETCH_ASSOC);
             foreach ($res as $row) {
-                echo '<option value="'.$row['id'].'">'.$row['nome'].'</option>';
+                echo '<option value="' . $row['id'] . '">' . $row['nome'] . '</option>';
             }
             ?>
+        </select>
+    </div>
+
+    <div class="col-auto">
+        <select id="tipo_conta" class="form-select form-select-sm" onchange="buscar()">
+            <option value="">À Vista / A Prazo</option>
+            <option value="À Vista">À Vista</option>
+            <option value="A Prazo">A Prazo</option>
+        </select>
+    </div>
+
+    <div class="col-auto">
+        <select id="filtrar_por" class="form-select form-select-sm" onchange="buscar()">
+            <option value="vencimento">Por Vencimento</option>
+            <option value="data_lanc">Por Lançamento</option>
         </select>
     </div>
 
