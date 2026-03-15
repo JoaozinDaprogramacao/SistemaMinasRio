@@ -106,42 +106,247 @@ function definirPeriodo(valor) {
 }
 
 function buscar() {
-    // p1 - Filtro de Status (Vencidas, Recebidas, etc)
     var filtro = $('#tipo_data_filtro').val() || '';
-
-    // p2 e p3 - Intervalo de Datas
     var dataInicial = $('#dataInicial').val();
     var dataFinal = $('#dataFinal').val();
-
-    // p4 - Define se as datas acima são Vencimento ou Lançamento
-    // (Ajustado para o ID 'filtrar_por' que usamos no HTML)
-    var tipo_data = $('#filtrar_por').val() || 'vencimento';
-
-    // p5 - ID do Atacadista/Cliente
+    var tipo_data = $('#tipo_data').val();
     var atacadista = $('#atacadista').val();
-
-    // p6 - ID da Forma de Pagamento
     var formaPGTO = $('#formaPGTO').val();
 
-    // p7 - NOVO: Filtro À Vista ou A Prazo
-    var tipo_conta = $('#tipo_conta').val();
-
-    // Chama a função listar passando os 7 parâmetros
-    listar(filtro, dataInicial, dataFinal, tipo_data, atacadista, formaPGTO, tipo_conta);
+    listar(filtro, dataInicial, dataFinal, tipo_data, atacadista, formaPGTO);
 }
 
-function listar(p1, p2, p3, p4, p5, p6, p7) {
-    // Opcional: mostrar um "carregando" nos cards enquanto o AJAX processa
-    // $('#total_total').text('...'); 
-
+function listar(filtro, dataInicial, dataFinal, tipo_data, atacadista, formaPGTO) {
     $.ajax({
         url: 'paginas/' + pag + "/listar.php",
         method: 'POST',
-        data: { p1, p2, p3, p4, p5, p6, p7 },
+        data: { filtro, dataInicial, dataFinal, tipo_data, atacadista, formaPGTO },
         dataType: "html",
         success: function (result) {
             $("#listar").html(result);
-            // O script injetado acima no passo 1 vai rodar automaticamente aqui
+        }
+    });
+}
+
+function editar(id, descricao, valor, cliente, vencimento, data_pgto, forma_pgto, frequencia, obs, arquivo) {
+    console.log("Log1: entrou");
+    $('#mensagem').text('');
+    $('#titulo_inserir').text('Editar Registro');
+
+    $('#id').val(id);
+    $('#descricao').val(descricao);
+    $('#valor').val(valor);
+    $('#cliente').val(cliente).change();
+    $('#vencimento').val(vencimento);
+    $('#data_pgto').val(data_pgto);
+    $('#forma_pgto').val(forma_pgto).change();
+    $('#frequencia').val(frequencia).change();
+    $('#obs').val(obs);
+    console.log("Log2: continuou");
+
+    $('#arquivo').val('');
+    $('#target').attr('src', 'images/contas/' + arquivo);
+
+    $('#modalForm').modal('show');
+    console.log("Log3: finalizou");
+}
+
+
+function mostrar(descricao, valor, cliente, vencimento, data_pgto, nome_pgto, frequencia, obs, arquivo, multa, juros, desconto, taxa, total, usu_lanc, usu_pgto, pago, arq) {
+
+    if (data_pgto == "") {
+        data_pgto = 'Pendente';
+    }
+
+    $('#titulo_dados').text(descricao);
+    $('#valor_dados').text(valor);
+    $('#cliente_dados').text(cliente);
+    $('#vencimento_dados').text(vencimento);
+    $('#data_pgto_dados').text(data_pgto);
+    $('#nome_pgto_dados').text(nome_pgto);
+    $('#frequencia_dados').text(frequencia);
+    $('#obs_dados').text(obs);
+
+    $('#multa_dados').text(multa);
+    $('#juros_dados').text(juros);
+    $('#desconto_dados').text(desconto);
+    $('#taxa_dados').text(taxa);
+    $('#total_dados').text(total);
+    $('#usu_lanc_dados').text(usu_lanc);
+    $('#usu_pgto_dados').text(usu_pgto);
+
+    $('#pago_dados').text(pago);
+    $('#target_dados').attr("src", "images/contas/" + arquivo);
+    $('#target_link_dados').attr("href", "images/contas/" + arq);
+
+    $('#modalDados').modal('show');
+}
+
+function limparCampos() {
+    $('#id').val('');
+    $('#descricao').val('');
+    $('#valor').val('');
+    $('#vencimento').val("<?= $data_atual ?>");
+    $('#data_pgto').val('');
+    $('#obs').val('');
+    $('#arquivo').val('');
+
+    $('#target').attr("src", "images/contas/sem-foto.png");
+
+    $('#ids').val('');
+    $('#btn-deletar').hide();
+    $('#btn-baixar').hide();
+}
+
+function selecionar(id) {
+
+    var ids = $('#ids').val();
+
+    if ($('#seletor-' + id).is(":checked") == true) {
+        var novo_id = ids + id + '-';
+        $('#ids').val(novo_id);
+    } else {
+        var retirar = ids.replace(id + '-', '');
+        $('#ids').val(retirar);
+    }
+
+    var ids_final = $('#ids').val();
+    if (ids_final == "") {
+        $('#btn-deletar').hide();
+        $('#btn-baixar').hide();
+    } else {
+        $('#btn-deletar').show();
+        $('#btn-baixar').show();
+    }
+}
+
+function deletarSel() {
+    var ids = $('#ids').val();
+    var id = ids.split("-");
+
+    for (i = 0; i < id.length - 1; i++) {
+        excluirMultiplos(id[i]);
+    }
+
+    setTimeout(() => {
+        listar();
+    }, 1000);
+
+    limparCampos();
+}
+
+
+function deletarSelBaixar() {
+    var ids = $('#ids').val();
+    var id = ids.split("-");
+
+    for (i = 0; i < id.length - 1; i++) {
+        var novo_id = id[i];
+        $.ajax({
+            url: 'paginas/' + pag + "/baixar_multiplas.php",
+            method: 'POST',
+            data: {
+                novo_id
+            },
+            dataType: "html",
+
+            success: function (result) {
+                //alert(result)
+
+            }
+        });
+    }
+
+    setTimeout(() => {
+        buscar();
+        limparCampos();
+    }, 1000);
+
+
+}
+
+
+function permissoes(id, nome) {
+
+    $('#id_permissoes').val(id);
+    $('#nome_permissoes').text(nome);
+
+    $('#modalPermissoes').modal('show');
+    listarPermissoes(id);
+}
+
+
+function parcelar(id, valor, nome) {
+    $('#id-parcelar').val(id);
+    $('#valor-parcelar').val(valor);
+    $('#qtd-parcelar').val('');
+    $('#nome-parcelar').text(nome);
+    $('#nome-input-parcelar').val(nome);
+    $('#modalParcelar').modal('show');
+    $('#mensagem-parcelar').text('');
+}
+
+
+function baixar(id, valor, descricao, pgto, taxa, multa, juros) {
+    $('#id-baixar').val(id);
+    $('#descricao-baixar').text(descricao);
+    $('#valor-baixar').val(valor);
+    $('#saida-baixar').val(pgto).change();
+    $('#subtotal').val(valor);
+
+
+    $('#valor-juros').val(juros);
+    $('#valor-desconto').val('');
+    $('#valor-multa').val(multa);
+    $('#valor-taxa').val(taxa);
+
+    totalizar()
+
+    $('#modalBaixar').modal('show');
+    $('#mensagem-baixar').text('');
+}
+
+
+function mostrarResiduos(id) {
+
+    $.ajax({
+        url: 'paginas/' + pag + "/listar-residuos.php",
+        method: 'POST',
+        data: {
+            id
+        },
+        dataType: "html",
+
+        success: function (result) {
+            $("#listar-residuos").html(result);
+        }
+    });
+    $('#modalResiduos').modal('show');
+
+
+}
+
+function arquivo(id, nome) {
+    $('#id-arquivo').val(id);
+    $('#nome-arquivo').text(nome);
+    $('#modalArquivos').modal('show');
+    $('#mensagem-arquivo').text('');
+    $('#arquivo_conta').val('');
+    listarArquivos();
+}
+
+
+function cobrar(id) {
+    $.ajax({
+        url: 'paginas/' + pag + "/cobrar.php",
+        method: 'POST',
+        data: {
+            id
+        },
+        dataType: "html",
+
+        success: function (result) {
+            alert(result);
         }
     });
 }
