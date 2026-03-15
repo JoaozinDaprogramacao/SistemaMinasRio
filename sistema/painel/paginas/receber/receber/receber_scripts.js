@@ -131,14 +131,17 @@ function buscar() {
 }
 
 function listar(p1, p2, p3, p4, p5, p6, p7) {
+    // Opcional: mostrar um "carregando" nos cards enquanto o AJAX processa
+    // $('#total_total').text('...'); 
+
     $.ajax({
         url: 'paginas/' + pag + "/listar.php",
         method: 'POST',
-        // Enviamos p1 até p7 para bater exatamente com os @$_POST do seu PHP
         data: { p1, p2, p3, p4, p5, p6, p7 },
         dataType: "html",
         success: function (result) {
             $("#listar").html(result);
+            // O script injetado acima no passo 1 vai rodar automaticamente aqui
         }
     });
 }

@@ -212,41 +212,32 @@ HTML;
 	function imprimir(id) {
 		window.open('rel/gerar_pdf_romaneio.php?id=' + id, '_blank');
 	}
-	$(document).ready(function() {
-		$('#tabela').DataTable({
-			"ordering": false,
-			"stateSave": true
-		});
-		$('#total_itens').text('R$ <?= $total_totalF ?>');
-		$('#total_vencidas').text('R$ <?= $total_vencidasF ?>');
-		$('#total_a_vencer').text('R$ <?= $total_a_vencerF ?>');
-		$('#total_recebidas').text('R$ <?= $total_recebidasF ?>');
-	});
 </script>
-<script>
-	function imprimir(id) {
-		window.open('rel/gerar_pdf_romaneio.php?id=' + id, '_blank');
-	}
-</script>
+<input type="hidden" id="val_vencidas" value="R$ <?= $total_vencidasF ?>">
+<input type="hidden" id="val_a_vencer" value="R$ <?= $total_a_vencerF ?>">
+<input type="hidden" id="val_recebidas" value="R$ <?= $total_recebidasF ?>">
+<input type="hidden" id="val_total" value="R$ <?= $total_totalF ?>">
 
-<script type="text/javascript">
+<script>
 	$(document).ready(function() {
-		// O parâmetro destroy permite que a tabela seja recriada a cada busca/filtro
+		if ($.fn.DataTable.isDataTable('#tabela')) {
+			$('#tabela').DataTable().destroy();
+		}
 		$('#tabela').DataTable({
-			"destroy": true,
 			"ordering": false,
 			"stateSave": true,
 			"language": {
-				// "url" : '//cdn.datatables.net/plug-ins/1.13.2/i18n/pt-BR.json'
+				"url": "//cdn.datatables.net/plug-ins/1.13.2/i18n/pt-BR.json"
 			}
 		});
 
-		// Atualização dos cards de totais no painel principal
-		$('#total_itens').text('R$ <?= $total_totalF ?>');
-		$('#total_vencidas').text('R$ <?= $total_vencidasF ?>');
-		$('#total_a_vencer').text('R$ <?= $total_a_vencerF ?>');
-		$('#total_recebidas').text('R$ <?= $total_recebidasF ?>');
+		// Puxa os valores dos inputs hidden e joga nos cards da index
+		$('#total_vencidas').text($('#val_vencidas').val());
+		$('#total_a_vencer').text($('#val_a_vencer').val());
+		$('#total_recebidas').text($('#val_recebidas').val());
+		$('#total_total').text($('#val_total').val());
 	});
+</script>
 </script>
 
 
