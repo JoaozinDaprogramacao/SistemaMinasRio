@@ -1,157 +1,142 @@
 
-type = "text/javascript" >
-    $(document).ready(function () {
+$(document).ready(function () {
 
-        // Função para verificar as datas e mostrar/esconder o campo do banco
-        function verificarDatasEExibirBanco() {
-            var vencimento = $('#vencimento').val();
-            var dataPgto = $('#data_pgto').val();
+    // Função para verificar as datas e mostrar/esconder o campo do banco
+    function verificarDatasEExibirBanco() {
+        var vencimento = $('#vencimento').val();
+        var dataPgto = $('#data_pgto').val();
 
-            // A condição é: data de pagamento não pode ser vazia E precisa ser igual ao vencimento
-            if (dataPgto && vencimento && dataPgto === vencimento) {
-                $('#div-banco').removeClass('d-none'); // Mostra o campo do banco
+        // A condição é: data de pagamento não pode ser vazia E precisa ser igual ao vencimento
+        if (dataPgto && vencimento && dataPgto === vencimento) {
+            $('#div-banco').removeClass('d-none'); // Mostra o campo do banco
+        } else {
+            $('#div-banco').addClass('d-none'); // Esconde o campo do banco
+        }
+    }
+
+    // Adiciona um "escutador" para quando o valor dos campos de data mudar
+    $('#vencimento, #data_pgto').on('change', function () {
+        verificarDatasEExibirBanco();
+    });
+
+    // Também é uma boa prática executar a função quando o modal for aberto,
+    // caso os dados já venham preenchidos de uma edição.
+    $('#modalForm').on('shown.bs.modal', function () {
+        verificarDatasEExibirBanco();
+    });
+
+    // E garantir que o campo do banco fique escondido ao fechar o modal
+    $('#modalForm').on('hidden.bs.modal', function () {
+        $('#div-banco').addClass('d-none');
+    });
+
+});
+
+
+$(document).ready(function () {
+    $('.sel2').select2({
+        dropdownParent: $('#modalForm')
+    });
+});
+
+
+function marcarTodos() {
+    let checkbox = document.getElementById('input-todos');
+    var usuario = $('#id_permissoes').val();
+
+    if (checkbox.checked) {
+        adicionarPermissoes(usuario);
+    } else {
+        limparPermissoes(usuario);
+    }
+}
+
+function excluir(id) {
+    $('#mensagem-excluir').text('Excluindo...')
+
+    $.ajax({
+        url: 'paginas/' + pag + "/excluir.php",
+        method: 'POST',
+        data: {
+            id
+        },
+        dataType: "html",
+
+        success: function (mensagem) {
+            if (mensagem.trim() == "Excluído com Sucesso") {
+                buscar();
+                limparCampos();
             } else {
-                $('#div-banco').addClass('d-none'); // Esconde o campo do banco
+                $('#mensagem-excluir').addClass('text-danger')
+                $('#mensagem-excluir').text(mensagem)
             }
         }
-
-        // Adiciona um "escutador" para quando o valor dos campos de data mudar
-        $('#vencimento, #data_pgto').on('change', function () {
-            verificarDatasEExibirBanco();
-        });
-
-        // Também é uma boa prática executar a função quando o modal for aberto,
-        // caso os dados já venham preenchidos de uma edição.
-        $('#modalForm').on('shown.bs.modal', function () {
-            verificarDatasEExibirBanco();
-        });
-
-        // E garantir que o campo do banco fique escondido ao fechar o modal
-        $('#modalForm').on('hidden.bs.modal', function () {
-            $('#div-banco').addClass('d-none');
-        });
-
     });
+}
+
+function carregarImg() {
+    var target = document.getElementById('target');
+    var file = document.querySelector("#arquivo").files[0];
+
+    var arquivo = file['name'];
+    resultado = arquivo.split(".", 2);
+
+    if (resultado[1] === 'pdf') {
+        $('#target').attr('src', "images/pdf.png");
+        return;
+    }
+
+    if (resultado[1] === 'rar' || resultado[1] === 'zip') {
+        $('#target').attr('src', "images/rar.png");
+        return;
+    }
+
+    if (resultado[1] === 'doc' || resultado[1] === 'docx' || resultado[1] === 'txt') {
+        $('#target').attr('src', "images/word.png");
+        return;
+    }
 
 
-
-type = "text/javascript" >
-    $(document).ready(function () {
-        $('.sel2').select2({
-            dropdownParent: $('#modalForm')
-        });
-    });
+    if (resultado[1] === 'xlsx' || resultado[1] === 'xlsm' || resultado[1] === 'xls') {
+        $('#target').attr('src', "images/excel.png");
+        return;
+    }
 
 
-
-type = "text/javascript" >
-    function marcarTodos() {
-        let checkbox = document.getElementById('input-todos');
-        var usuario = $('#id_permissoes').val();
-
-        if (checkbox.checked) {
-            adicionarPermissoes(usuario);
-        } else {
-            limparPermissoes(usuario);
-        }
+    if (resultado[1] === 'xml') {
+        $('#target').attr('src', "images/xml.png");
+        return;
     }
 
 
 
-type = "text/javascript" >
-    function excluir(id) {
-        $('#mensagem-excluir').text('Excluindo...')
+    var reader = new FileReader();
 
-        $.ajax({
-            url: 'paginas/' + pag + "/excluir.php",
-            method: 'POST',
-            data: {
-                id
-            },
-            dataType: "html",
+    reader.onloadend = function () {
+        target.src = reader.result;
+    };
 
-            success: function (mensagem) {
-                if (mensagem.trim() == "Excluído com Sucesso") {
-                    buscar();
-                    limparCampos();
-                } else {
-                    $('#mensagem-excluir').addClass('text-danger')
-                    $('#mensagem-excluir').text(mensagem)
-                }
-            }
-        });
+    if (file) {
+        reader.readAsDataURL(file);
+
+    } else {
+        target.src = "";
     }
+}
+
+function buscar() {
+    var filtro = $('#tipo_data_filtro').val();
+    var dataInicial = $('#dataInicial').val();
+    var dataFinal = $('#dataFinal').val();
+    var tipo_data = $('#tipo_data').val();
+    var atacadista = $('#atacadista').val();
+    var formaPGTO = $('#formaPGTO').val();
+    var funcionario = $('#funcionario').val();
+    var cargo = $('#cargo').val();
 
 
-
-
-type = "text/javascript" >
-    function carregarImg() {
-        var target = document.getElementById('target');
-        var file = document.querySelector("#arquivo").files[0];
-
-        var arquivo = file['name'];
-        resultado = arquivo.split(".", 2);
-
-        if (resultado[1] === 'pdf') {
-            $('#target').attr('src', "images/pdf.png");
-            return;
-        }
-
-        if (resultado[1] === 'rar' || resultado[1] === 'zip') {
-            $('#target').attr('src', "images/rar.png");
-            return;
-        }
-
-        if (resultado[1] === 'doc' || resultado[1] === 'docx' || resultado[1] === 'txt') {
-            $('#target').attr('src', "images/word.png");
-            return;
-        }
-
-
-        if (resultado[1] === 'xlsx' || resultado[1] === 'xlsm' || resultado[1] === 'xls') {
-            $('#target').attr('src', "images/excel.png");
-            return;
-        }
-
-
-        if (resultado[1] === 'xml') {
-            $('#target').attr('src', "images/xml.png");
-            return;
-        }
-
-
-
-        var reader = new FileReader();
-
-        reader.onloadend = function () {
-            target.src = reader.result;
-        };
-
-        if (file) {
-            reader.readAsDataURL(file);
-
-        } else {
-            target.src = "";
-        }
-    }
-
-
-
-type = "text/javascript" >
-    function buscar() {
-        var filtro = $('#tipo_data_filtro').val();
-        var dataInicial = $('#dataInicial').val();
-        var dataFinal = $('#dataFinal').val();
-        var tipo_data = $('#tipo_data').val();
-        var atacadista = $('#atacadista').val();
-        var formaPGTO = $('#formaPGTO').val();
-        var funcionario = $('#funcionario').val();
-        var cargo = $('#cargo').val();
-
-
-        listar(filtro, dataInicial, dataFinal, tipo_data, atacadista, formaPGTO, funcionario, cargo);
-    }
+    listar(filtro, dataInicial, dataFinal, tipo_data, atacadista, formaPGTO, funcionario, cargo);
+}
 
 
 function tipoData(tipo) {
@@ -277,71 +262,68 @@ document.getElementById('relatorio').addEventListener('click', function (event) 
 
 
 
+$("#form-baixar").submit(function () {
+    event.preventDefault();
+    var formData = new FormData(this);
 
-type = "text/javascript" >
-    $("#form-baixar").submit(function () {
-        event.preventDefault();
-        var formData = new FormData(this);
+    $.ajax({
+        url: 'paginas/' + pag + "/baixar.php",
+        type: 'POST',
+        data: formData,
 
-        $.ajax({
-            url: 'paginas/' + pag + "/baixar.php",
-            type: 'POST',
-            data: formData,
+        success: function (mensagem) {
+            $('#mensagem-baixar').text('');
+            $('#mensagem-baixar').removeClass()
+            if (mensagem.trim() == "Baixado com Sucesso") {
+                $('#btn-fechar-baixar').click();
+                buscar();
+            } else {
+                $('#mensagem-baixar').addClass('text-danger')
+                $('#mensagem-baixar').text(mensagem)
+            }
 
-            success: function (mensagem) {
-                $('#mensagem-baixar').text('');
-                $('#mensagem-baixar').removeClass()
-                if (mensagem.trim() == "Baixado com Sucesso") {
-                    $('#btn-fechar-baixar').click();
-                    buscar();
-                } else {
-                    $('#mensagem-baixar').addClass('text-danger')
-                    $('#mensagem-baixar').text(mensagem)
-                }
+        },
 
-            },
-
-            cache: false,
-            contentType: false,
-            processData: false,
-
-        });
+        cache: false,
+        contentType: false,
+        processData: false,
 
     });
 
+});
 
 
 
-type = "text/javascript" >
-    $("#form-parcelar").submit(function () {
-        event.preventDefault();
-        var formData = new FormData(this);
 
-        $.ajax({
-            url: 'paginas/' + pag + "/parcelar.php",
-            type: 'POST',
-            data: formData,
+$("#form-parcelar").submit(function () {
+    event.preventDefault();
+    var formData = new FormData(this);
 
-            success: function (mensagem) {
-                $('#mensagem-parcelar').text('');
-                $('#mensagem-parcelar').removeClass()
-                if (mensagem.trim() == "Parcelado com Sucesso") {
-                    $('#btn-fechar-parcelar').click();
-                    buscar();
-                } else {
-                    $('#mensagem-parcelar').addClass('text-danger')
-                    $('#mensagem-parcelar').text(mensagem)
-                }
+    $.ajax({
+        url: 'paginas/' + pag + "/parcelar.php",
+        type: 'POST',
+        data: formData,
 
-            },
+        success: function (mensagem) {
+            $('#mensagem-parcelar').text('');
+            $('#mensagem-parcelar').removeClass()
+            if (mensagem.trim() == "Parcelado com Sucesso") {
+                $('#btn-fechar-parcelar').click();
+                buscar();
+            } else {
+                $('#mensagem-parcelar').addClass('text-danger')
+                $('#mensagem-parcelar').text(mensagem)
+            }
 
-            cache: false,
-            contentType: false,
-            processData: false,
+        },
 
-        });
+        cache: false,
+        contentType: false,
+        processData: false,
 
     });
+
+});
 
 
 function valorBaixar() {
@@ -365,112 +347,108 @@ function valorBaixar() {
 
 
 
-type = "text/javascript" >
-    $("#form-arquivos").submit(function () {
-        event.preventDefault();
-        var formData = new FormData(this);
+$("#form-arquivos").submit(function () {
+    event.preventDefault();
+    var formData = new FormData(this);
 
-        $.ajax({
-            url: 'paginas/' + pag + "/arquivos.php",
-            type: 'POST',
-            data: formData,
+    $.ajax({
+        url: 'paginas/' + pag + "/arquivos.php",
+        type: 'POST',
+        data: formData,
 
-            success: function (mensagem) {
-                $('#mensagem-arquivo').text('');
-                $('#mensagem-arquivo').removeClass()
-                if (mensagem.trim() == "Inserido com Sucesso") {
-                    //$('#btn-fechar-arquivos').click();
-                    $('#nome-arq').val('');
-                    $('#arquivo_conta').val('');
-                    $('#target-arquivos').attr('src', 'images/arquivos/sem-foto.png');
-                    listarArquivos();
-                } else {
-                    $('#mensagem-arquivo').addClass('text-danger')
-                    $('#mensagem-arquivo').text(mensagem)
-                }
+        success: function (mensagem) {
+            $('#mensagem-arquivo').text('');
+            $('#mensagem-arquivo').removeClass()
+            if (mensagem.trim() == "Inserido com Sucesso") {
+                //$('#btn-fechar-arquivos').click();
+                $('#nome-arq').val('');
+                $('#arquivo_conta').val('');
+                $('#target-arquivos').attr('src', 'images/arquivos/sem-foto.png');
+                listarArquivos();
+            } else {
+                $('#mensagem-arquivo').addClass('text-danger')
+                $('#mensagem-arquivo').text(mensagem)
+            }
 
-            },
+        },
 
-            cache: false,
-            contentType: false,
-            processData: false,
-
-        });
+        cache: false,
+        contentType: false,
+        processData: false,
 
     });
 
+});
 
-type = "text/javascript" >
-    function listarArquivos() {
-        var id = $('#id-arquivo').val();
-        $.ajax({
-            url: 'paginas/' + pag + "/listar-arquivos.php",
-            method: 'POST',
-            data: {
-                id
-            },
-            dataType: "text",
+function listarArquivos() {
+    var id = $('#id-arquivo').val();
+    $.ajax({
+        url: 'paginas/' + pag + "/listar-arquivos.php",
+        method: 'POST',
+        data: {
+            id
+        },
+        dataType: "text",
 
-            success: function (result) {
-                $("#listar-arquivos").html(result);
-            }
-        });
+        success: function (result) {
+            $("#listar-arquivos").html(result);
+        }
+    });
+}
+
+
+
+
+
+function carregarImgArquivos() {
+    var target = document.getElementById('target-arquivos');
+    var file = document.querySelector("#arquivo_conta").files[0];
+
+    var arquivo = file['name'];
+    resultado = arquivo.split(".", 2);
+
+    if (resultado[1] === 'pdf') {
+        $('#target-arquivos').attr('src', "images/pdf.png");
+        return;
+    }
+
+    if (resultado[1] === 'rar' || resultado[1] === 'zip') {
+        $('#target-arquivos').attr('src', "images/rar.png");
+        return;
+    }
+
+    if (resultado[1] === 'doc' || resultado[1] === 'docx' || resultado[1] === 'txt') {
+        $('#target-arquivos').attr('src', "images/word.png");
+        return;
+    }
+
+
+    if (resultado[1] === 'xlsx' || resultado[1] === 'xlsm' || resultado[1] === 'xls') {
+        $('#target-arquivos').attr('src', "images/excel.png");
+        return;
+    }
+
+
+    if (resultado[1] === 'xml') {
+        $('#target-arquivos').attr('src', "images/xml.png");
+        return;
     }
 
 
 
+    var reader = new FileReader();
 
+    reader.onloadend = function () {
+        target.src = reader.result;
+    };
 
-type = "text/javascript" >
-    function carregarImgArquivos() {
-        var target = document.getElementById('target-arquivos');
-        var file = document.querySelector("#arquivo_conta").files[0];
+    if (file) {
+        reader.readAsDataURL(file);
 
-        var arquivo = file['name'];
-        resultado = arquivo.split(".", 2);
-
-        if (resultado[1] === 'pdf') {
-            $('#target-arquivos').attr('src', "images/pdf.png");
-            return;
-        }
-
-        if (resultado[1] === 'rar' || resultado[1] === 'zip') {
-            $('#target-arquivos').attr('src', "images/rar.png");
-            return;
-        }
-
-        if (resultado[1] === 'doc' || resultado[1] === 'docx' || resultado[1] === 'txt') {
-            $('#target-arquivos').attr('src', "images/word.png");
-            return;
-        }
-
-
-        if (resultado[1] === 'xlsx' || resultado[1] === 'xlsm' || resultado[1] === 'xls') {
-            $('#target-arquivos').attr('src', "images/excel.png");
-            return;
-        }
-
-
-        if (resultado[1] === 'xml') {
-            $('#target-arquivos').attr('src', "images/xml.png");
-            return;
-        }
-
-
-
-        var reader = new FileReader();
-
-        reader.onloadend = function () {
-            target.src = reader.result;
-        };
-
-        if (file) {
-            reader.readAsDataURL(file);
-
-        } else {
-            target.src = "";
-        }
+    } else {
+        target.src = "";
     }
+}
 
 // pagar_scripts.js
 
@@ -507,4 +485,143 @@ function alteracaoManualData() {
     // Quando o usuário muda a data manualmente, o select de período volta para "Personalizado"
     document.getElementById('select_periodo').value = "";
     buscar();
+}
+
+
+$(document).ready(function () {
+    $('#tabela').DataTable({
+        "ordering": false,
+        "stateSave": true
+    });
+});
+
+function listar(p1, p2, p3, p4, p5, p6, p7, p8) {
+    $.ajax({
+        url: 'paginas/' + pag + "/listar.php",
+        method: 'POST',
+        data: { p1, p2, p3, p4, p5, p6, p7, p8 },
+        dataType: "html",
+        success: function (result) {
+            $("#listar").html(result);
+        },
+        complete: function() {
+            // Isso garante que se houver algum script injetado, 
+            // tentaremos rodar as funções de totalização novamente
+            if(typeof totalizar === "function") {
+                totalizar();
+            }
+        }
+    });
+}
+
+function editar(id, descricao, valor, fornecedor, funcionario, vencimento, data_pgto, forma_pgto, frequencia, obs, arquivo) {
+    $('#mensagem').text('');
+    $('#titulo_inserir').text('Editar Registro');
+
+    // IDs que devem existir no seu modalForm
+    $('#id').val(id);
+    $('#descricao').val(descricao);
+    $('#valor').val(valor);
+
+    // Verifique se o ID no modal é 'fornecedor' ou 'atacadista'
+    if ($('#fornecedor').length) $('#fornecedor').val(fornecedor).change();
+
+    $('#funcionario').val(funcionario).change();
+    $('#vencimento').val(vencimento);
+    $('#data_pgto').val(data_pgto);
+
+    // Verifique se o ID no modal é 'forma_pgto' ou 'formaPGTO'
+    if ($('#forma_pgto').length) $('#forma_pgto').val(forma_pgto).change();
+
+    $('#frequencia').val(frequencia).change();
+    $('#obs').val(obs);
+
+    $('#target').attr('src', 'images/contas/' + arquivo);
+
+    // Abre o modal
+    $('#modalForm').modal('show');
+}
+
+function mostrar(descricao, valor, pessoa, vencimento, data_pgto, nome_pgto, frequencia, obs, arquivo, multa, juros, desconto, taxa, total, usu_lanc, usu_pgto, pago, arq, telefone, pix, tipo_pessoa) {
+    $('#titulo_dados').text(descricao);
+    $('#valor_dados').text(valor);
+    $('#cliente_dados').text(pessoa);
+    $('#vencimento_dados').text(vencimento);
+    $('#data_pgto_dados').text(data_pgto || 'Pendente');
+    $('#nome_pgto_dados').text(nome_pgto);
+    $('#frequencia_dados').text(frequencia);
+    $('#obs_dados').text(obs);
+    $('#usu_lanc_dados').text(usu_lanc);
+    $('#usu_pgto_dados').text(usu_pgto);
+    $('#pago_dados').text(pago);
+    $('#target_dados').attr("src", "images/contas/" + arquivo);
+    $('#modalDados').modal('show');
+}
+
+function baixar(id, valor, descricao, pgto, taxa, multa, juros) {
+    $('#id-baixar').val(id);
+    $('#descricao-baixar').text(descricao);
+    $('#valor-baixar').val(valor);
+    $('#saida-baixar').val(pgto).change();
+    $('#subtotal').val(valor);
+    $('#valor-juros').val(juros);
+    $('#valor-multa').val(multa);
+    $('#valor-taxa').val(taxa);
+    $('#modalBaixar').modal('show');
+}
+
+function parcelar(id, valor, nome) {
+    $('#id-parcelar').val(id);
+    $('#valor-parcelar').val(valor);
+    $('#qtd-parcelar').val('');
+    $('#nome-parcelar').text(nome);
+    $('#nome-input-parcelar').val(nome);
+    $('#modalParcelar').modal('show');
+}
+
+function excluir(id) {
+    $.ajax({
+        url: 'paginas/' + pag + "/excluir.php",
+        method: 'POST',
+        data: {
+            id
+        },
+        success: function (mensagem) {
+            if (mensagem.trim() == "Excluído com Sucesso") {
+                buscar();
+            } else {
+                $('#mensagem-excluir').addClass('text-danger').text(mensagem);
+            }
+        }
+    });
+}
+
+function selecionar(id) {
+    var ids = $('#ids').val();
+    if ($('#seletor-' + id).is(":checked")) {
+        $('#ids').val(ids + id + '-');
+    } else {
+        $('#ids').val(ids.replace(id + '-', ''));
+    }
+    var ids_final = $('#ids').val();
+    if (ids_final == "") {
+        $('#btn-deletar, #btn-baixar').hide();
+    } else {
+        $('#btn-deletar, #btn-baixar').show();
+    }
+}
+
+function imprimir(id) {
+    window.open('rel/gerar_pdf_romaneio_compra.php?id=' + id, '_blank');
+}
+
+function buscar() {
+    var filtro = $('#tipo_data_filtro').val();
+    var dataInicial = $('#dataInicial').val();
+    var dataFinal = $('#dataFinal').val();
+    var tipo_data = $('#tipo_data').val();
+    var atacadista = $('#atacadista').val();
+    var formaPGTO = $('#formaPGTO').val();
+    var funcionario = $('#funcionario_filtro').val();
+    listar(filtro, dataInicial, dataFinal, tipo_data, atacadista, formaPGTO, funcionario);
 }
