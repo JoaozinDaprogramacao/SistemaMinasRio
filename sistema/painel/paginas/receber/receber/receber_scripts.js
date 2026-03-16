@@ -106,21 +106,33 @@ function definirPeriodo(valor) {
 }
 
 function buscar() {
-    var filtro = $('#tipo_data_filtro').val() || '';
+    // Captura os valores dos campos corretamente pelos IDs do HTML
+    var filtro = ""; // Se você tiver um filtro de status (Vencidas/Recebidas) global, coloque aqui
     var dataInicial = $('#dataInicial').val();
     var dataFinal = $('#dataFinal').val();
-    var tipo_data = $('#tipo_data').val();
+    var tipo_data = $('#filtrar_por').val(); // ID CORRETO do select de vencimento/lançamento
     var atacadista = $('#atacadista').val();
     var formaPGTO = $('#formaPGTO').val();
+    var tipo_conta = $('#tipo_conta').val(); // Você tem esse select no HTML, precisa enviar também
 
-    listar(filtro, dataInicial, dataFinal, tipo_data, atacadista, formaPGTO);
+    // Passa para a função listar
+    listar(filtro, dataInicial, dataFinal, tipo_data, atacadista, formaPGTO, tipo_conta);
 }
 
-function listar(filtro, dataInicial, dataFinal, tipo_data, atacadista, formaPGTO) {
+function listar(p1, p2, p3, p4, p5, p6, p7) {
     $.ajax({
         url: 'paginas/' + pag + "/listar.php",
         method: 'POST',
-        data: { filtro, dataInicial, dataFinal, tipo_data, atacadista, formaPGTO },
+        // Enviamos como p1, p2, p3... que é como o seu listar.php está configurado para receber
+        data: {
+            p1: p1,
+            p2: p2,
+            p3: p3,
+            p4: p4,
+            p5: p5,
+            p6: p6,
+            p7: p7
+        },
         dataType: "html",
         success: function (result) {
             $("#listar").html(result);
