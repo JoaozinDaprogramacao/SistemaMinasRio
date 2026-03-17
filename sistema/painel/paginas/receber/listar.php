@@ -60,15 +60,25 @@ $total_a_vencerF = number_format($total_a_vencer, 2, ',', '.');
 $total_totalF = number_format($total_total, 2, ',', '.');
 $total_valorF = $total_totalF;
 
-// Query Principal da Listagem
+// Query Principal da Listagem com Ordenação Inteligente
 if ($filtro == 'Vencidas') {
-	$query = $pdo->query("SELECT * from $tabela where vencimento < curDate() and pago = 'Não' and $tipo_data >= '$dataInicial' and $tipo_data <= '$dataFinal' $sql_usuario_lanc $sql_atacadista $sql_pgto $sql_tipo_conta order by id desc ");
+	$query = $pdo->query("SELECT * from $tabela where vencimento < curDate() and pago = 'Não' and $tipo_data >= '$dataInicial' and $tipo_data <= '$dataFinal' $sql_usuario_lanc $sql_atacadista $sql_pgto $sql_tipo_conta order by vencimento asc ");
 } else if ($filtro == 'Recebidas') {
-	$query = $pdo->query("SELECT * from $tabela where pago = 'Sim' and $tipo_data >= '$dataInicial' and $tipo_data <= '$dataFinal' $sql_usuario_lanc $sql_atacadista $sql_pgto $sql_tipo_conta order by id desc ");
+	$query = $pdo->query("SELECT * from $tabela where pago = 'Sim' and $tipo_data >= '$dataInicial' and $tipo_data <= '$dataFinal' $sql_usuario_lanc $sql_atacadista $sql_pgto $sql_tipo_conta order by data_pgto desc ");
 } else if ($filtro == 'AVencer') {
 	$query = $pdo->query("SELECT * from $tabela where vencimento >= curDate() and pago = 'Não' $sql_usuario_lanc $sql_atacadista $sql_pgto $sql_tipo_conta order by vencimento asc ");
 } else {
-	$query = $pdo->query("SELECT * from $tabela WHERE $tipo_data >= '$dataInicial' and $tipo_data <= '$dataFinal' $sql_usuario_lanc $sql_atacadista $sql_pgto $sql_tipo_conta order by id desc ");
+	// ESTA É A QUERY QUE VOCÊ QUERIA: Vencidos -> Hoje/Futuro -> Pagos por último
+	$query = $pdo->query("SELECT *, 
+        CASE 
+            WHEN pago = 'Não' AND vencimento < curDate() THEN 1 
+            WHEN pago = 'Não' AND vencimento >= curDate() THEN 2 
+            ELSE 3 
+        END AS ordem_status 
+        FROM $tabela 
+        WHERE $tipo_data >= '$dataInicial' AND $tipo_data <= '$dataFinal' 
+        $sql_usuario_lanc $sql_atacadista $sql_pgto $sql_tipo_conta 
+        ORDER BY ordem_status ASC, vencimento ASC");
 }
 
 $res = $query->fetchAll(PDO::FETCH_ASSOC);
