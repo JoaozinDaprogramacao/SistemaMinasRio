@@ -88,22 +88,24 @@ if ($linhas > 0) {
 	echo <<<HTML
 <small>
     <table class="table table-bordered text-nowrap border-bottom dt-responsive" id="tabela">
-    <thead> 
+  <thead> 
     <tr> 
-    <th align="center" width="5%" class="text-center">Selecionar</th>
-    <th>Descrição</th>  
-    <th>Valor</th> 
-    <th class="esc">Cliente</th>    
-    <th class="esc">Vencimento</th> 
-    <th class="esc">Pagamento</th>      
-    <th class="esc">Arquivo</th>    
-    <th>Ações</th>
+        <th align="center" width="5%" class="text-center">Selecionar</th>
+        <th class="esc">Data Lançamento</th> <th>Descrição</th>  
+        <th>Valor</th> 
+        <th class="esc">Cliente</th>    
+        <th class="esc">Vencimento</th> 
+        <th class="esc">Pagamento</th>      
+        <th class="esc">Arquivo</th>    
+        <th>Ações</th>
     </tr> 
-    </thead> 
+</thead>
     <tbody> 
 HTML;
 
 	for ($i = 0; $i < $linhas; $i++) {
+		$data_lanc = $res[$i]['data_lanc']; // Pega a data do banco
+		$data_lancF = implode('/', array_reverse(explode('-', $data_lanc))); // Formata para DD/MM/AAAA
 		$id = $res[$i]['id'];
 		$descricao = $res[$i]['descricao'];
 		$cliente = $res[$i]['cliente'];
@@ -174,13 +176,13 @@ HTML;
 		echo <<<HTML
 <tr>
 <td align="center">
-<div class="custom-checkbox custom-control">
-<input type="checkbox" class="custom-control-input" id="seletor-{$id}" onchange="selecionar('{$id}')">
-<label for="seletor-{$id}" class="custom-control-label mt-1 text-dark"></label>
-</div>
-</td>
-<td><i class="fa fa-square {$classe_pago} mr-1"></i> {$descricao}</td>
-<td>R$ {$valor_finalF}</td> 
+        <div class="custom-checkbox custom-control">
+            <input type="checkbox" class="custom-control-input" id="seletor-{$id}" onchange="selecionar('{$id}')">
+            <label for="seletor-{$id}" class="custom-control-label mt-1 text-dark"></label>
+        </div>
+    </td>
+    <td class="esc">{$data_lancF}</td> <td><i class="fa fa-square {$classe_pago} mr-1"></i> {$descricao}</td>
+    <td>R$ {$valor_finalF}</td>
 <td class="esc">{$nome_cliente}</td>
 <td class="esc {$classe_venc}">{$vencimentoF}</td>
 <td class="esc">{$data_pgtoF}</td>
