@@ -11,14 +11,15 @@ function gravarLog($mensagem) {
     $arquivo = 'debug_log_venda.txt';
     $dataHora = date('d/m/Y H:i:s');
     if (is_array($mensagem) || is_object($mensagem)) {
-        $mensagem = json_encode($mensagem, JSON_UNESCAPED_UNICODE);
+        $mensagem = json_encode($mensagem, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
     }
     $texto = "[$dataHora] $mensagem" . PHP_EOL;
     file_put_contents($arquivo, $texto, FILE_APPEND);
 }
 
 try {
-    gravarLog("INICIANDO SALVAR VENDA");
+    gravarLog("--- INICIANDO SALVAR VENDA ---");
+    gravarLog($_POST);
 
     $id = $_POST['id'] ?? '';
     $romaneios_selecionados = $_POST['romaneios_selecionados'] ?? '';
@@ -28,18 +29,19 @@ try {
     $nota_fiscal = $_POST['nota_fiscal'] ?? '';
     $vencimento = $_POST['vencimento'] ?? '';
     $quant_dias = $_POST['quant_dias'] ?: 0;
+    
     $adicional = str_replace(',', '.', $_POST['valor_adicional'] ?? 0);
     $descricao_a = $_POST['descricao_adicional'] ?? '';
     $desconto_fixo = str_replace(',', '.', $_POST['valor_desconto'] ?? 0);
     $descricao_d = $_POST['descricao_desconto'] ?? '';
     $desc_avista_perc = !empty($_POST['desc-avista']) ? str_replace(',', '.', $_POST['desc-avista']) : 0;
 
-    $quant_caixa_1 = $_POST['quant_caixa_1'] ?? [];
+    $valor_1 = $_POST['valor_1'] ?? [];
     $produto_1 = $_POST['produto_1'] ?? [];
+    $quant_caixa_1 = $_POST['quant_caixa_1'] ?? [];
     $preco_kg_1 = $_POST['preco_kg_1'] ?? [];
     $tipo_cx_1 = $_POST['tipo_cx_1'] ?? [];
     $preco_unit_1 = $_POST['preco_unit_1'] ?? [];
-    $valor_1 = $_POST['valor_1'] ?? [];
 
     $desc_2 = $_POST['desc_2'] ?? [];
     $arr_valor_2 = $_POST['valor_2'] ?? [];
@@ -87,10 +89,10 @@ try {
     $pdo->beginTransaction();
 
     if ($id == "") {
-        $sql = "INSERT INTO $tabela SET atacadista=:atacadista, data=:data, nota_fiscal=:nota_fiscal, plano_pgto=:plano_pgto, vencimento=:vencimento, total_liquido=:total_liquido, quant_dias=:quant_dias, adicional=:adicional, descricao_a=:descricao_a, desconto=:desconto, descricao_d=:descricao_d, desc_avista=:desc_avista";
+        $sql = "INSERT INTO $tabela (atacadista, data, nota_fiscal, plano_pgto, vencimento, total_liquido, quant_dias, adicional, descricao_a, desconto, descricao_d, desc_avista) 
+                VALUES (:atacadista, :data, :nota_fiscal, :plano_pgto, :vencimento, :total_liquido, :quant_dias, :adicional, :descricao_a, :desconto, :descricao_d, :desc_avista)";
         $query = $pdo->prepare($sql);
     } else {
-        // Estorno: Subtrai as vendas das categorias antes de atualizar os produtos
         $query_antigos = $pdo->prepare("SELECT lp.variedade, lp.quant, p.categoria FROM linha_produto lp INNER JOIN produtos p ON lp.variedade = p.id WHERE lp.id_romaneio = ?");
         $query_antigos->execute([$id]);
         foreach ($query_antigos->fetchAll(PDO::FETCH_ASSOC) as $antigo) {
@@ -122,18 +124,17 @@ try {
     $romaneio_venda_id = $id ?: $pdo->lastInsertId();
 
     if ($id != "") {
-        $pdo->prepare("DELETE FROM romaneio_venda_compra WHERE id_romaneio_venda = ?")->execute([$romaneio_venda_id]);
         $pdo->prepare("DELETE FROM linha_produto WHERE id_romaneio = ?")->execute([$romaneio_venda_id]);
         $pdo->prepare("DELETE FROM linha_comissao WHERE id_romaneio = ?")->execute([$romaneio_venda_id]);
         $pdo->prepare("DELETE FROM linha_observacao WHERE id_romaneio = ?")->execute([$romaneio_venda_id]);
     }
 
     foreach ($valor_1 as $key => $valor) {
-        if (!empty($valor)) {
+        $v_limpo = str_replace(',', '.', $valor);
+        if (!empty($v_limpo) && !empty($produto_1[$key])) {
             $pdo->prepare("INSERT INTO linha_produto (id_romaneio, quant, variedade, preco_kg, tipo_caixa, preco_unit, valor) VALUES (?, ?, ?, ?, ?, ?, ?)")
-                ->execute([$romaneio_venda_id, $quant_caixa_1[$key], $produto_1[$key], str_replace(',', '.', $preco_kg_1[$key]), $tipo_cx_1[$key], str_replace(',', '.', $preco_unit_1[$key]), str_replace(',', '.', $valor)]);
+                ->execute([$romaneio_venda_id, $quant_caixa_1[$key], $produto_1[$key], str_replace(',', '.', $preco_kg_1[$key]), $tipo_cx_1[$key], str_replace(',', '.', $preco_unit_1[$key]), $v_limpo]);
 
-            // Incrementa vendas na categoria
             $query_cat = $pdo->prepare("SELECT categoria FROM produtos WHERE id = ?");
             $query_cat->execute([$produto_1[$key]]);
             $res_c = $query_cat->fetch(PDO::FETCH_ASSOC);
@@ -152,7 +153,7 @@ try {
             $matId = (int)($material[$key] ?? 0);
             $qtdUsada = (int)($quant_3[$key] ?? 0);
             if ($matId > 0 && $qtdUsada > 0) {
-                $check = $pdo->prepare("SELECT tem_estoque, estoque FROM materiais WHERE id = ?");
+                $check = $pdo->prepare("SELECT tem_estoque FROM materiais WHERE id = ?");
                 $check->execute([$matId]);
                 $row = $check->fetch(PDO::FETCH_ASSOC);
                 if ($row) {
@@ -178,7 +179,7 @@ try {
     if ($check_receber->rowCount() > 0) {
         $query_receber = $pdo->prepare("UPDATE receber SET cliente=:cliente, valor=:valor, vencimento=:vencimento, usuario_pgto = 0 WHERE id_ref=:id_ref AND referencia='Romaneio Venda'");
     } else {
-        $query_receber = $pdo->prepare("INSERT INTO receber SET descricao=:descricao, cliente=:cliente, valor=:valor, vencimento=:vencimento, data_lanc=CURDATE(), usuario_lanc=:usuario_lanc, pago='Não', referencia='Romaneio Venda', id_ref=:id_ref, usuario_pgto = 0");
+        $query_receber = $pdo->prepare("INSERT INTO receber (descricao, cliente, valor, vencimento, data_lanc, usuario_lanc, pago, referencia, id_ref, usuario_pgto) VALUES (:descricao, :cliente, :valor, :vencimento, CURDATE(), :usuario_lanc, 'Não', 'Romaneio Venda', :id_ref, 0)");
         $query_receber->bindValue(":descricao", "Venda Romaneio Nº " . $romaneio_venda_id);
         $query_receber->bindValue(":usuario_lanc", $id_usuario);
     }
@@ -195,11 +196,11 @@ try {
     }
 
     $pdo->commit();
+    gravarLog("SUCESSO: Romaneio $romaneio_venda_id salvo.");
     echo json_encode(['status' => 'sucesso', 'mensagem' => 'Romaneio salvo com sucesso!']);
 
 } catch (Exception $e) {
     if (isset($pdo) && $pdo->inTransaction()) $pdo->rollBack();
-    gravarLog("ERRO: " . $e->getMessage());
+    gravarLog("ERRO CRÍTICO: " . $e->getMessage());
     echo json_encode(['status' => 'erro', 'mensagem' => $e->getMessage()], JSON_UNESCAPED_UNICODE);
 }
-?>
