@@ -5,6 +5,9 @@ $id_usuario = @$_SESSION['id'];
 $tabela = 'receber';
 require_once("../../../conexao.php");
 require_once("../../verificar.php");
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
 
 $sql_usuario_lanc = ($mostrar_registros == 'Não') ? " and usuario_lanc = '$id_usuario'" : " ";
 

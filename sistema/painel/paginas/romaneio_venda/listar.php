@@ -2,6 +2,10 @@
 $tabela = 'romaneio_venda';
 require_once("../../../conexao.php");
 
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+
 $dataInicial = $_POST['p1'] ?? '';
 $dataFinal   = $_POST['p2'] ?? '';
 $cliente     = $_POST['p3'] ?? '';
