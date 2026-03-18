@@ -582,33 +582,3 @@ $('.form-control, .form-select').change(function () {
         $('#mensagem-erro').text('');
     }
 });
-
-
-function salvarDebug() {
-    console.log("------------------------------------");
-    console.log("🚀 FUNÇÃO salvarDebug INICIADA");
-    
-    // Pega o formulário
-    var form = document.getElementById('form-romaneio');
-    var formData = new FormData(form);
-
-    console.log("⏳ Enviando dados para o PHP...");
-
-    $.ajax({
-        url: 'paginas/romaneio_venda/salvar.php',
-        type: 'POST',
-        data: formData,
-        contentType: false,
-        processData: false,
-        success: function (response) {
-            console.group("✅ RETORNO DO SALVAR");
-            console.log("Resposta:", response);
-            console.groupEnd();
-            alert("Resposta recebida! Olhe o console (F12)");
-        },
-        error: function (xhr, status, error) {
-            console.error("❌ Erro no AJAX:", status, error);
-            console.log("Detalhes:", xhr.responseText);
-        }
-    });
-}

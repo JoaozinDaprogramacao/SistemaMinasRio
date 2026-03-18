@@ -1,5 +1,3 @@
-
-
 <div class="modal fade" id="modalForm" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
 	<div class="modal-dialog modal-lg">
 		<div class="modal-content">
@@ -337,7 +335,6 @@
 				<input type="hidden" id="id" name="id">
 				<div class="modal-footer d-flex align  justify-content-center align-items-center">
 					<button type="submit" id="btn_salvar" class="btn btn-primary">Salvar</button>
-					<button type="button" id="btn_salvar_debug" class="btn btn-primary" onclick="salvarDebug()">Salvar (Debug)</button>
 				</div>
 				<small>
 					<div id="mensagem" align="center"></div>
@@ -847,4 +844,3 @@
 		</div>
 	</div>
 </div>
-
