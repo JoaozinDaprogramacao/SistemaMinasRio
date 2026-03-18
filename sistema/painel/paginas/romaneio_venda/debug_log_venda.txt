@@ -260,3 +260,186 @@
     "id": ""
 }
 [18/03/2026 10:04:59] SUCESSO: Romaneio 398 salvo.
+[18/03/2026 15:16:19] --- INICIANDO SALVAR VENDA ---
+[18/03/2026 15:16:19] {
+    "romaneios_selecionados": "",
+    "data": "2026-03-18",
+    "plano_pgto": "0",
+    "vencimento": "2026-03-18",
+    "cliente": "0",
+    "quant_dias": "0",
+    "nota_fiscal": "",
+    "quant_caixa_1": [
+        "",
+        "124",
+        ""
+    ],
+    "produto_1": [
+        "",
+        "2",
+        ""
+    ],
+    "preco_kg_1": [
+        "",
+        "4,00",
+        ""
+    ],
+    "tipo_cx_1": [
+        "",
+        "2",
+        ""
+    ],
+    "preco_unit_1": [
+        "",
+        "56,00",
+        ""
+    ],
+    "valor_1": [
+        "",
+        "6944,00",
+        ""
+    ],
+    "desc-avista": "",
+    "desc_2": [
+        "",
+        ""
+    ],
+    "quant_caixa_2": [
+        "",
+        ""
+    ],
+    "preco_kg_2": [
+        "",
+        ""
+    ],
+    "tipo_cx_2": [
+        "",
+        ""
+    ],
+    "preco_unit_2": [
+        "",
+        ""
+    ],
+    "valor_2": [
+        "",
+        ""
+    ],
+    "obs_3": [
+        "",
+        ""
+    ],
+    "material": [
+        "",
+        ""
+    ],
+    "quant_3": [
+        "",
+        ""
+    ],
+    "preco_unit_3": [
+        "",
+        ""
+    ],
+    "valor_3": [
+        "",
+        ""
+    ],
+    "descricao_adicional": "",
+    "valor_adicional": "0,00",
+    "descricao_desconto": "",
+    "valor_desconto": "0,00",
+    "valor_liquido": "6944,00",
+    "id": ""
+}
+[18/03/2026 15:16:24] --- INICIANDO SALVAR VENDA ---
+[18/03/2026 15:16:24] {
+    "romaneios_selecionados": "",
+    "data": "2026-03-18",
+    "plano_pgto": "2",
+    "vencimento": "2026-05-02",
+    "cliente": "14",
+    "quant_dias": "45",
+    "nota_fiscal": "",
+    "quant_caixa_1": [
+        "",
+        "124",
+        ""
+    ],
+    "produto_1": [
+        "",
+        "2",
+        ""
+    ],
+    "preco_kg_1": [
+        "",
+        "4,00",
+        ""
+    ],
+    "tipo_cx_1": [
+        "",
+        "2",
+        ""
+    ],
+    "preco_unit_1": [
+        "",
+        "56,00",
+        ""
+    ],
+    "valor_1": [
+        "",
+        "6944,00",
+        ""
+    ],
+    "desc-avista": "",
+    "desc_2": [
+        "",
+        ""
+    ],
+    "quant_caixa_2": [
+        "",
+        ""
+    ],
+    "preco_kg_2": [
+        "",
+        ""
+    ],
+    "tipo_cx_2": [
+        "",
+        ""
+    ],
+    "preco_unit_2": [
+        "",
+        ""
+    ],
+    "valor_2": [
+        "",
+        ""
+    ],
+    "obs_3": [
+        "",
+        ""
+    ],
+    "material": [
+        "",
+        ""
+    ],
+    "quant_3": [
+        "",
+        ""
+    ],
+    "preco_unit_3": [
+        "",
+        ""
+    ],
+    "valor_3": [
+        "",
+        ""
+    ],
+    "descricao_adicional": "",
+    "valor_adicional": "0,00",
+    "descricao_desconto": "",
+    "valor_desconto": "0,00",
+    "valor_liquido": "6944,00",
+    "id": ""
+}
+[18/03/2026 15:16:24] SUCESSO: Romaneio 399 salvo.

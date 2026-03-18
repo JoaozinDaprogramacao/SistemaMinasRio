@@ -7,7 +7,8 @@ $id_usuario = @$_SESSION['id'];
 
 header('Content-Type: application/json; charset=utf-8');
 
-function gravarLog($mensagem) {
+function gravarLog($mensagem)
+{
     $arquivo = 'debug_log_venda.txt';
     $dataHora = date('d/m/Y H:i:s');
     if (is_array($mensagem) || is_object($mensagem)) {
@@ -29,7 +30,7 @@ try {
     $nota_fiscal = $_POST['nota_fiscal'] ?? '';
     $vencimento = $_POST['vencimento'] ?? '';
     $quant_dias = $_POST['quant_dias'] ?: 0;
-    
+
     $adicional = str_replace(',', '.', $_POST['valor_adicional'] ?? 0);
     $descricao_a = $_POST['descricao_adicional'] ?? '';
     $desconto_fixo = str_replace(',', '.', $_POST['valor_desconto'] ?? 0);
@@ -149,7 +150,7 @@ try {
         if (!empty($observacao) || !empty($material[$key])) {
             $pdo->prepare("INSERT INTO linha_observacao (id_romaneio, observacoes, descricao, quant, preco_unit, valor) VALUES (?, ?, ?, ?, ?, ?)")
                 ->execute([$romaneio_venda_id, $observacao, $material[$key] ?? null, $quant_3[$key] ?? 0, str_replace(',', '.', $preco_unit_3[$key] ?? 0), str_replace(',', '.', $valor_3[$key] ?? 0)]);
-            
+
             $matId = (int)($material[$key] ?? 0);
             $qtdUsada = (int)($quant_3[$key] ?? 0);
             if ($matId > 0 && $qtdUsada > 0) {
@@ -177,16 +178,21 @@ try {
     $check_receber->execute([$romaneio_venda_id]);
 
     if ($check_receber->rowCount() > 0) {
-        $query_receber = $pdo->prepare("UPDATE receber SET cliente=:cliente, valor=:valor, vencimento=:vencimento, usuario_pgto = 0 WHERE id_ref=:id_ref AND referencia='Romaneio Venda'");
+        // Adicionado id_romaneio=:id_romaneio no UPDATE
+        $query_receber = $pdo->prepare("UPDATE receber SET cliente=:cliente, valor=:valor, vencimento=:vencimento, id_romaneio=:id_romaneio, usuario_pgto = 0 WHERE id_ref=:id_ref AND referencia='Romaneio Venda'");
     } else {
-        $query_receber = $pdo->prepare("INSERT INTO receber (descricao, cliente, valor, vencimento, data_lanc, usuario_lanc, pago, referencia, id_ref, usuario_pgto) VALUES (:descricao, :cliente, :valor, :vencimento, CURDATE(), :usuario_lanc, 'Não', 'Romaneio Venda', :id_ref, 0)");
+        // Adicionado id_romaneio no INSERT
+        $query_receber = $pdo->prepare("INSERT INTO receber (descricao, cliente, valor, vencimento, data_lanc, usuario_lanc, pago, referencia, id_ref, id_romaneio, usuario_pgto) VALUES (:descricao, :cliente, :valor, :vencimento, CURDATE(), :usuario_lanc, 'Não', 'Romaneio Venda', :id_ref, :id_romaneio, 0)");
         $query_receber->bindValue(":descricao", "Venda Romaneio Nº " . $romaneio_venda_id);
         $query_receber->bindValue(":usuario_lanc", $id_usuario);
     }
+
+    // Bindings comuns a ambos
     $query_receber->bindValue(":cliente", $atacadista);
     $query_receber->bindValue(":valor", $total_liquido);
     $query_receber->bindValue(":vencimento", $vencimento);
     $query_receber->bindValue(":id_ref", $romaneio_venda_id);
+    $query_receber->bindValue(":id_romaneio", $romaneio_venda_id); // <--- AQUI ESTÁ A CORREÇÃO
     $query_receber->execute();
 
     if (!empty($romaneios_selecionados)) {
@@ -198,7 +204,6 @@ try {
     $pdo->commit();
     gravarLog("SUCESSO: Romaneio $romaneio_venda_id salvo.");
     echo json_encode(['status' => 'sucesso', 'mensagem' => 'Romaneio salvo com sucesso!']);
-
 } catch (Exception $e) {
     if (isset($pdo) && $pdo->inTransaction()) $pdo->rollBack();
     gravarLog("ERRO CRÍTICO: " . $e->getMessage());
