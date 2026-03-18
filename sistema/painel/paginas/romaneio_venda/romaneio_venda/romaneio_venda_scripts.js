@@ -80,47 +80,45 @@ $("#form-saida").submit(function () {
 
 });
 
-document.getElementById('relatorio').addEventListener('submit', function (event) {
-    event.preventDefault(); // Impede o envio padrão do formulário
+// PROTEÇÃO: Só executa se o elemento existir na página
+var elementRel = document.getElementById('relatorio');
 
-    // Captura os valores dos campos do formulário
-    var dataInicial = $('#dataInicial').val();
-    var dataFinal = $('#dataFinal').val();
-    var cliente = $('#cliente').val();
+if (elementRel) {
+    elementRel.addEventListener('submit', function (event) {
+        event.preventDefault();
 
-    // Cria um novo objeto FormData
-    var formData = new FormData();
+        var dataInicial = $('#dataInicial').val();
+        var dataFinal = $('#dataFinal').val();
+        var cliente = $('#cliente').val();
 
-    // Adiciona campos manualmente ao FormData
-    formData.append('dataInicial', dataInicial);
-    formData.append('dataFinal', dataFinal);
-    formData.append('cliente', cliente);
+        var formData = new FormData();
+        formData.append('dataInicial', dataInicial);
+        formData.append('dataFinal', dataFinal);
+        formData.append('cliente', cliente);
 
-    // Envia o FormData via AJAX
-    $.ajax({
-        url: 'rel/romaneio_venda_class.php', // URL do script que processará a requisição
-        type: 'POST',
-        data: formData, // Envia o FormData
-        processData: false, // Impede o jQuery de processar os dados
-        contentType: false, // Impede o jQuery de definir o contentType
-        success: function (mensagem) {
-            $('#mensagem-baixar').text('');
-            $('#mensagem-baixar').removeClass();
-            if (mensagem.trim() == "Baixado com Sucesso") {
-                $('#btn-fechar-baixar').click();
-                buscar();
-            } else {
-                $('#mensagem-baixar').addClass('text-danger');
-                $('#mensagem-baixar').text(mensagem);
+        $.ajax({
+            url: 'rel/romaneio_venda_class.php',
+            type: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            success: function (mensagem) {
+                $('#mensagem-baixar').text('');
+                $('#mensagem-baixar').removeClass();
+                if (mensagem.trim() == "Baixado com Sucesso") {
+                    $('#btn-fechar-baixar').click();
+                    buscar();
+                } else {
+                    $('#mensagem-baixar').addClass('text-danger');
+                    $('#mensagem-baixar').text(mensagem);
+                }
+            },
+            error: function (xhr, status, error) {
+                console.error('Erro na requisição AJAX:', error);
             }
-        },
-        error: function (xhr, status, error) {
-            console.error('Erro na requisição AJAX:', error);
-            $('#mensagem-baixar').addClass('text-danger');
-            $('#mensagem-baixar').text('Erro ao processar a requisição.');
-        }
+        });
     });
-});
+}
 
 
 
@@ -513,30 +511,26 @@ $('#plano_pgto').change(function () {
     verificarPlanoAVista();
 });
 
-// O submit existente permanece o mesmo
-$("#form-romaneio").submit(function () {
-    event.preventDefault();
+// Remove qualquer binding anterior para não duplicar e usa delegação no document
+$(document).off('submit', '#form-romaneio').on('submit', '#form-romaneio', function (e) {
+    // 1. Bloqueio total do comportamento padrão (recarregar página)
+    e.preventDefault();
+    e.stopPropagation();
 
-    if (!verificarPlanoAVista()) {
+    console.log("▶ Iniciando submissão oficial do formulário...");
+
+    // 2. Validação do Plano
+    if (typeof verificarPlanoAVista === "function" && !verificarPlanoAVista()) {
         $('#mensagem-erro').html('<ul style="margin: 0; padding-left: 20px;"><li>Para pagamento à vista, o desconto é obrigatório</li></ul>').show();
-        $('html, body').animate({
-            scrollTop: $("#form-romaneio").offset().top - 100
-        }, 500);
         return false;
     }
 
+    // 3. Preparação dos dados
     var formData = new FormData(this);
-
-    $('#mensagem-erro').hide();
-    $('#mensagem-sucesso').hide();
-    $('#btn-salvar').prop('disabled', true);
-
-    // Scroll para o topo do formulário onde estão as mensagens
-    $('html, body').animate({
-        scrollTop: $("#form-romaneio").offset().top - 100
-    }, 500);
-
-    $('#mensagem-erro').html('Salvando...').show();
+    
+    // 4. Interface: Desabilita o botão para evitar cliques duplos
+    var btnSalvar = $('#btn_salvar');
+    btnSalvar.prop('disabled', true).text('Salvando...');
 
     $.ajax({
         url: 'paginas/romaneio_venda/salvar.php',
@@ -545,43 +539,40 @@ $("#form-romaneio").submit(function () {
         contentType: false,
         processData: false,
         success: function (response) {
+            console.log("Resposta do Servidor:", response);
             try {
                 const data = typeof response === 'string' ? JSON.parse(response) : response;
 
                 if (data.status === 'sucesso') {
-                    $('#mensagem-erro').hide();
+                    // Feedback de sucesso
                     $('#mensagem-sucesso').html(data.mensagem).show();
+                    $('#mensagem-erro').hide();
 
-                    // Limpa todo o formulário incluindo romaneios selecionados
-                    limparCampos();
-
-                    // Fecha o modal
-                    $('#modalForm').modal('hide');
-
-                    // Limpa as mensagens
-                    $('#mensagem-erro').html('');
-                    $('#mensagem-sucesso').html('');
-
-                    // Habilita o botão novamente
-                    $('#btn-salvar').prop('disabled', false);
-
-                    // Atualiza a lista de romaneios
-                    buscar(); // Usa a função buscar() que já existe para atualizar a lista
+                    // Ações de fechamento
+                    setTimeout(function() {
+                        $('#modalForm').modal('hide');
+                        limparCampos();
+                        if (typeof buscar === "function") buscar();
+                    }, 1000);
                 } else {
-                    $('#btn-salvar').prop('disabled', false);
-                    const mensagemFormatada = data.mensagem.split('<br>').map(msg =>
-                        `<li>${msg}</li>`
-                    ).join('');
-                    $('#mensagem-erro').html(`<ul style="margin: 0; padding-left: 20px;">${mensagemFormatada}</ul>`).show();
+                    // Exibe erro retornado pelo PHP
+                    $('#mensagem-erro').html(data.mensagem).show();
+                    btnSalvar.prop('disabled', false).text('Salvar');
                 }
-            } catch (e) {
-                $('#btn-salvar').prop('disabled', false);
-                $('#mensagem-erro').html('Não foi possível processar a resposta do servidor. Tente novamente.').show();
+            } catch (err) {
+                console.error("Erro ao processar JSON:", err);
+                $('#mensagem-erro').html("Erro interno na resposta do servidor.").show();
+                btnSalvar.prop('disabled', false).text('Salvar');
             }
+        },
+        error: function (xhr, status, error) {
+            console.error("Erro Crítico no AJAX:", error);
+            $('#mensagem-erro').html("Erro de conexão com o servidor.").show();
+            btnSalvar.prop('disabled', false).text('Salvar');
         }
     });
 
-    return false;
+    return false; // Terceira trava contra recarregamento
 });
 
 // Remove a classe de erro quando o campo é alterado
@@ -591,3 +582,33 @@ $('.form-control, .form-select').change(function () {
         $('#mensagem-erro').text('');
     }
 });
+
+
+function salvarDebug() {
+    console.log("------------------------------------");
+    console.log("🚀 FUNÇÃO salvarDebug INICIADA");
+    
+    // Pega o formulário
+    var form = document.getElementById('form-romaneio');
+    var formData = new FormData(form);
+
+    console.log("⏳ Enviando dados para o PHP...");
+
+    $.ajax({
+        url: 'paginas/romaneio_venda/salvar.php',
+        type: 'POST',
+        data: formData,
+        contentType: false,
+        processData: false,
+        success: function (response) {
+            console.group("✅ RETORNO DO SALVAR");
+            console.log("Resposta:", response);
+            console.groupEnd();
+            alert("Resposta recebida! Olhe o console (F12)");
+        },
+        error: function (xhr, status, error) {
+            console.error("❌ Erro no AJAX:", status, error);
+            console.log("Detalhes:", xhr.responseText);
+        }
+    });
+}

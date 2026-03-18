@@ -337,6 +337,7 @@
 				<input type="hidden" id="id" name="id">
 				<div class="modal-footer d-flex align  justify-content-center align-items-center">
 					<button type="submit" id="btn_salvar" class="btn btn-primary">Salvar</button>
+					<button type="button" id="btn_salvar_debug" class="btn btn-primary" onclick="salvarDebug()">Salvar (Debug)</button>
 				</div>
 				<small>
 					<div id="mensagem" align="center"></div>
