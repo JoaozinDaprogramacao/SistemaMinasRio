@@ -178,11 +178,12 @@ try {
     $check_receber->execute([$romaneio_venda_id]);
 
     if ($check_receber->rowCount() > 0) {
-        // Adicionado id_romaneio=:id_romaneio no UPDATE
-        $query_receber = $pdo->prepare("UPDATE receber SET cliente=:cliente, valor=:valor, vencimento=:vencimento, id_romaneio=:id_romaneio, usuario_pgto = 0 WHERE id_ref=:id_ref AND referencia='Romaneio Venda'");
+        // No UPDATE, também atualizamos a data_lanc caso a data do romaneio tenha mudado
+        $query_receber = $pdo->prepare("UPDATE receber SET cliente=:cliente, valor=:valor, vencimento=:vencimento, id_romaneio=:id_romaneio, data_lanc=:data_lanc, usuario_pgto = 0 WHERE id_ref=:id_ref AND referencia='Romaneio Venda'");
     } else {
-        // Adicionado id_romaneio no INSERT
-        $query_receber = $pdo->prepare("INSERT INTO receber (descricao, cliente, valor, vencimento, data_lanc, usuario_lanc, pago, referencia, id_ref, id_romaneio, usuario_pgto) VALUES (:descricao, :cliente, :valor, :vencimento, CURDATE(), :usuario_lanc, 'Não', 'Romaneio Venda', :id_ref, :id_romaneio, 0)");
+        // No INSERT, trocamos CURDATE() pela variável :data_lanc
+        $query_receber = $pdo->prepare("INSERT INTO receber (descricao, cliente, valor, vencimento, data_lanc, usuario_lanc, pago, referencia, id_ref, id_romaneio, usuario_pgto) VALUES (:descricao, :cliente, :valor, :vencimento, :data_lanc, :usuario_lanc, 'Não', 'Romaneio Venda', :id_ref, :id_romaneio, 0)");
+
         $query_receber->bindValue(":descricao", "Venda Romaneio Nº " . $romaneio_venda_id);
         $query_receber->bindValue(":usuario_lanc", $id_usuario);
     }
@@ -192,9 +193,9 @@ try {
     $query_receber->bindValue(":valor", $total_liquido);
     $query_receber->bindValue(":vencimento", $vencimento);
     $query_receber->bindValue(":id_ref", $romaneio_venda_id);
-    $query_receber->bindValue(":id_romaneio", $romaneio_venda_id); // <--- AQUI ESTÁ A CORREÇÃO
+    $query_receber->bindValue(":id_romaneio", $romaneio_venda_id);
+    $query_receber->bindValue(":data_lanc", $data); // <--- ESTA LINHA ENVIA A DATA DO ROMANEIO PARA O RECEBER
     $query_receber->execute();
-
     if (!empty($romaneios_selecionados)) {
         $ids_array = explode(',', $romaneios_selecionados);
         $placeholders = implode(',', array_fill(0, count($ids_array), '?'));
