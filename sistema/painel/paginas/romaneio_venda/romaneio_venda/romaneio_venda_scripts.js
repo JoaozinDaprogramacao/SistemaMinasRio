@@ -424,16 +424,16 @@ function limparCampos() {
     // 1. ESCONDE AS MENSAGENS DE FEEDBACK
     $('#mensagem-sucesso').hide();
     $('#mensagem-erro').hide();
+    $('#mensagem').text(''); // Limpa texto de erro genérico se houver
 
-    // 2. LIMPA O ID (CRUCIAL PARA NÃO EDITAR O 140 SEM QUERER)
-    $('#id').val(''); // <--- ADICIONAR ESTA LINHA
+    // 2. LIMPA O ID (CRUCIAL PARA NÃO EDITAR O ANTERIOR SEM QUERER)
+    $('#id').val('');
 
-    // 3. DESABILITA EVENTOS
+    // 3. DESABILITA EVENTOS (Para evitar duplicidade ao reatribuir)
     $('#plano_pgto, #cliente_modal, .produto_1, .tipo_cx_1, .desc_2, .material').off('change');
 
     // 4. LIMPA OS CAMPOS DO FORMULÁRIO PRINCIPAL
     $('.data_atual').val(new Date().toISOString().split('T')[0]);
-    // Dispara a atualização da lista ao limpar o cliente
     $('#cliente_modal').val('0').trigger('change');
     $('#plano_pgto').val('0').trigger('change');
     $('#nota_fiscal').val('');
@@ -441,16 +441,19 @@ function limparCampos() {
     $('#vencimento').val(new Date().toISOString().split('T')[0]);
     $('#desc-avista').val('');
 
-    // Limpa checkboxes de adicional/desconto e seus campos
+    // Limpa checkboxes e campos de adicional/desconto
     $('#adicional_ativo, #desconto_ativo').prop('checked', false);
     $('#descricao_adicional').val('');
     $('#valor_adicional').val('0,00');
     $('#descricao_desconto').val('');
     $('#valor_desconto').val('0,00');
 
+    // Chama as funções que escondem/mostram os inputs de adicional/desconto
+    if (typeof adicionalAtivado === 'function') adicionalAtivado();
+    if (typeof descontoAtivado === 'function') descontoAtivado();
+
     // 5. LIMPA ROMANEIOS DE COMPRA
     romaneiosSelecionados = [];
-    // A lista será limpa automaticamente pela chamada a atualizarListaRomaneiosCompra(0) acima
     $('#romaneios_selecionados').val('');
 
     // 6. LIMPA TODOS OS CONTÊINERES DE LINHAS DINÂMICAS
@@ -475,14 +478,20 @@ function limparCampos() {
     addNewLine2();
     addNewLine3();
 
-    // 9. REATIVA OS EVENTOS E ATUALIZA OS CÁLCULOS
+    // 9. RESETAR O ESTADO DO BOTÃO (RESOLVE SEU PROBLEMA)
+    $('#btn_salvar').text('Salvar');
+    $('#btn_salvar').prop('disabled', false);
+
+    // Resetar variável de controle global se você usar
+    carregando_dados = false;
+
+    // 10. REATIVA OS EVENTOS E ATUALIZA OS CÁLCULOS
     setTimeout(function () {
         $('#cliente_modal').on('change', function () {
             buscarDadosCliente($(this).val());
-            atualizarListaRomaneiosCompra($(this).val()); // Reativa a nova função
+            atualizarListaRomaneiosCompra($(this).val());
         });
         $('#plano_pgto').on('change', calculaTotais);
-
         $(document).on('change', '.produto_1, .tipo_cx_1, .desc_2, .material', calculaTotais);
 
         calculaTotais();
@@ -527,7 +536,7 @@ $(document).off('submit', '#form-romaneio').on('submit', '#form-romaneio', funct
 
     // 3. Preparação dos dados
     var formData = new FormData(this);
-    
+
     // 4. Interface: Desabilita o botão para evitar cliques duplos
     var btnSalvar = $('#btn_salvar');
     btnSalvar.prop('disabled', true).text('Salvando...');
@@ -549,7 +558,7 @@ $(document).off('submit', '#form-romaneio').on('submit', '#form-romaneio', funct
                     $('#mensagem-erro').hide();
 
                     // Ações de fechamento
-                    setTimeout(function() {
+                    setTimeout(function () {
                         $('#modalForm').modal('hide');
                         limparCampos();
                         if (typeof buscar === "function") buscar();
