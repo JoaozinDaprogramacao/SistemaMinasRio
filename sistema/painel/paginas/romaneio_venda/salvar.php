@@ -7,20 +7,7 @@ $id_usuario = @$_SESSION['id'];
 
 header('Content-Type: application/json; charset=utf-8');
 
-function gravarLog($mensagem)
-{
-    $arquivo = 'debug_log_venda.txt';
-    $dataHora = date('d/m/Y H:i:s');
-    if (is_array($mensagem) || is_object($mensagem)) {
-        $mensagem = json_encode($mensagem, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
-    }
-    $texto = "[$dataHora] $mensagem" . PHP_EOL;
-    file_put_contents($arquivo, $texto, FILE_APPEND);
-}
-
 try {
-    gravarLog("--- INICIANDO SALVAR VENDA ---");
-    gravarLog($_POST);
 
     $id = $_POST['id'] ?? '';
     $romaneios_selecionados = $_POST['romaneios_selecionados'] ?? '';
@@ -83,10 +70,14 @@ try {
     foreach ($valor_3 as $v3) {
         if (!empty($v3)) $total_materiais += floatval(str_replace(',', '.', $v3));
     }
-
     $valor_desc_avista = $total_bruto * ($desc_avista_perc / 100);
-    $total_liquido = $total_bruto + $total_comissao + $total_materiais + floatval($adicional) - floatval($desconto_fixo) - $valor_desc_avista;
 
+    // 2. Calcula o total líquido temporário
+    $temp_liquido = $total_bruto + $total_comissao + $total_materiais + floatval($adicional) - floatval($desconto_fixo) - $valor_desc_avista;
+
+    // 3. APLICA O TRUNCAMENTO (Força 2 casas decimais sem arredondar para cima)
+    // Multiplicamos por 100, removemos os decimais com floor, e dividimos por 100 novamente
+    $total_liquido = floor(round($temp_liquido, 4) * 100) / 100;
     $pdo->beginTransaction();
 
     if ($id == "") {
@@ -203,10 +194,8 @@ try {
     }
 
     $pdo->commit();
-    gravarLog("SUCESSO: Romaneio $romaneio_venda_id salvo.");
     echo json_encode(['status' => 'sucesso', 'mensagem' => 'Romaneio salvo com sucesso!']);
 } catch (Exception $e) {
     if (isset($pdo) && $pdo->inTransaction()) $pdo->rollBack();
-    gravarLog("ERRO CRÍTICO: " . $e->getMessage());
     echo json_encode(['status' => 'erro', 'mensagem' => $e->getMessage()], JSON_UNESCAPED_UNICODE);
 }

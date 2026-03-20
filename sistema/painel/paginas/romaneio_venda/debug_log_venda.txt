@@ -623,3 +623,91 @@
     "id": "399"
 }
 [18/03/2026 21:49:25] SUCESSO: Romaneio 399 salvo.
+[20/03/2026 15:01:31] --- INICIANDO SALVAR VENDA ---
+[20/03/2026 15:01:31] {
+    "romaneios_selecionados": "",
+    "data": "2026-03-14",
+    "plano_pgto": "1",
+    "vencimento": "2026-03-21",
+    "cliente": "19",
+    "quant_dias": "7",
+    "nota_fiscal": "3878",
+    "quant_caixa_1": [
+        "",
+        "81",
+        "75"
+    ],
+    "produto_1": [
+        "",
+        "1",
+        "2"
+    ],
+    "preco_kg_1": [
+        "",
+        "2,50",
+        "1,60"
+    ],
+    "tipo_cx_1": [
+        "",
+        "4",
+        "4"
+    ],
+    "preco_unit_1": [
+        "",
+        "47,50",
+        "30,40"
+    ],
+    "valor_1": [
+        "",
+        "3847,50",
+        "2280,00"
+    ],
+    "desc-avista": "5",
+    "desc_2": [
+        "",
+        ""
+    ],
+    "quant_caixa_2": [
+        "",
+        ""
+    ],
+    "preco_kg_2": [
+        "",
+        ""
+    ],
+    "tipo_cx_2": [
+        "",
+        ""
+    ],
+    "preco_unit_2": [
+        "",
+        ""
+    ],
+    "valor_2": [
+        "",
+        ""
+    ],
+    "obs_3": [
+        "",
+        ""
+    ],
+    "material": [
+        "",
+        ""
+    ],
+    "quant_3": [
+        "",
+        ""
+    ],
+    "preco_unit_3": [
+        "",
+        ""
+    ],
+    "valor_3": [
+        "",
+        ""
+    ],
+    "valor_liquido": "5821,12",
+    "id": "411"
+}
+[20/03/2026 15:01:31] SUCESSO: Romaneio 411 salvo.
