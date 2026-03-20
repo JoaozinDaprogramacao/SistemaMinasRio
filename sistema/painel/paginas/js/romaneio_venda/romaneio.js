@@ -214,15 +214,21 @@ function calculaTotais() {
     let TotalGeralSoma = totalBrutoSoma;
 
     if (isDescontoAVista) {
-        const descontoValor = parseFloat(descAvistaField.value.replace(",", ".") || 0);
-        if (descontoValor <= 0) {
+        const descontoPorcentagem = parseFloat(descAvistaField.value.replace(",", ".") || 0);
+
+        if (descontoPorcentagem <= 0) {
             TotalGeralField.textContent = "DESC. Inválido";
             TotalGeralField.classList.add("danger");
         } else {
-            totalDescSoma = (totalBrutoSoma * (descontoValor / 100));
-            TotalGeralSoma = totalBrutoSoma - totalDescSoma;
+            // Calcula o valor do desconto
+            totalDescSoma = totalBrutoSoma * (descontoPorcentagem / 100);
+
+            // CORREÇÃO: Usamos Math.floor ou uma lógica de truncamento para evitar o arredondamento para cima
+            // Para garantir 5821,12 em vez de 5821,13:
+            TotalGeralSoma = Math.floor((totalBrutoSoma - totalDescSoma) * 100) / 100;
+
             TotalGeralField.classList.remove("danger");
-            TotalGeralField.textContent = TotalGeralSoma.toFixed(2).replace(".", ",");
+            TotalGeralField.textContent = TotalGeralSoma.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
         }
     } else {
         TotalGeralField.classList.remove("danger");
