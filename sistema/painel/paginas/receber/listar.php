@@ -37,7 +37,6 @@ $sql_atacadista = !empty($atacadista) ? " AND t.cliente = '$atacadista'" : "";
 $sql_pgto = !empty($forma_pgto) ? " AND t.forma_pgto = '$forma_pgto'" : "";
 $sql_tipo_conta = !empty($tipo_conta) ? " AND pl.nome = '$tipo_conta'" : "";
 
-// Base do JOIN para Totais e Listagem
 $base_from = " FROM $tabela t 
                LEFT JOIN romaneio_venda r ON t.id_romaneio = r.id 
                LEFT JOIN planos_pgto pl ON r.plano_pgto = pl.id ";
@@ -45,28 +44,47 @@ $base_from = " FROM $tabela t
 $base_where = " WHERE t.$tipo_data >= '$dataInicial' AND t.$tipo_data <= '$dataFinal' 
                 $sql_usuario_lanc $sql_atacadista $sql_pgto $sql_tipo_conta ";
 
-// Inicialização de Totais
-$total_pago = 0;
-$total_pendentes = 0;
+// Query de Totais com Cálculo de Porcentagem (desc_avista) sobre subconsulta de produtos
+// Query de Totais corrigida para evitar duplicidade por parcelas
+$res_totais = $pdo->query("SELECT 
+    -- Totais das parcelas (aqui não usa distinct pois somamos cada título)
+    SUM(CASE WHEN t.vencimento < curDate() AND t.pago = 'Não' THEN t.valor ELSE 0 END) as vencidas,
+    SUM(CASE WHEN t.pago = 'Sim' THEN t.subtotal ELSE 0 END) as recebidas,
+    SUM(CASE WHEN t.vencimento >= curDate() AND t.pago = 'Não' THEN t.valor ELSE 0 END) as a_vencer,
+    SUM(t.valor) as total_bruto,
+    
+    -- Totais do Romaneio (usando uma subquery para evitar duplicidade de parcelas)
+    (SELECT SUM(COALESCE(r2.desconto, 0) + COALESCE((SELECT SUM(valor) FROM linha_produto WHERE id_romaneio = r2.id) * r2.desc_avista / 100, 0))
+     FROM romaneio_venda r2 
+     WHERE r2.id IN (SELECT DISTINCT id_romaneio FROM receber t2 WHERE t2.$tipo_data >= '$dataInicial' AND t2.$tipo_data <= '$dataFinal' $sql_usuario_lanc $sql_atacadista)
+    ) as desc_total_calculado,
 
-$res = $pdo->query("SELECT SUM(t.valor) as total $base_from $base_where AND t.vencimento < curDate() AND t.pago = 'Não'")->fetch(PDO::FETCH_ASSOC);
-$total_vencidas = $res['total'] ?? 0;
+    (SELECT SUM(COALESCE(r3.adicional, 0))
+     FROM romaneio_venda r3
+     WHERE r3.id IN (SELECT DISTINCT id_romaneio FROM receber t3 WHERE t3.$tipo_data >= '$dataInicial' AND t3.$tipo_data <= '$dataFinal' $sql_usuario_lanc $sql_atacadista)
+    ) as acres_total
+    
+    FROM $tabela t 
+    LEFT JOIN planos_pgto pl ON (SELECT r4.plano_pgto FROM romaneio_venda r4 WHERE r4.id = t.id_romaneio) = pl.id
+    $base_where")->fetch(PDO::FETCH_ASSOC);
+	
+$total_vencidas = $res_totais['vencidas'] ?? 0;
+$total_recebidas = $res_totais['recebidas'] ?? 0;
+$total_a_vencer = $res_totais['a_vencer'] ?? 0;
+$total_total = $res_totais['total_bruto'] ?? 0;
+$total_desconto = $res_totais['desc_total_calculado'] ?? 0;
+$total_acrescimo = $res_totais['acres_total'] ?? 0;
 
-$res = $pdo->query("SELECT SUM(t.subtotal) as total $base_from $base_where AND t.pago = 'Sim'")->fetch(PDO::FETCH_ASSOC);
-$total_recebidas = $res['total'] ?? 0;
-
-$res = $pdo->query("SELECT SUM(t.valor) as total $base_from $base_where AND t.vencimento >= curDate() AND t.pago = 'Não'")->fetch(PDO::FETCH_ASSOC);
-$total_a_vencer = $res['total'] ?? 0;
-
-$res = $pdo->query("SELECT SUM(t.valor) as total $base_from $base_where")->fetch(PDO::FETCH_ASSOC);
-$total_total = $res['total'] ?? 0;
+$total_liquido = ($total_total - $total_desconto) + $total_acrescimo;
 
 $total_vencidasF = number_format($total_vencidas, 2, ',', '.');
 $total_recebidasF = number_format($total_recebidas, 2, ',', '.');
 $total_a_vencerF = number_format($total_a_vencer, 2, ',', '.');
 $total_totalF = number_format($total_total, 2, ',', '.');
+$total_descontoF = number_format($total_desconto, 2, ',', '.');
+$total_acrescimoF = number_format($total_acrescimo, 2, ',', '.');
+$total_liquidoF = number_format($total_liquido, 2, ',', '.');
 
-// Query de Listagem
 $ordem = "ORDER BY t.vencimento ASC";
 $where_filtro = "";
 
@@ -87,6 +105,9 @@ if ($filtro == 'Vencidas') {
 $query = $pdo->query("SELECT t.*, pl.nome as nome_plano $base_from $base_where $where_filtro $ordem");
 $res = $query->fetchAll(PDO::FETCH_ASSOC);
 $linhas = @count($res);
+
+$total_pago = 0;
+$total_pendentes = 0;
 
 if ($linhas > 0) {
 	echo <<<HTML
@@ -122,8 +143,6 @@ HTML;
 		$forma_pgto_row = $res[$i]['forma_pgto'];
 		$frequencia = $res[$i]['frequencia'];
 		$obs = $res[$i]['obs'];
-		$usuario_lanc = $res[$i]['usuario_lanc'];
-		$usuario_pgto = $res[$i]['usuario_pgto'];
 
 		$data_lancF = date('d/m/Y', strtotime($data_lanc));
 		$vencimentoF = date('d/m/Y', strtotime($vencimento));
@@ -147,7 +166,6 @@ HTML;
 
 		$ext = pathinfo($arquivo, PATHINFO_EXTENSION);
 		$tumb_arquivo = (in_array(strtolower($ext), ['jpg', 'jpeg', 'png', 'gif'])) ? $arquivo : ($ext ? $ext . '.png' : 'sem-foto.png');
-
 		$classe_venc = (strtotime($vencimento) < strtotime($data_hoje) && $pago != 'Sim') ? 'text-danger' : '';
 		$taxa_conta = $taxa_pgto * $valor / 100;
 
@@ -220,5 +238,9 @@ HTML;
 		$('#total_a_vencer').text('R$ <?= $total_a_vencerF ?>');
 		$('#total_recebidas').text('R$ <?= $total_recebidasF ?>');
 		$('#total_total').text('R$ <?= $total_totalF ?>');
+
+		$('#total_desconto').text('R$ <?= $total_descontoF ?>');
+		$('#total_acrescimo').text('R$ <?= $total_acrescimoF ?>');
+		$('#total_liquido').text('R$ <?= $total_liquidoF ?>');
 	});
 </script>
