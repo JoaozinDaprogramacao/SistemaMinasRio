@@ -95,7 +95,7 @@ if ($linhas > 0) {
     <thead> 
         <tr> 
             <th align="center" width="5%" class="text-center">Selecionar</th>
-            <th class="esc">Data Lançamento</th> <th>Descrição</th>  
+            <th class="esc">Data do Faturamento</th> <th>Descrição</th>  
             <th>Valor</th> 
             <th class="esc">Cliente</th>    
             <th class="esc">Vencimento</th> 
