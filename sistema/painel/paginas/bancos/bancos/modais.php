@@ -5,7 +5,7 @@
                 <h4 class="modal-title" id="exampleModalLabel"><span id="titulo_inserir"></span></h4>
                 <button id="btn-fechar" aria-label="Close" class="btn-close" data-bs-dismiss="modal" type="button"><span class="text-white" aria-hidden="true">&times;</span></button>
             </div>
-            <form id="form" onsubmit="return validarForm()">
+            <form id="form">
                 <div class="modal-body">
 
 
