@@ -138,6 +138,33 @@ function listar(p1, p2, p3, p4, p5, p6, p7) {
             $("#listar").html(result);
         }
     });
+
+}
+
+function prepararBaixar(id, valor, descricao, forma_pgto) {
+    $('#id-baixar').val(id);
+    $('#descricao-baixar').text(descricao);
+    $('#valor-baixar').val(valor);
+    $('#saida-baixar').val(forma_pgto).change();
+
+    // Chama a função de totalizar que você já tem no formulário
+    totalizar();
+
+    // Abre o modal de baixar
+    $('#modalBaixar').modal('show');
+}
+
+function fecharEditarEAbrirBaixar(id, valor, descricao, forma_pgto) {
+    // 1. Fecha o modal de edição
+    $('#modalForm').modal('hide');
+
+    // 2. Pequeno delay para o Bootstrap processar o fechamento antes de abrir o outro
+    // Isso evita bugs de tela travada
+    setTimeout(function () {
+        // Aqui você chama a função que preenche e abre o seu modal de BAIXAR
+        // (Ajuste o nome da função abaixo conforme a que você já usa no seu sistema)
+        prepararBaixar(id, valor, descricao, forma_pgto);
+    }, 400);
 }
 
 function editar(id, descricao, valor, cliente, vencimento, data_pgto, forma_pgto, frequencia, obs, arquivo) {
@@ -161,6 +188,17 @@ function editar(id, descricao, valor, cliente, vencimento, data_pgto, forma_pgto
 
     $('#modalForm').modal('show');
     console.log("Log3: finalizou");
+    $('#btn-baixar-modal').attr('onclick', `baixar('${id}', '${valor}', '${descricao}', '${forma_pgto}', '0', '0', '0')`);
+
+    $('#btn-baixar-modal').show();
+
+    // Se o seu botão de baixar precisar dos dados atuais, 
+    // podemos passar para uma função global ou setar um atributo
+    $('#btn-baixar-modal').attr('onclick', `baixar('${id}', '${valor}', '${descricao}', '${forma_pgto}', '0', '0', '0')`);
+
+    $('#btn-baixar-modal').attr('onclick', `fecharEditarEAbrirBaixar('${id}', '${valor}', '${descricao}', '${forma_pgto}')`);
+
+    $('#modalForm').modal('show');
 }
 
 
@@ -207,6 +245,7 @@ function limparCampos() {
 
     $('#ids').val('');
     $('#btn-deletar').hide();
+    $('#btn-baixar-modal').hide();
     $('#btn-baixar').hide();
 }
 

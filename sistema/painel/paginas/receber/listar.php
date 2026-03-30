@@ -192,7 +192,7 @@ HTML;
                 <div class="dropdown-item-text">Confirmar? <a href="#" onclick="excluir('{$id}')"><span class="text-danger">Sim</span></a></div>
             </div>
         </div>
-        <big><a href="#" onclick="baixar('{$id}', '{$valor}', '{$descricao}', '{$forma_pgto_row}', '{$taxa_conta}', '0', '0')" title="Baixar Conta"><i class="fa fa-check-square text-success"></i></a></big>
+       
 HTML;
 		if (!empty($id_ref)) {
 			echo " <big><a href='#' onclick=\"imprimir('{$id_ref}')\" title='Imprimir Romaneio'><i class='fa fa-file-pdf-o text-info'></i></a></big>";

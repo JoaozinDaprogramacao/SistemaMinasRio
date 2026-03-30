@@ -362,7 +362,6 @@
 
                 </div>
                 <div class="modal-footer">
-
                     <button type="submit" class="btn btn-success">Baixar</button>
                 </div>
             </form>
@@ -626,9 +625,12 @@
                     </small>
                 </div>
                 <div class="modal-footer">
-                    <button id="btn_salvar" type="submit" class="btn btn-primary">Salvar</button>
+                    <button id="btn-baixar-modal" type="button" class="btn btn-outline-success" style="display:none;" onclick="baixar_no_editar()" title="Baixar Conta">
+                        <i class="fa fa-check-square"></i> Baixar
+                    </button>
+
+                    <button type="submit" class="btn btn-success">Salvar</button>
                 </div>
-            </form>
         </div>
     </div>
 </div>
