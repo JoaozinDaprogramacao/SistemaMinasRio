@@ -220,7 +220,7 @@
                 <h4 class="modal-title" id="tituloModal">Baixar Conta: <span id="descricao-baixar"> </span></h4>
                 <button id="btn-fechar-baixar" aria-label="Close" class="btn-close" data-bs-dismiss="modal" type="button"><span class="text-white" aria-hidden="true">&times;</span></button>
             </div>
-            <form id="form-baixar" method="post">
+            <form id="form-baixar" method="post" onsubmit="event.preventDefault(); return false;">
                 <div class="modal-body">
 
                     <div class="row">

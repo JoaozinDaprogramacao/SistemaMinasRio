@@ -188,7 +188,6 @@ function editar(id, descricao, valor, cliente, vencimento, data_pgto, forma_pgto
 
     $('#modalForm').modal('show');
     console.log("Log3: finalizou");
-    $('#btn-baixar-modal').attr('onclick', `baixar('${id}', '${valor}', '${descricao}', '${forma_pgto}', '0', '0', '0')`);
 
     $('#btn-baixar-modal').show();
 
@@ -440,8 +439,10 @@ function excluir(id) {
     });
 }
 
-$("#form-baixar").submit(function (e) {
+$(document).on('submit', '#form-baixar', function (e) {
     e.preventDefault();
+    console.log("Iniciando baixa..."); // Log para teste
+
     var formData = new FormData(this);
     $.ajax({
         url: 'paginas/' + pag + "/baixar.php",
@@ -451,15 +452,24 @@ $("#form-baixar").submit(function (e) {
         contentType: false,
         processData: false,
         success: function (mensagem) {
+            console.log("Resposta: " + mensagem); // Log para teste
             if (mensagem.trim() == "Baixado com Sucesso") {
                 $('#btn-fechar-baixar').click();
-                buscar();
+                if (typeof buscar === "function") {
+                    buscar();
+                } else {
+                    listar(); // Caso sua função de recarregar seja listar
+                }
             } else {
                 $('#mensagem-baixar').addClass('text-danger').text(mensagem);
             }
+        },
+        error: function(xhr, status, error) {
+            console.error("Erro no AJAX: ", error);
+            $('#mensagem-baixar').text("Erro interno no servidor.");
         }
     });
-});
+});F
 
 $("#form-parcelar").submit(function (e) {
     e.preventDefault();

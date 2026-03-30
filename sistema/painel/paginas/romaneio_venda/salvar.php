@@ -165,15 +165,25 @@ try {
         }
     }
 
+    // Usando o nome correto: forma_pagamento
+    $query_f = $pdo->prepare("SELECT forma_pagamento FROM clientes WHERE id = :cliente_id");
+    $query_f->bindValue(":cliente_id", $atacadista);
+    $query_f->execute();
+    $res_f = $query_f->fetch(PDO::FETCH_ASSOC);
+
+    // Se o cliente não tiver forma definida, assume 0 ou um ID padrão do seu sistema
+    $forma_pgto_cliente = $res_f['forma_pagamento'] ?? 0;
+    // -------------------------------------------------------
+
     $check_receber = $pdo->prepare("SELECT id FROM receber WHERE id_ref = ? AND referencia = 'Romaneio Venda'");
     $check_receber->execute([$romaneio_venda_id]);
 
     if ($check_receber->rowCount() > 0) {
-        // No UPDATE, também atualizamos a data_lanc caso a data do romaneio tenha mudado
-        $query_receber = $pdo->prepare("UPDATE receber SET cliente=:cliente, valor=:valor, vencimento=:vencimento, id_romaneio=:id_romaneio, data_lanc=:data_lanc, usuario_pgto = 0 WHERE id_ref=:id_ref AND referencia='Romaneio Venda'");
+        // UPDATE: Incluímos forma_pgto
+        $query_receber = $pdo->prepare("UPDATE receber SET cliente=:cliente, valor=:valor, vencimento=:vencimento, id_romaneio=:id_romaneio, data_lanc=:data_lanc, forma_pgto=:forma_pgto, usuario_pgto = 0 WHERE id_ref=:id_ref AND referencia='Romaneio Venda'");
     } else {
-        // No INSERT, trocamos CURDATE() pela variável :data_lanc
-        $query_receber = $pdo->prepare("INSERT INTO receber (descricao, cliente, valor, vencimento, data_lanc, usuario_lanc, pago, referencia, id_ref, id_romaneio, usuario_pgto) VALUES (:descricao, :cliente, :valor, :vencimento, :data_lanc, :usuario_lanc, 'Não', 'Romaneio Venda', :id_ref, :id_romaneio, 0)");
+        // INSERT: Incluímos forma_pgto
+        $query_receber = $pdo->prepare("INSERT INTO receber (descricao, cliente, valor, vencimento, data_lanc, usuario_lanc, pago, referencia, id_ref, id_romaneio, usuario_pgto, forma_pgto) VALUES (:descricao, :cliente, :valor, :vencimento, :data_lanc, :usuario_lanc, 'Não', 'Romaneio Venda', :id_ref, :id_romaneio, 0, :forma_pgto)");
 
         $query_receber->bindValue(":descricao", "Venda Romaneio Nº " . $romaneio_venda_id);
         $query_receber->bindValue(":usuario_lanc", $id_usuario);
@@ -185,8 +195,10 @@ try {
     $query_receber->bindValue(":vencimento", $vencimento);
     $query_receber->bindValue(":id_ref", $romaneio_venda_id);
     $query_receber->bindValue(":id_romaneio", $romaneio_venda_id);
-    $query_receber->bindValue(":data_lanc", $data); // <--- ESTA LINHA ENVIA A DATA DO ROMANEIO PARA O RECEBER
+    $query_receber->bindValue(":data_lanc", $data);
+    $query_receber->bindValue(":forma_pgto", $forma_pgto_cliente); // <--- VALOR VINDO DO CLIENTE
     $query_receber->execute();
+
     if (!empty($romaneios_selecionados)) {
         $ids_array = explode(',', $romaneios_selecionados);
         $placeholders = implode(',', array_fill(0, count($ids_array), '?'));
