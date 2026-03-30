@@ -441,7 +441,9 @@ function excluir(id) {
 
 $(document).on('submit', '#form-baixar', function (e) {
     e.preventDefault();
-    console.log("Iniciando baixa..."); // Log para teste
+
+    // Limpa mensagens anteriores e avisa que está processando
+    $('#mensagem-baixar').removeClass('text-danger text-success').text('Processando...');
 
     var formData = new FormData(this);
     $.ajax({
@@ -452,24 +454,23 @@ $(document).on('submit', '#form-baixar', function (e) {
         contentType: false,
         processData: false,
         success: function (mensagem) {
-            console.log("Resposta: " + mensagem); // Log para teste
+            // Remove o "Processando..."
+            $('#mensagem-baixar').text('');
+
             if (mensagem.trim() == "Baixado com Sucesso") {
+                // Se deu certo, fecha o modal
                 $('#btn-fechar-baixar').click();
-                if (typeof buscar === "function") {
-                    buscar();
-                } else {
-                    listar(); // Caso sua função de recarregar seja listar
-                }
+                buscar(); // Recarrega a lista
             } else {
-                $('#mensagem-baixar').addClass('text-danger').text(mensagem);
+                // EXIBE O ERRO DENTRO DO MODAL
+                $('#mensagem-baixar').addClass('text-danger').html(mensagem);
             }
         },
-        error: function(xhr, status, error) {
-            console.error("Erro no AJAX: ", error);
-            $('#mensagem-baixar').text("Erro interno no servidor.");
+        error: function () {
+            $('#mensagem-baixar').addClass('text-danger').text('Erro ao conectar com o servidor.');
         }
     });
-});F
+});
 
 $("#form-parcelar").submit(function (e) {
     e.preventDefault();

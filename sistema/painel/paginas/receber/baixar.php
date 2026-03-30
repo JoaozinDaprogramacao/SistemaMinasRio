@@ -79,10 +79,6 @@ $referencia = $res[0]['referencia'];
 $hash = $res[0]['hash'];
 $vencimento = $res[0]['vencimento'];
 
-if ($hash != "") {
-	require("../../apis/cancelar_agendamento.php");
-}
-
 if ($cliente == "") {
 	$cliente = 0;
 }
@@ -177,28 +173,6 @@ if ($valor == $valor_antigo) {
 	if (@$dias_frequencia > 0) {
 		$pdo->query("INSERT INTO $tabela set descricao = '$descricao', cliente = '$cliente', valor = '$valor_antigo', data_lanc = curDate(), vencimento = '$nova_data_vencimento', frequencia = '$frequencia', forma_pgto = '$saida_antiga', arquivo = '$arquivo', pago = 'Não', referencia = '$referencia', usuario_lanc = '$id_usuario', caixa = '$id_caixa', hora = curTime()");
 		$id_ult_registro = $pdo->lastInsertId();
-
-
-		if ($api_whatsapp != 'Não' and $telefone_cliente != '') {
-
-			$valorF = @number_format($valor, 2, ',', '.');
-
-			$telefone_envio = '55' . preg_replace('/[ ()-]+/', '', $telefone_cliente);
-			$mensagem_whatsapp = '💰 *' . $nome_sistema . '*%0A';
-			$mensagem_whatsapp .= '_Conta Vencendo Hoje_ %0A';
-			$mensagem_whatsapp .= '*Descrição:* ' . $descricao . ' %0A';
-			$mensagem_whatsapp .= '*Valor:* ' . $valorF . ' %0A';
-
-			if ($dados_pagamento != "") {
-				$mensagem_whatsapp .= '*Dados para o Pagamento:* %0A';
-				$mensagem_whatsapp .= $dados_pagamento;
-			}
-
-			$data_agd = $nova_data_vencimento . ' 08:00:00';
-			require('../../apis/agendar.php');
-
-			$pdo->query("UPDATE $tabela SET hash = '$hash' where id = '$id_ult_registro'");
-		}
 	}
 } else {
 	$descricao = '(Resíduo) ' . $descricao;
@@ -207,7 +181,6 @@ if ($valor == $valor_antigo) {
     descricao = '$descricao_banco',
     id_banco = '$banco',
     data = curDate(),
-usuario_pgto = '$id_usuario',
     credito = '$valor_padrao',
     debito = '0',
     remetente = '$id_usuario'
@@ -237,28 +210,6 @@ usuario_pgto = '$id_usuario',
 	$pdo->query("INSERT INTO receber set id_ref = '$id', referencia = '$referencia', valor = '$valor_padrao', data_pgto = curDate(), vencimento = curDate(), data_lanc = curDate(), descricao = '$descricao', usuario_lanc = '$id_usuario', usuario_pgto = '$id_usuario', cliente = '$cliente', forma_pgto = '$saida', frequencia = '$frequencia', arquivo = '$arquivo', subtotal = '$subtotal', pago = 'Sim', taxa = '$taxa', multa = '$multa', juros = '$juros', desconto = '$desconto', residuo = 'Sim', caixa = '$id_caixa', hora = curTime()");
 
 	$pdo->query("UPDATE $tabela set forma_pgto = '$saida', usuario_pgto = '$id_usuario', valor = '$valor_antigo', data_pgto = curDate() where id = '$id'");
-
-
-	if ($api_whatsapp != 'Não' and $telefone_cliente != '') {
-
-		$valorF = @number_format($valor_antigo, 2, ',', '.');
-
-		$telefone_envio = '55' . preg_replace('/[ ()-]+/', '', $telefone_cliente);
-		$mensagem_whatsapp = '💰 *' . $nome_sistema . '*%0A';
-		$mensagem_whatsapp .= '_Conta Vencendo Hoje_ %0A';
-		$mensagem_whatsapp .= '*Descrição:* ' . $descricao . ' %0A';
-		$mensagem_whatsapp .= '*Valor:* ' . $valorF . ' %0A';
-
-		if ($dados_pagamento != "") {
-			$mensagem_whatsapp .= '*Dados para o Pagamento:* %0A';
-			$mensagem_whatsapp .= $dados_pagamento;
-		}
-
-		$data_agd = $vencimento . ' 08:00:00';
-		require('../../apis/agendar.php');
-
-		$pdo->query("UPDATE $tabela SET hash = '$hash' where id = '$id'");
-	}
 }
 
 echo 'Baixado com Sucesso';
