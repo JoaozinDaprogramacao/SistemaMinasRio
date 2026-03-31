@@ -36,7 +36,8 @@
     <div class="col-auto">
         <select id="filtrar_por" class="form-select form-select-sm" onchange="buscar()">
             <option value="vencimento">Por Vencimento</option>
-            <option value="data_lanc">Por Faturamento</option>
+            <option value="data_pgto">Por Faturamento (Pagamento)</option>
+            <option value="data_lanc">Por Lançamento</option>
         </select>
     </div>
 
