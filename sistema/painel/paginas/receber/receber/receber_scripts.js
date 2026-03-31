@@ -1,4 +1,7 @@
 $(document).ready(function () {
+    $('#modalBaixar').on('hidden.bs.modal', function () {
+        limparModalBaixar();
+    });
     // Forçar a inicialização mesmo que o elemento demore a aparecer
     function initDatePicker() {
         var start = moment(dataInicialPadrao);
@@ -142,6 +145,7 @@ function listar(p1, p2, p3, p4, p5, p6, p7) {
 }
 
 function prepararBaixar(id, valor, descricao, forma_pgto) {
+    limparModalBaixar(); //
     $('#id-baixar').val(id);
     $('#descricao-baixar').text(descricao);
     $('#valor-baixar').val(valor);
@@ -471,6 +475,19 @@ $(document).on('submit', '#form-baixar', function (e) {
         }
     });
 });
+
+function limparModalBaixar() {
+    $('#id-baixar').val('');
+    $('#valor-baixar').val('');
+    $('#valor-multa').val('0');
+    $('#valor-juros').val('0');
+    $('#valor-desconto').val('0');
+    $('#valor-taxa').val('');
+    $('#subtotal').val('');
+    $('#mensagem-baixar').text('');
+    // Resetar o select de banco se houver
+    $('#banco').val('').change();
+}
 
 $("#form-parcelar").submit(function (e) {
     e.preventDefault();
