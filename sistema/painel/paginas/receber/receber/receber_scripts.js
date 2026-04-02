@@ -164,14 +164,14 @@ function fecharEditarEAbrirBaixar(id, valor, descricao, forma_pgto, vencimento, 
     setTimeout(function () {
         // Chama a função baixar que preenche o modal profissional
         baixar(id, descricao, valor, vencimento, cliente, romaneio);
-        
+
         // Seta a forma de pagamento que já estava no editar
         $('#saida-baixar').val(forma_pgto).change();
     }, 400);
 }
 
 function editar(id, descricao, valor, cliente, vencimento, data_pgto, forma_pgto, frequencia, obs, arquivo, nome_cliente, id_romaneio) {
-    
+
     $('#mensagem').text('');
     $('#titulo_inserir').text('Editar Registro');
 
@@ -508,13 +508,32 @@ $("#form-parcelar").submit(function (e) {
 });
 
 function totalizar() {
+    // Pegamos os valores e forçamos a limpeza (replace de vírgula por ponto)
+    // O "|| 0" garante que se o campo estiver vazio, ele use zero em vez de undefined
     var valor = ($('#valor-baixar').val() || "0").replace(",", ".");
-    var desconto = ($('#valor-desconto').val() || "0").replace(",", ".");
-    var juros = ($('#valor-juros').val() || "0").replace(",", ".");
     var multa = ($('#valor-multa').val() || "0").replace(",", ".");
+    var juros = ($('#valor-juros').val() || "0").replace(",", ".");
+    var desconto = ($('#valor-desconto').val() || "0").replace(",", ".");
     var taxa = ($('#valor-taxa').val() || "0").replace(",", ".");
 
-    var subtotal = parseFloat(valor) + parseFloat(juros) + parseFloat(taxa) + parseFloat(multa) - parseFloat(desconto);
+    // Convertemos para Float (número real)
+    var v = parseFloat(valor);
+    var m = parseFloat(multa);
+    var j = parseFloat(juros);
+    var d = parseFloat(desconto);
+    var t = parseFloat(taxa);
+
+    // Verificamos se algum deles falhou na conversão (virou NaN) e resetamos para 0
+    if (isNaN(v)) v = 0;
+    if (isNaN(m)) m = 0;
+    if (isNaN(j)) j = 0;
+    if (isNaN(d)) d = 0;
+    if (isNaN(t)) t = 0;
+
+    // Fazemos a conta: Valor + Multa + Juros + Taxa - Desconto
+    var subtotal = v + m + j + t - d;
+
+    // Exibimos o resultado com 2 casas decimais
     $('#subtotal').val(subtotal.toFixed(2));
 }
 
