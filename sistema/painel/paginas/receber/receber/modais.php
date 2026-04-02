@@ -254,28 +254,9 @@
                         </div>
                     </div>
 
-                    <div class="row g-2 mb-4 p-3 rounded border bg-light">
-                        <div class="col-md-3">
-                            <label class="small text-muted fw-bold">Multa (+)</label>
-                            <input onkeyup="totalizar()" type="text" class="form-control form-control-sm" name="valor-multa" id="valor-multa" value="0">
-                        </div>
-                        <div class="col-md-3">
-                            <label class="small text-muted fw-bold">Juros (+)</label>
-                            <input onkeyup="totalizar()" type="text" class="form-control form-control-sm" name="valor-juros" id="valor-juros" value="0">
-                        </div>
-                        <div class="col-md-3">
-                            <label class="small text-muted fw-bold">Desconto (-)</label>
-                            <input onkeyup="totalizar()" type="text" class="form-control form-control-sm" name="valor-desconto" id="valor-desconto" value="0">
-                        </div>
-                        <div class="col-md-3">
-                            <label class="small text-muted fw-bold">Taxas (-)</label>
-                            <input onkeyup="totalizar()" type="text" class="form-control form-control-sm" name="valor-taxa" id="valor-taxa" value="0">
-                        </div>
-                    </div>
-
-                    <div class="row g-3">
+                    <div class="row g-3 mb-4">
                         <div class="col-md-4">
-                            <label class="small fw-bold text-secondary">Forma Pagamento</label>
+                            <label class="small fw-bold text-secondary text-uppercase">Forma Pagamento</label>
                             <select class="form-select shadow-sm" name="saida-baixar" id="saida-baixar" required onchange="calcularTaxa()">
                                 <?php
                                 $query = $pdo->query("SELECT * FROM formas_pgto order by id asc");
@@ -286,7 +267,7 @@
                             </select>
                         </div>
                         <div class="col-md-4">
-                            <label class="small fw-bold text-secondary">Banco Destino</label>
+                            <label class="small fw-bold text-secondary text-uppercase">Banco Destino</label>
                             <select class="form-select shadow-sm" name="banco" id="banco" required onchange="calcularTaxa()">
                                 <option value="">Selecione...</option>
                                 <?php
@@ -298,7 +279,7 @@
                             </select>
                         </div>
                         <div class="col-md-4">
-                            <label class="small fw-bold text-secondary">Classificação</label>
+                            <label class="small fw-bold text-secondary text-uppercase">Classificação</label>
                             <select class="form-select shadow-sm" name="descricao_banco" id="descricao_banco">
                                 <option value="">Nenhuma</option>
                                 <?php
@@ -311,8 +292,26 @@
                         </div>
                     </div>
 
-                    <input type="hidden" name="id-baixar" id="id-baixar">
+                    <div class="row g-2 mb-3 p-3 rounded border bg-light">
+                        <div class="col-md-3">
+                            <label class="small text-muted fw-bold text-uppercase">Multa (+)</label>
+                            <input onkeyup="totalizar()" type="text" class="form-control form-control-sm" name="valor-multa" id="valor-multa" value="0">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="small text-muted fw-bold text-uppercase">Juros (+)</label>
+                            <input onkeyup="totalizar()" type="text" class="form-control form-control-sm" name="valor-juros" id="valor-juros" value="0">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="small text-muted fw-bold text-uppercase">Desconto (-)</label>
+                            <input onkeyup="totalizar()" type="text" class="form-control form-control-sm" name="valor-desconto" id="valor-desconto" value="0">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="small text-muted fw-bold text-uppercase">Taxas (-)</label>
+                            <input onkeyup="totalizar()" type="text" class="form-control form-control-sm" name="valor-taxa" id="valor-taxa" value="0">
+                        </div>
+                    </div>
 
+                    <input type="hidden" name="id-baixar" id="id-baixar">
                 </div>
                 <div class="modal-footer bg-light border-0">
                     <button type="submit" class="btn btn-success px-5 fw-bold shadow-sm">Confirmar Baixa</button>
