@@ -67,7 +67,7 @@ $res_totais = $pdo->query("SELECT
     FROM $tabela t 
     LEFT JOIN planos_pgto pl ON (SELECT r4.plano_pgto FROM romaneio_venda r4 WHERE r4.id = t.id_romaneio) = pl.id
     $base_where")->fetch(PDO::FETCH_ASSOC);
-	
+
 $total_vencidas = $res_totais['vencidas'] ?? 0;
 $total_recebidas = $res_totais['recebidas'] ?? 0;
 $total_a_vencer = $res_totais['a_vencer'] ?? 0;
@@ -102,7 +102,7 @@ if ($filtro == 'Vencidas') {
                 ELSE 3 END ASC, t.vencimento ASC";
 }
 
-$query = $pdo->query("SELECT t.*, pl.nome as nome_plano $base_from $base_where $where_filtro $ordem");
+$query = $pdo->query("SELECT t.*, pl.nome as nome_plano, r.id as id_venda $base_from $base_where $where_filtro $ordem");
 $res = $query->fetchAll(PDO::FETCH_ASSOC);
 $linhas = @count($res);
 
@@ -129,6 +129,7 @@ if ($linhas > 0) {
 HTML;
 
 	for ($i = 0; $i < $linhas; $i++) {
+		$id_romaneio = $res[$i]['id_venda'] ?? '0';
 		$id = $res[$i]['id'];
 		$descricao = $res[$i]['descricao'];
 		$cliente = $res[$i]['cliente'];
@@ -185,7 +186,11 @@ HTML;
     <td class="esc">{$data_pgtoF}</td>
     <td class="esc"><a href="images/contas/{$arquivo}" target="_blank"><img src="images/contas/{$tumb_arquivo}" width="25px"></a></td>
     <td>
-        <big><a href="#" onclick="editar('{$id}','{$descricao}','{$valor}','{$cliente}','{$vencimento}','{$data_pgto}','{$forma_pgto_row}','{$frequencia}','{$obs}','{$arquivo}')" title="Editar Dados"><i class="fa fa-edit text-primary"></i></a></big>
+        <big>
+    <a href="#" onclick="editar('{$id}','{$descricao}','{$valor}','{$cliente}','{$vencimento}','{$data_pgto}','{$forma_pgto_row}','{$frequencia}','{$obs}','{$arquivo}', '{$nome_cliente}', '{$id_romaneio}')" title="Editar Dados">
+        <i class="fa fa-edit text-primary"></i>
+    </a>
+</big>
         <div style="display: inline-block;" class="dropdown">
             <a href="#" data-bs-toggle="dropdown"><i class="fa fa-trash text-danger"></i></a>
             <div class="dropdown-menu">

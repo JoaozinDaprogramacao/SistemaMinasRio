@@ -209,70 +209,74 @@
 
 <div class="modal fade" id="modalBaixar" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header bg-primary text-white">
-                <h4 class="modal-title" id="tituloModal">Baixar Conta: <span id="descricao-baixar"></span></h4>
-                <button id="btn-fechar-baixar" aria-label="Close" class="btn-close" data-bs-dismiss="modal" type="button"><span class="text-white" aria-hidden="true">&times;</span></button>
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-primary text-white py-2">
+                <h5 class="modal-title" id="tituloModal">Baixar Conta: <span id="descricao-baixar" class="fw-light"></span></h5>
+                <button id="btn-fechar-baixar" aria-label="Close" class="btn-close btn-close-white" data-bs-dismiss="modal" type="button"></button>
             </div>
-            <form id="form-baixar" method="post" onsubmit="event.preventDefault(); return false;">
-                <div class="modal-body">
+            <form id="form-baixar" method="post">
+                <div class="modal-body bg-white">
 
-                    <div class="row g-2 mb-3 pb-2 border-bottom">
-                        <div class="col-md-5 mb-2">
-                            <label class="small text-muted fw-bold">CLIENTE</label>
-                            <input type="text" class="form-control form-control-sm bg-light" id="cliente-baixar" readonly>
+                    <div class="row g-2 mb-3 pb-3 border-bottom">
+                        <div class="col-md-5">
+                            <label class="text-uppercase fw-bold text-muted small">Cliente</label>
+                            <input type="text" class="form-control form-control-sm bg-light border-0" id="cliente-baixar" readonly>
                         </div>
-                        <div class="col-md-2 mb-2">
-                            <label class="small text-muted fw-bold">ROMANEIO</label>
-                            <input type="text" class="form-control form-control-sm bg-light" id="romaneio-baixar" readonly>
+                        <div class="col-md-2">
+                            <label class="text-uppercase fw-bold text-muted small">ID Romaneio</label>
+                            <input type="text" class="form-control form-control-sm bg-light border-0" id="romaneio-baixar" readonly>
                         </div>
-                        <div class="col-md-3 mb-2">
-                            <label class="small text-muted fw-bold">VALOR ORIG.</label>
-                            <input type="text" class="form-control form-control-sm bg-light fw-bold text-primary" id="valor-original-baixar" readonly>
+                        <div class="col-md-2">
+                            <label class="text-uppercase fw-bold text-muted small">Valor Título</label>
+                            <input type="text" class="form-control form-control-sm bg-light border-0 fw-bold" id="valor-original-baixar" readonly>
                         </div>
-                        <div class="col-md-2 mb-2">
-                            <label class="small text-muted fw-bold">VENCIMENTO</label>
-                            <input type="text" class="form-control form-control-sm bg-light" id="vencimento-baixar" readonly>
+                        <div class="col-md-3">
+                            <label class="text-uppercase fw-bold text-muted small">Vencimento</label>
+                            <input type="text" class="form-control form-control-sm bg-light border-0" id="vencimento-baixar" readonly>
                         </div>
                     </div>
 
-                    <div class="row g-2 mb-3">
-                        <div class="col-md-6 mb-2">
-                            <label>Valor do Recebimento <small class="text-muted">(Total ou Parcial)</small></label>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-4">
+                            <label class="fw-bold mb-1">Valor Recebido</label>
                             <div class="input-group">
-                                <span class="input-group-text bg-light fw-bold text-muted">R$</span>
-                                <input onkeyup="totalizar()" type="text" class="form-control fw-bold" name="valor-baixar" id="valor-baixar" required>
+                                <span class="input-group-text bg-white text-muted">R$</span>
+                                <input onkeyup="totalizar()" type="text" class="form-control form-control-lg fw-bold" name="valor-baixar" id="valor-baixar" required>
                             </div>
                         </div>
-                        <div class="col-md-6 mb-2">
-                            <label>Data da Baixa</label>
-                            <input type="date" class="form-control" name="data-baixar" id="data-baixar" value="<?php echo date('Y-m-d') ?>">
+                        <div class="col-md-4">
+                            <label class="fw-bold mb-1">Data Baixa</label>
+                            <input type="date" class="form-control form-control-lg" name="data-baixar" id="data-baixar" value="<?php echo date('Y-m-d') ?>">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="fw-bold mb-1 text-primary">Subtotal Líquido</label>
+                            <input type="text" class="form-control form-control-lg fw-bold bg-light border-primary text-primary" name="subtotal" id="subtotal" readonly>
                         </div>
                     </div>
 
-                    <div class="row g-2 mb-3 p-2 bg-light rounded border">
-                        <div class="col-md-3 mb-1">
-                            <label class="small fw-bold">Multa (+ R$)</label>
-                            <input onkeyup="totalizar()" type="text" class="form-control form-control-sm" name="valor-multa" id="valor-multa" placeholder="0.00" value="0">
+                    <div class="row g-2 mb-4 p-3 rounded border bg-light">
+                        <div class="col-md-3">
+                            <label class="small text-muted fw-bold">Multa (+)</label>
+                            <input onkeyup="totalizar()" type="text" class="form-control form-control-sm" name="valor-multa" id="valor-multa" value="0">
                         </div>
-                        <div class="col-md-3 mb-1">
-                            <label class="small fw-bold">Júros (+ R$)</label>
-                            <input onkeyup="totalizar()" type="text" class="form-control form-control-sm" name="valor-juros" id="valor-juros" placeholder="0.00" value="0">
+                        <div class="col-md-3">
+                            <label class="small text-muted fw-bold">Juros (+)</label>
+                            <input onkeyup="totalizar()" type="text" class="form-control form-control-sm" name="valor-juros" id="valor-juros" value="0">
                         </div>
-                        <div class="col-md-3 mb-1">
-                            <label class="small fw-bold">Desconto (- R$)</label>
-                            <input onkeyup="totalizar()" type="text" class="form-control form-control-sm" name="valor-desconto" id="valor-desconto" placeholder="0.00" value="0">
+                        <div class="col-md-3">
+                            <label class="small text-muted fw-bold">Desconto (-)</label>
+                            <input onkeyup="totalizar()" type="text" class="form-control form-control-sm" name="valor-desconto" id="valor-desconto" value="0">
                         </div>
-                        <div class="col-md-3 mb-1">
-                            <label class="small fw-bold text-primary fw-bold">SubTotal (Líquido)</label>
-                            <input type="text" class="form-control form-control-sm fw-bold border-primary text-primary" name="subtotal" id="subtotal" readonly>
+                        <div class="col-md-3">
+                            <label class="small text-muted fw-bold">Taxas (-)</label>
+                            <input onkeyup="totalizar()" type="text" class="form-control form-control-sm" name="valor-taxa" id="valor-taxa" value="0">
                         </div>
                     </div>
 
                     <div class="row g-3">
-                        <div class="col-md-4 mb-2">
-                            <label>Forma PGTO</label>
-                            <select class="form-select" name="saida-baixar" id="saida-baixar" required onchange="calcularTaxa()">
+                        <div class="col-md-4">
+                            <label class="small fw-bold text-secondary">Forma Pagamento</label>
+                            <select class="form-select shadow-sm" name="saida-baixar" id="saida-baixar" required onchange="calcularTaxa()">
                                 <?php
                                 $query = $pdo->query("SELECT * FROM formas_pgto order by id asc");
                                 $res = $query->fetchAll(PDO::FETCH_ASSOC);
@@ -281,9 +285,9 @@
                                 <?php } ?>
                             </select>
                         </div>
-                        <div class="col-md-4 mb-2">
-                            <label>Banco</label>
-                            <select class="form-select" name="banco" id="banco" required onchange="calcularTaxa()">
+                        <div class="col-md-4">
+                            <label class="small fw-bold text-secondary">Banco Destino</label>
+                            <select class="form-select shadow-sm" name="banco" id="banco" required onchange="calcularTaxa()">
                                 <option value="">Selecione...</option>
                                 <?php
                                 $query = $pdo->query("SELECT * FROM bancos order by id asc");
@@ -293,9 +297,9 @@
                                 <?php } ?>
                             </select>
                         </div>
-                        <div class="col-md-4 mb-2">
-                            <label>Classificação (Nº Operação)</label>
-                            <select class="form-select" name="descricao_banco" id="descricao_banco">
+                        <div class="col-md-4">
+                            <label class="small fw-bold text-secondary">Classificação</label>
+                            <select class="form-select shadow-sm" name="descricao_banco" id="descricao_banco">
                                 <option value="">Nenhuma</option>
                                 <?php
                                 $query_class = $pdo->query("SELECT * FROM descricao_banco order by descricao asc");
@@ -307,17 +311,17 @@
                         </div>
                     </div>
 
-                    <div id="mensagem-baixar" align="center" class="mt-3"></div>
                     <input type="hidden" name="id-baixar" id="id-baixar">
 
                 </div>
-                <div class="modal-footer">
-                    <button type="submit" class="btn btn-success px-4 fw-bold">Baixar</button>
+                <div class="modal-footer bg-light border-0">
+                    <button type="submit" class="btn btn-success px-5 fw-bold shadow-sm">Confirmar Baixa</button>
                 </div>
             </form>
         </div>
     </div>
 </div>
+
 <!-- Modal -->
 <div class="modal fade" id="modalResiduos" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
     <div class="modal-dialog">
@@ -571,7 +575,7 @@
                     </small>
                 </div>
                 <div class="modal-footer">
-                    <button id="btn-baixar-modal" type="button" class="btn btn-outline-success" style="display:none;" onclick="baixar_no_editar()" title="Baixar Conta">
+                    <button id="btn-baixar-modal" type="button" class="btn btn-outline-success" style="display:none;" title="Baixar Conta">
                         <i class="fa fa-check-square"></i> Baixar
                     </button>
 

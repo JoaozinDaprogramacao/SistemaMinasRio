@@ -158,24 +158,24 @@ function prepararBaixar(id, valor, descricao, forma_pgto) {
     $('#modalBaixar').modal('show');
 }
 
-function fecharEditarEAbrirBaixar(id, valor, descricao, forma_pgto) {
-    // 1. Fecha o modal de edição
+function fecharEditarEAbrirBaixar(id, valor, descricao, forma_pgto, vencimento, cliente, romaneio) {
     $('#modalForm').modal('hide');
 
-    // 2. Pequeno delay para o Bootstrap processar o fechamento antes de abrir o outro
-    // Isso evita bugs de tela travada
     setTimeout(function () {
-        // Aqui você chama a função que preenche e abre o seu modal de BAIXAR
-        // (Ajuste o nome da função abaixo conforme a que você já usa no seu sistema)
-        prepararBaixar(id, valor, descricao, forma_pgto);
+        // Chama a função baixar que preenche o modal profissional
+        baixar(id, descricao, valor, vencimento, cliente, romaneio);
+        
+        // Seta a forma de pagamento que já estava no editar
+        $('#saida-baixar').val(forma_pgto).change();
     }, 400);
 }
 
-function editar(id, descricao, valor, cliente, vencimento, data_pgto, forma_pgto, frequencia, obs, arquivo) {
-    console.log("Log1: entrou");
+function editar(id, descricao, valor, cliente, vencimento, data_pgto, forma_pgto, frequencia, obs, arquivo, nome_cliente, id_romaneio) {
+    
     $('#mensagem').text('');
     $('#titulo_inserir').text('Editar Registro');
 
+    // Preenchimento padrão dos campos do Editar
     $('#id').val(id);
     $('#descricao').val(descricao);
     $('#valor').val(valor);
@@ -185,25 +185,20 @@ function editar(id, descricao, valor, cliente, vencimento, data_pgto, forma_pgto
     $('#forma_pgto').val(forma_pgto).change();
     $('#frequencia').val(frequencia).change();
     $('#obs').val(obs);
-    console.log("Log2: continuou");
 
     $('#arquivo').val('');
     $('#target').attr('src', 'images/contas/' + arquivo);
 
-    $('#modalForm').modal('show');
-    console.log("Log3: finalizou");
-
+    // --- AQUI ESTÁ A CORREÇÃO DO SEU ERRO ---
+    // Exibe o botão de baixar dentro do editar
     $('#btn-baixar-modal').show();
 
-    // Se o seu botão de baixar precisar dos dados atuais, 
-    // podemos passar para uma função global ou setar um atributo
-    $('#btn-baixar-modal').attr('onclick', `baixar('${id}', '${valor}', '${descricao}', '${forma_pgto}', '0', '0', '0')`);
-
-    $('#btn-baixar-modal').attr('onclick', `fecharEditarEAbrirBaixar('${id}', '${valor}', '${descricao}', '${forma_pgto}')`);
+    // Configuramos o clique do botão para fechar o editar e abrir o baixar com os dados profissionais
+    // Usamos o nome_cliente e id_romaneio que acabamos de receber do PHP
+    $('#btn-baixar-modal').attr('onclick', `fecharEditarEAbrirBaixar('${id}', '${valor}', '${descricao}', '${forma_pgto}', '${vencimento}', '${nome_cliente}', '${id_romaneio}')`);
 
     $('#modalForm').modal('show');
 }
-
 
 function mostrar(descricao, valor, cliente, vencimento, data_pgto, nome_pgto, frequencia, obs, arquivo, multa, juros, desconto, taxa, total, usu_lanc, usu_pgto, pago, arq) {
 
@@ -341,23 +336,25 @@ function parcelar(id, valor, nome) {
 }
 
 
-function baixar(id, valor, descricao, pgto, taxa, multa, juros) {
+function baixar(id, descricao, valor, vencimento, cliente, romaneio) {
+    limparModalBaixar();
+
+    // Preenche os campos de visualização (os novos que criamos)
     $('#id-baixar').val(id);
     $('#descricao-baixar').text(descricao);
+    $('#cliente-baixar').val(cliente);
+    $('#romaneio-baixar').val(romaneio);
+    $('#valor-original-baixar').val(valor);
+    $('#vencimento-baixar').val(vencimento);
+
+    // Preenche os campos de input de valores
     $('#valor-baixar').val(valor);
-    $('#saida-baixar').val(pgto).change();
-    $('#subtotal').val(valor);
 
-
-    $('#valor-juros').val(juros);
-    $('#valor-desconto').val('');
-    $('#valor-multa').val(multa);
-    $('#valor-taxa').val(taxa);
-
-    totalizar()
-
+    // Abre o modal
     $('#modalBaixar').modal('show');
-    $('#mensagem-baixar').text('');
+
+    // Executa o cálculo inicial
+    totalizar();
 }
 
 
