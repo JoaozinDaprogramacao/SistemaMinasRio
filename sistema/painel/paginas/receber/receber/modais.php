@@ -295,19 +295,19 @@
                     <div class="row g-2 mb-3 p-3 rounded border bg-light">
                         <div class="col-md-3">
                             <label class="small text-muted fw-bold text-uppercase">Multa (+)</label>
-                            <input onkeyup="totalizar()" type="text" class="form-control form-control-sm" name="valor-multa" id="valor-multa" value="0">
+                            <input onkeyup="totalizar()" type="text" class="form-control form-control-sm input-zeravel" name="valor-multa" id="valor-multa" value="0">
                         </div>
                         <div class="col-md-3">
                             <label class="small text-muted fw-bold text-uppercase">Juros (+)</label>
-                            <input onkeyup="totalizar()" type="text" class="form-control form-control-sm" name="valor-juros" id="valor-juros" value="0">
+                            <input onkeyup="totalizar()" type="text" class="form-control form-control-sm input-zeravel" name="valor-juros" id="valor-juros" value="0">
                         </div>
                         <div class="col-md-3">
                             <label class="small text-muted fw-bold text-uppercase">Desconto (-)</label>
-                            <input onkeyup="totalizar()" type="text" class="form-control form-control-sm" name="valor-desconto" id="valor-desconto" value="0">
+                            <input onkeyup="totalizar()" type="text" class="form-control form-control-sm input-zeravel" name="valor-desconto" id="valor-desconto" value="0">
                         </div>
                         <div class="col-md-3">
                             <label class="small text-muted fw-bold text-uppercase">Taxas (-)</label>
-                            <input onkeyup="totalizar()" type="text" class="form-control form-control-sm" name="valor-taxa" id="valor-taxa" value="0">
+                            <input onkeyup="totalizar()" type="text" class="form-control form-control-sm input-zeravel" name="valor-taxa" id="valor-taxa" value="0">
                         </div>
                     </div>
 

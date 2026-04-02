@@ -1,4 +1,18 @@
 $(document).ready(function () {
+    // Limpa o valor se for 0 ao ganhar foco
+    $(document).on('focus', '.input-zeravel', function () {
+        if ($(this).val() == '0') {
+            $(this).val('');
+        }
+    });
+
+    // Se o usuário sair do campo e não digitar nada, volta o 0 (para não quebrar o cálculo)
+    $(document).on('blur', '.input-zeravel', function () {
+        if ($(this).val().trim() == '') {
+            $(this).val('0');
+            totalizar(); // Garante que o subtotal atualize
+        }
+    });
     $('#modalBaixar').on('hidden.bs.modal', function () {
         limparModalBaixar();
     });
