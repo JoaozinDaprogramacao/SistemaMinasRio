@@ -279,16 +279,8 @@
                             </select>
                         </div>
                         <div class="col-md-4">
-                            <label class="small fw-bold text-secondary text-uppercase">Classificação</label>
-                            <select class="form-select shadow-sm" name="descricao_banco" id="descricao_banco">
-                                <option value="">Nenhuma</option>
-                                <?php
-                                $query_class = $pdo->query("SELECT * FROM descricao_banco order by descricao asc");
-                                $res_class = $query_class->fetchAll(PDO::FETCH_ASSOC);
-                                for ($i = 0; $i < @count($res_class); $i++) { ?>
-                                    <option value="<?php echo $res_class[$i]['id'] ?>"><?php echo $res_class[$i]['descricao'] ?></option>
-                                <?php } ?>
-                            </select>
+                            <label class="small fw-bold text-secondary text-uppercase">Descrição/Obs Baixa</label>
+                            <input type="text" class="form-control shadow-sm" name="descricao_banco" id="descricao_banco" placeholder="Ex: Pagamento via Pix">
                         </div>
                     </div>
 

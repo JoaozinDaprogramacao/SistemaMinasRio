@@ -159,8 +159,9 @@ HTML;
 			$valor_finalF = number_format($valor, 2, ',', '.');
 		}
 
-		$sql_cli = $pdo->query("SELECT nome FROM clientes where id = '$cliente'")->fetch(PDO::FETCH_ASSOC);
+		$sql_cli = $pdo->query("SELECT nome, forma_pagamento FROM clientes where id = '$cliente'")->fetch(PDO::FETCH_ASSOC);
 		$nome_cliente = $sql_cli['nome'] ?? 'Sem Registro';
+		$pgto_padrao = $sql_cli['forma_pagamento'] ?? ''; // Pega o padrão do cadastro
 
 		$sql_f = $pdo->query("SELECT nome, taxa FROM formas_pgto where id = '$forma_pgto_row'")->fetch(PDO::FETCH_ASSOC);
 		$taxa_pgto = $sql_f['taxa'] ?? 0;
@@ -186,8 +187,8 @@ HTML;
     <td class="esc">{$data_pgtoF}</td>
     <td class="esc"><a href="images/contas/{$arquivo}" target="_blank"><img src="images/contas/{$tumb_arquivo}" width="25px"></a></td>
     <td>
-        <big>
-    <a href="#" onclick="editar('{$id}','{$descricao}','{$valor}','{$cliente}','{$vencimento}','{$data_pgto}','{$forma_pgto_row}','{$frequencia}','{$obs}','{$arquivo}', '{$nome_cliente}', '{$id_romaneio}')" title="Editar Dados">
+<big>
+    <a href="#" onclick="editar('{$id}','{$descricao}','{$valor}','{$cliente}','{$vencimento}','{$data_pgto}','{$forma_pgto_row}','{$frequencia}','{$obs}','{$arquivo}', '{$nome_cliente}', '{$id_romaneio}', '{$pgto_padrao}')" title="Editar Dados">
         <i class="fa fa-edit text-primary"></i>
     </a>
 </big>

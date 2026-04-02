@@ -172,24 +172,22 @@ function prepararBaixar(id, valor, descricao, forma_pgto) {
     $('#modalBaixar').modal('show');
 }
 
-function fecharEditarEAbrirBaixar(id, valor, descricao, forma_pgto, vencimento, cliente, romaneio) {
+function fecharEditarEAbrirBaixar(id, valor, descricao, forma_pgto_padrao, vencimento, cliente, romaneio) {
     $('#modalForm').modal('hide');
 
     setTimeout(function () {
-        // Chama a função baixar que preenche o modal profissional
-        baixar(id, descricao, valor, vencimento, cliente, romaneio);
-
-        // Seta a forma de pagamento que já estava no editar
-        $('#saida-baixar').val(forma_pgto).change();
+        // Passamos a forma_padrao como o último argumento
+        baixar(id, descricao, valor, vencimento, cliente, romaneio, forma_pgto_padrao);
     }, 400);
 }
 
-function editar(id, descricao, valor, cliente, vencimento, data_pgto, forma_pgto, frequencia, obs, arquivo, nome_cliente, id_romaneio) {
+// Adicione 'forma_padrao' como último parâmetro
+function editar(id, descricao, valor, cliente, vencimento, data_pgto, forma_pgto, frequencia, obs, arquivo, nome_cliente, id_romaneio, forma_padrao) {
 
     $('#mensagem').text('');
     $('#titulo_inserir').text('Editar Registro');
 
-    // Preenchimento padrão dos campos do Editar
+    // Preenchimento dos campos (já existente no seu código)
     $('#id').val(id);
     $('#descricao').val(descricao);
     $('#valor').val(valor);
@@ -199,17 +197,12 @@ function editar(id, descricao, valor, cliente, vencimento, data_pgto, forma_pgto
     $('#forma_pgto').val(forma_pgto).change();
     $('#frequencia').val(frequencia).change();
     $('#obs').val(obs);
-
-    $('#arquivo').val('');
     $('#target').attr('src', 'images/contas/' + arquivo);
 
-    // --- AQUI ESTÁ A CORREÇÃO DO SEU ERRO ---
-    // Exibe o botão de baixar dentro do editar
     $('#btn-baixar-modal').show();
 
-    // Configuramos o clique do botão para fechar o editar e abrir o baixar com os dados profissionais
-    // Usamos o nome_cliente e id_romaneio que acabamos de receber do PHP
-    $('#btn-baixar-modal').attr('onclick', `fecharEditarEAbrirBaixar('${id}', '${valor}', '${descricao}', '${forma_pgto}', '${vencimento}', '${nome_cliente}', '${id_romaneio}')`);
+    // AQUI A MUDANÇA: Passamos a forma_padrao para a função de fechar e abrir baixar
+    $('#btn-baixar-modal').attr('onclick', `fecharEditarEAbrirBaixar('${id}', '${valor}', '${descricao}', '${forma_padrao}', '${vencimento}', '${nome_cliente}', '${id_romaneio}')`);
 
     $('#modalForm').modal('show');
 }
@@ -350,27 +343,33 @@ function parcelar(id, valor, nome) {
 }
 
 
-function baixar(id, descricao, valor, vencimento, cliente, romaneio) {
+// Adicionei o parâmetro 'forma_padrao' no final
+function baixar(id, descricao, valor, vencimento, cliente, romaneio, forma_padrao) {
     limparModalBaixar();
 
-    // Preenche os campos de visualização (os novos que criamos)
     $('#id-baixar').val(id);
     $('#descricao-baixar').text(descricao);
     $('#cliente-baixar').val(cliente);
     $('#romaneio-baixar').val(romaneio);
     $('#valor-original-baixar').val(valor);
     $('#vencimento-baixar').val(vencimento);
-
-    // Preenche os campos de input de valores
     $('#valor-baixar').val(valor);
 
-    // Abre o modal
+    // Se o cliente tiver forma de pagamento padrão, seleciona ela
+    if (forma_padrao != "" && forma_padrao != "0" && forma_padrao != null) {
+        $('#saida-baixar').val(forma_padrao).change();
+    } else {
+        // Fallback: se não tiver padrão, você pode definir um ID fixo (ex: 1 para Dinheiro)
+        $('#saida-baixar').val('1').change();
+    }
+
     $('#modalBaixar').modal('show');
 
-    // Executa o cálculo inicial
-    totalizar();
+    // Pequeno delay para garantir que o modal abriu antes de totalizar
+    setTimeout(function () {
+        totalizar();
+    }, 200);
 }
-
 
 function mostrarResiduos(id) {
 
@@ -493,10 +492,14 @@ function limparModalBaixar() {
     $('#valor-multa').val('0');
     $('#valor-juros').val('0');
     $('#valor-desconto').val('0');
-    $('#valor-taxa').val('');
+    $('#valor-taxa').val('0');
     $('#subtotal').val('');
     $('#mensagem-baixar').text('');
-    // Resetar o select de banco se houver
+
+    // Limpa o texto da descrição
+    $('#descricao_banco').val('');
+
+    // Mantém o reset do banco se ele ainda for select
     $('#banco').val('').change();
 }
 
