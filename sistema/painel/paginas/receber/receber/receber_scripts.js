@@ -540,15 +540,24 @@ function totalizar() {
 function calcularTaxa() {
     var pgto = $('#saida-baixar').val();
     var valor = $('#valor-baixar').val();
-    $.ajax({
-        url: 'paginas/' + pag + "/calcular_taxa.php",
-        method: 'POST',
-        data: { valor, pgto },
-        success: function (result) {
-            $('#valor-taxa').val(result);
-            totalizar();
-        }
-    });
+
+    // Só dispara o AJAX se tivermos os dois dados
+    if (pgto != "" && valor != "") {
+        $.ajax({
+            url: 'paginas/' + pag + "/calcular_taxa.php",
+            method: 'POST',
+            data: { valor, pgto },
+            success: function (result) {
+                // Remove qualquer espaço ou quebra de linha que o PHP possa enviar
+                var taxaLimpa = result.trim();
+                $('#valor-taxa').val(taxaLimpa);
+                totalizar();
+            }
+        });
+    } else {
+        $('#valor-taxa').val(0);
+        totalizar();
+    }
 }
 
 function marcarTodos() {
