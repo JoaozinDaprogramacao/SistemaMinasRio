@@ -207,171 +207,117 @@
     </div>
 </div>
 
-
-
-
-
-
-<!-- Modal -->
 <div class="modal fade" id="modalBaixar" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header bg-primary text-white">
-                <h4 class="modal-title" id="tituloModal">Baixar Conta: <span id="descricao-baixar"> </span></h4>
+                <h4 class="modal-title" id="tituloModal">Baixar Conta: <span id="descricao-baixar"></span></h4>
                 <button id="btn-fechar-baixar" aria-label="Close" class="btn-close" data-bs-dismiss="modal" type="button"><span class="text-white" aria-hidden="true">&times;</span></button>
             </div>
             <form id="form-baixar" method="post" onsubmit="event.preventDefault(); return false;">
                 <div class="modal-body">
 
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label>Valor <small class="text-muted">(Total ou Parcial)</small></label>
-                                <input onkeyup="totalizar()" type="text" class="form-control" name="valor-baixar" id="valor-baixar" required>
-                            </div>
+                    <div class="row g-2 mb-3 pb-2 border-bottom">
+                        <div class="col-md-5 mb-2">
+                            <label class="small text-muted fw-bold">CLIENTE</label>
+                            <input type="text" class="form-control form-control-sm bg-light" id="cliente-baixar" readonly>
                         </div>
-
-
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label>Forma PGTO</label>
-                                <select class="form-select" name="saida-baixar" id="saida-baixar" required onchange="calcularTaxa()">
-                                    <?php
-                                    $query = $pdo->query("SELECT * FROM formas_pgto order by id asc");
-                                    $res = $query->fetchAll(PDO::FETCH_ASSOC);
-                                    for ($i = 0; $i < @count($res); $i++) {
-                                        foreach ($res[$i] as $key => $value) {
-                                        }
-
-                                    ?>
-                                        <option value="<?php echo $res[$i]['id'] ?>"><?php echo $res[$i]['nome'] ?></option>
-
-                                    <?php } ?>
-
-                                </select>
-                            </div>
+                        <div class="col-md-2 mb-2">
+                            <label class="small text-muted fw-bold">ROMANEIO</label>
+                            <input type="text" class="form-control form-control-sm bg-light" id="romaneio-baixar" readonly>
                         </div>
-
-                    </div>
-
-
-                    <div class="row">
-
-
-                        <div class="col-md-3">
-                            <div class="mb-3">
-                                <label>Multa em R$</label>
-                                <input onkeyup="totalizar()" type="text" class="form-control" name="valor-multa" id="valor-multa" placeholder="Ex 15.00" value="0">
-                            </div>
+                        <div class="col-md-3 mb-2">
+                            <label class="small text-muted fw-bold">VALOR ORIG.</label>
+                            <input type="text" class="form-control form-control-sm bg-light fw-bold text-primary" id="valor-original-baixar" readonly>
                         </div>
-
-                        <div class="col-md-3">
-                            <div class="mb-3">
-                                <label>Júros em R$</label>
-                                <input onkeyup="totalizar()" type="text" class="form-control" name="valor-juros" id="valor-juros" placeholder="Ex 0.15" value="0">
-                            </div>
-                        </div>
-
-                        <div class="col-md-3">
-                            <div class="mb-3">
-                                <label>Desconto R$</label>
-                                <input onkeyup="totalizar()" type="text" class="form-control" name="valor-desconto" id="valor-desconto" placeholder="Ex 15.00" value="0">
-                            </div>
-                        </div>
-
-
-
-                        <div class="col-md-3">
-                            <div class="mb-3">
-                                <label>Taxa PGTO</label>
-                                <input onkeyup="totalizar()" type="text" class="form-control" name="valor-taxa" id="valor-taxa" placeholder="" value="">
-                            </div>
-                        </div>
-
-                    </div>
-
-
-                    <div class="row">
-
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label>Data da Baixa</label>
-                                <input type="date" class="form-control" name="data-baixar" id="data-baixar" value="<?php echo date('Y-m-d') ?>">
-                            </div>
-                        </div>
-
-
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label>SubTotal</label>
-                                <input type="text" class="form-control" name="subtotal" id="subtotal" readonly>
-                            </div>
+                        <div class="col-md-2 mb-2">
+                            <label class="small text-muted fw-bold">VENCIMENTO</label>
+                            <input type="text" class="form-control form-control-sm bg-light" id="vencimento-baixar" readonly>
                         </div>
                     </div>
 
-                    <div class="row">
-
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label>Banco</label>
-                                <select class="form-select" name="banco" id="banco" required onchange="calcularTaxa()">
-                                    <option value="">Selecione</option>
-                                    <?php
-                                    $query = $pdo->query("SELECT * FROM bancos order by id asc");
-                                    $res = $query->fetchAll(PDO::FETCH_ASSOC);
-                                    for ($i = 0; $i < @count($res); $i++) {
-                                        foreach ($res[$i] as $key => $value) {
-                                        }
-
-                                    ?>
-                                        <option value="<?php echo $res[$i]['id'] ?>"><?php echo $res[$i]['banco'] ?></option>
-
-                                    <?php } ?>
-
-                                </select>
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-6 mb-2">
+                            <label>Valor do Recebimento <small class="text-muted">(Total ou Parcial)</small></label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light fw-bold text-muted">R$</span>
+                                <input onkeyup="totalizar()" type="text" class="form-control fw-bold" name="valor-baixar" id="valor-baixar" required>
                             </div>
-
                         </div>
                         <div class="col-md-6 mb-2">
-                            <label>Descrição (Banco)</label>
-                            <select class="form-select" name="descricao_banco" id="descricao_banco">
-                                <option value="">Selecione a Classificação</option>
+                            <label>Data da Baixa</label>
+                            <input type="date" class="form-control" name="data-baixar" id="data-baixar" value="<?php echo date('Y-m-d') ?>">
+                        </div>
+                    </div>
+
+                    <div class="row g-2 mb-3 p-2 bg-light rounded border">
+                        <div class="col-md-3 mb-1">
+                            <label class="small fw-bold">Multa (+ R$)</label>
+                            <input onkeyup="totalizar()" type="text" class="form-control form-control-sm" name="valor-multa" id="valor-multa" placeholder="0.00" value="0">
+                        </div>
+                        <div class="col-md-3 mb-1">
+                            <label class="small fw-bold">Júros (+ R$)</label>
+                            <input onkeyup="totalizar()" type="text" class="form-control form-control-sm" name="valor-juros" id="valor-juros" placeholder="0.00" value="0">
+                        </div>
+                        <div class="col-md-3 mb-1">
+                            <label class="small fw-bold">Desconto (- R$)</label>
+                            <input onkeyup="totalizar()" type="text" class="form-control form-control-sm" name="valor-desconto" id="valor-desconto" placeholder="0.00" value="0">
+                        </div>
+                        <div class="col-md-3 mb-1">
+                            <label class="small fw-bold text-primary fw-bold">SubTotal (Líquido)</label>
+                            <input type="text" class="form-control form-control-sm fw-bold border-primary text-primary" name="subtotal" id="subtotal" readonly>
+                        </div>
+                    </div>
+
+                    <div class="row g-3">
+                        <div class="col-md-4 mb-2">
+                            <label>Forma PGTO</label>
+                            <select class="form-select" name="saida-baixar" id="saida-baixar" required onchange="calcularTaxa()">
                                 <?php
-                                // Correção: Removido o ponto e vírgula antes do "order by"
+                                $query = $pdo->query("SELECT * FROM formas_pgto order by id asc");
+                                $res = $query->fetchAll(PDO::FETCH_ASSOC);
+                                for ($i = 0; $i < @count($res); $i++) { ?>
+                                    <option value="<?php echo $res[$i]['id'] ?>"><?php echo $res[$i]['nome'] ?></option>
+                                <?php } ?>
+                            </select>
+                        </div>
+                        <div class="col-md-4 mb-2">
+                            <label>Banco</label>
+                            <select class="form-select" name="banco" id="banco" required onchange="calcularTaxa()">
+                                <option value="">Selecione...</option>
+                                <?php
+                                $query = $pdo->query("SELECT * FROM bancos order by id asc");
+                                $res = $query->fetchAll(PDO::FETCH_ASSOC);
+                                for ($i = 0; $i < @count($res); $i++) { ?>
+                                    <option value="<?php echo $res[$i]['id'] ?>"><?php echo $res[$i]['banco'] ?></option>
+                                <?php } ?>
+                            </select>
+                        </div>
+                        <div class="col-md-4 mb-2">
+                            <label>Classificação (Nº Operação)</label>
+                            <select class="form-select" name="descricao_banco" id="descricao_banco">
+                                <option value="">Nenhuma</option>
+                                <?php
                                 $query_class = $pdo->query("SELECT * FROM descricao_banco order by descricao asc");
                                 $res_class = $query_class->fetchAll(PDO::FETCH_ASSOC);
-                                for ($i = 0; $i < @count($res_class); $i++) {
-                                ?>
-                                    <option value="<?php echo $res_class[$i]['id'] ?>">
-                                        <?php echo $res_class[$i]['descricao'] ?>
-                                    </option>
+                                for ($i = 0; $i < @count($res_class); $i++) { ?>
+                                    <option value="<?php echo $res_class[$i]['id'] ?>"><?php echo $res_class[$i]['descricao'] ?></option>
                                 <?php } ?>
                             </select>
                         </div>
                     </div>
 
-
-
-
-                    <small>
-                        <div id="mensagem-baixar" align="center"></div>
-                    </small>
-
-                    <input type="hidden" class="form-control" name="id-baixar" id="id-baixar">
-
+                    <div id="mensagem-baixar" align="center" class="mt-3"></div>
+                    <input type="hidden" name="id-baixar" id="id-baixar">
 
                 </div>
                 <div class="modal-footer">
-                    <button type="submit" class="btn btn-success">Baixar</button>
+                    <button type="submit" class="btn btn-success px-4 fw-bold">Baixar</button>
                 </div>
             </form>
         </div>
     </div>
 </div>
-
-
-
-
 <!-- Modal -->
 <div class="modal fade" id="modalResiduos" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
     <div class="modal-dialog">
