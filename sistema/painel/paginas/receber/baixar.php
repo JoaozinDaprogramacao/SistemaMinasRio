@@ -145,7 +145,7 @@ if ($valor == $valor_antigo) {
 
         $valor_antigo = $valor_antigo - ($subtotal - $taxa - $multa - $juros);
 
-        $pdo->query("INSERT INTO receber set 
+$pdo->query("INSERT INTO receber set 
         id_ref = '$id', 
         referencia = '$referencia', 
         valor = '$valor_padrao', 
@@ -169,7 +169,8 @@ if ($valor == $valor_antigo) {
         caixa = '$id_caixa', 
         hora = curTime()");
 
-        $pdo->query("UPDATE $tabela set forma_pgto = '$saida', usuario_pgto = '$id_usuario', valor = '$valor_antigo', data_pgto = '$data_baixar' where id = '$id'");
+        // CORREÇÃO AQUI: Removido o data_pgto = '$data_baixar'
+        $pdo->query("UPDATE $tabela set forma_pgto = '$saida', usuario_pgto = '$id_usuario', valor = '$valor_antigo' where id = '$id'");
 }
 
 echo 'Baixado com Sucesso';
