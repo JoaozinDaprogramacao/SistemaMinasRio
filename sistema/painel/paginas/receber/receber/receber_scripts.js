@@ -201,8 +201,9 @@ function editar(id, descricao, valor, cliente, vencimento, data_pgto, forma_pgto
 
     $('#btn-baixar-modal').show();
 
-    // AQUI A MUDANÇA: Passamos a forma_padrao para a função de fechar e abrir baixar
-    $('#btn-baixar-modal').attr('onclick', `fecharEditarEAbrirBaixar('${id}', '${valor}', '${descricao}', '${forma_padrao}', '${vencimento}', '${nome_cliente}', '${id_romaneio}')`);
+    // AQUI A MUDANÇA: Ordem dos parâmetros alinhada com a função baixar()
+    // Ordem: id, descricao, valor, vencimento, cliente, romaneio, forma_padrao
+    $('#btn-baixar-modal').attr('onclick', `fecharEditarEAbrirBaixar('${id}', '${descricao}', '${valor}', '${vencimento}', '${nome_cliente}', '${id_romaneio}', '${forma_padrao}')`);
 
     $('#modalForm').modal('show');
 }
@@ -359,7 +360,7 @@ function baixar(id, descricao, valor, vencimento, cliente, romaneio, forma_padra
     if (forma_padrao != "" && forma_padrao != "0" && forma_padrao != null) {
         $('#saida-baixar').val(forma_padrao).change();
     } else {
-        // Fallback: se não tiver padrão, você pode definir um ID fixo (ex: 1 para Dinheiro)
+        // Fallback: se não tiver padrão
         $('#saida-baixar').val('1').change();
     }
 
@@ -492,17 +493,17 @@ function limparModalBaixar() {
     $('#valor-multa').val('0');
     $('#valor-juros').val('0');
     $('#valor-desconto').val('0');
-    $('#valor-taxa').val('0');
+    $('#valor-acrescimo').val('0'); // Atualizado: substituiu o valor-taxa
     $('#subtotal').val('');
     $('#mensagem-baixar').text('');
 
-    // Limpa o texto da descrição
-    $('#descricao_banco').val('');
+    // Limpa os campos de texto/dados da transação
+    $('#numero_operacao').val(''); // Atualizado: substituiu o descricao_banco
+    $('#obs-baixar').val('');      // Novo: limpa o campo de observações (textarea)
 
-    // Mantém o reset do banco se ele ainda for select
+    // Mantém o reset do banco
     $('#banco').val('').change();
 }
-
 $("#form-parcelar").submit(function (e) {
     e.preventDefault();
     var formData = new FormData(this);
@@ -525,35 +526,18 @@ $("#form-parcelar").submit(function (e) {
 });
 
 function totalizar() {
-    // Pegamos os valores e forçamos a limpeza (replace de vírgula por ponto)
-    // O "|| 0" garante que se o campo estiver vazio, ele use zero em vez de undefined
-    var valor = ($('#valor-baixar').val() || "0").replace(",", ".");
-    var multa = ($('#valor-multa').val() || "0").replace(",", ".");
-    var juros = ($('#valor-juros').val() || "0").replace(",", ".");
-    var desconto = ($('#valor-desconto').val() || "0").replace(",", ".");
-    var taxa = ($('#valor-taxa').val() || "0").replace(",", ".");
+    let valor = parseFloat($('#valor-baixar').val().replace(',', '.')) || 0;
+    let multa = parseFloat($('#valor-multa').val().replace(',', '.')) || 0;
+    let juros = parseFloat($('#valor-juros').val().replace(',', '.')) || 0;
+    let acrescimo = parseFloat($('#valor-acrescimo').val().replace(',', '.')) || 0; // Somando Acréscimo
+    let desconto = parseFloat($('#valor-desconto').val().replace(',', '.')) || 0;
 
-    // Convertemos para Float (número real)
-    var v = parseFloat(valor);
-    var m = parseFloat(multa);
-    var j = parseFloat(juros);
-    var d = parseFloat(desconto);
-    var t = parseFloat(taxa);
+    // SOMA TUDO e SUBTRAI apenas o desconto
+    let subtotal = (valor + multa + juros + acrescimo) - desconto;
 
-    // Verificamos se algum deles falhou na conversão (virou NaN) e resetamos para 0
-    if (isNaN(v)) v = 0;
-    if (isNaN(m)) m = 0;
-    if (isNaN(j)) j = 0;
-    if (isNaN(d)) d = 0;
-    if (isNaN(t)) t = 0;
-
-    // Fazemos a conta: Valor + Multa + Juros + Taxa - Desconto
-    var subtotal = v + m + j + t - d;
-
-    // Exibimos o resultado com 2 casas decimais
+    // Formata para preencher o input do subtotal (2 casas decimais)
     $('#subtotal').val(subtotal.toFixed(2));
 }
-
 function calcularTaxa() {
     var pgto = $('#saida-baixar').val();
     var valor = $('#valor-baixar').val();

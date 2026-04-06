@@ -257,7 +257,7 @@
                     <div class="row g-3 mb-4">
                         <div class="col-md-4">
                             <label class="small fw-bold text-secondary text-uppercase">Forma Pagamento</label>
-                            <select class="form-select shadow-sm" name="saida-baixar" id="saida-baixar" required onchange="calcularTaxa()">
+                            <select class="form-select shadow-sm" name="saida-baixar" id="saida-baixar" required>
                                 <?php
                                 $query = $pdo->query("SELECT * FROM formas_pgto order by id asc");
                                 $res = $query->fetchAll(PDO::FETCH_ASSOC);
@@ -268,7 +268,7 @@
                         </div>
                         <div class="col-md-4">
                             <label class="small fw-bold text-secondary text-uppercase">Banco Destino</label>
-                            <select class="form-select shadow-sm" name="banco" id="banco" required onchange="calcularTaxa()">
+                            <select class="form-select shadow-sm" name="banco" id="banco" required>
                                 <option value="">Selecione...</option>
                                 <?php
                                 $query = $pdo->query("SELECT * FROM bancos order by id asc");
@@ -279,12 +279,12 @@
                             </select>
                         </div>
                         <div class="col-md-4">
-                            <label class="small fw-bold text-secondary text-uppercase">Descrição/Obs Baixa</label>
-                            <input type="text" class="form-control shadow-sm" name="descricao_banco" id="descricao_banco" placeholder="Ex: Pagamento via Pix">
+                            <label class="small fw-bold text-secondary text-uppercase">N° da Operação</label>
+                            <input type="text" class="form-control shadow-sm" name="numero_operacao" id="numero_operacao" placeholder="Cód. Autenticação / DOC">
                         </div>
                     </div>
 
-                    <div class="row g-2 mb-3 p-3 rounded border bg-light">
+                    <div class="row g-2 mb-4 p-3 rounded border bg-light">
                         <div class="col-md-3">
                             <label class="small text-muted fw-bold text-uppercase">Multa (+)</label>
                             <input onkeyup="totalizar()" type="text" class="form-control form-control-sm input-zeravel" name="valor-multa" id="valor-multa" value="0">
@@ -294,12 +294,19 @@
                             <input onkeyup="totalizar()" type="text" class="form-control form-control-sm input-zeravel" name="valor-juros" id="valor-juros" value="0">
                         </div>
                         <div class="col-md-3">
+                            <label class="small text-muted fw-bold text-uppercase">Acréscimo (+)</label>
+                            <input onkeyup="totalizar()" type="text" class="form-control form-control-sm input-zeravel" name="valor-acrescimo" id="valor-acrescimo" value="0">
+                        </div>
+                        <div class="col-md-3">
                             <label class="small text-muted fw-bold text-uppercase">Desconto (-)</label>
                             <input onkeyup="totalizar()" type="text" class="form-control form-control-sm input-zeravel" name="valor-desconto" id="valor-desconto" value="0">
                         </div>
-                        <div class="col-md-3">
-                            <label class="small text-muted fw-bold text-uppercase">Taxas (-)</label>
-                            <input onkeyup="totalizar()" type="text" class="form-control form-control-sm input-zeravel" name="valor-taxa" id="valor-taxa" value="0">
+                    </div>
+
+                    <div class="row g-2">
+                        <div class="col-md-12">
+                            <label class="small fw-bold text-secondary text-uppercase">Observações da Baixa</label>
+                            <textarea class="form-control shadow-sm" name="obs-baixar" id="obs-baixar" rows="2" placeholder="Informações adicionais sobre o recebimento..."></textarea>
                         </div>
                     </div>
 
