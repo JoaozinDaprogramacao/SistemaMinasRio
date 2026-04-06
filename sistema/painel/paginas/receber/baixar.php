@@ -9,7 +9,7 @@ $id_usuario = $_SESSION['id'];
 
 $id = $_POST['id-baixar'];
 $banco = $_POST['banco'];
-$descricao_banco = $_POST['descricao_banco'] ?? ""; // Troque o 0 por "" (vazio)
+$descricao_banco = $_POST['descricao_banco'] ?? "";
 $data_baixar = $_POST['data-baixar'];
 
 $valor = $_POST['valor-baixar'];
@@ -55,6 +55,7 @@ $frequencia = $res[0]['frequencia'];
 $saida_antiga = $res[0]['forma_pgto'];
 $arquivo = $res[0]['arquivo'];
 $referencia = $res[0]['referencia'];
+$data_lanc_antiga = $res[0]['data_lanc'];
 
 if ($cliente == "") {
         $cliente = 0;
@@ -86,33 +87,33 @@ $id_caixa = (@count($res1) > 0) ? $res1[0]['id'] : 0;
 
 if ($valor == $valor_antigo) {
         $pdo->query("INSERT INTO linha_bancos SET 
-        descricao = '$descricao_banco',
-        id_banco = '$banco',
-        data = '$data_baixar',
-        remetente = '$id_usuario',
-        n_fiscal = '',
-        classificacao = 1,
-        mes_ref = MONTH('$data_baixar'),
-        credito = '$subtotal',
-        debito = '0',
-        saldo = (SELECT saldo FROM bancos WHERE id = '$banco') + '$subtotal',
-        status = 'Confirmado'");
+    descricao = '$descricao_banco',
+    id_banco = '$banco',
+    data = '$data_baixar',
+    remetente = '$id_usuario',
+    n_fiscal = '',
+    classificacao = 1,
+    mes_ref = MONTH('$data_baixar'),
+    credito = '$subtotal',
+    debito = '0',
+    saldo = (SELECT saldo FROM bancos WHERE id = '$banco') + '$subtotal',
+    status = 'Confirmado'");
 
         $pdo->query("UPDATE bancos SET saldo = saldo + $subtotal WHERE id = '$banco'");
 
         $pdo->query("UPDATE $tabela set forma_pgto = '$saida', 
-        usuario_pgto = '$id_usuario', 
-        pago = 'Sim', 
-        subtotal = '$subtotal', 
-        taxa = '$taxa', 
-        juros = '$juros', 
-        multa = '$multa', 
-        desconto = '$desconto', 
-        data_pgto = '$data_baixar', 
-        banco = '$banco',
-        caixa = '$id_caixa', 
-        hora = curTime() 
-        where id = '$id'");
+    usuario_pgto = '$id_usuario', 
+    pago = 'Sim', 
+    subtotal = '$subtotal', 
+    taxa = '$taxa', 
+    juros = '$juros', 
+    multa = '$multa', 
+    desconto = '$desconto', 
+    data_pgto = '$data_baixar', 
+    banco = '$banco',
+    caixa = '$id_caixa', 
+    hora = curTime() 
+    where id = '$id'");
 
         $dias_frequencia = $frequencia;
         if ($dias_frequencia == 30 || $dias_frequencia == 31) {
@@ -128,48 +129,47 @@ if ($valor == $valor_antigo) {
         }
 
         if (@$dias_frequencia > 0) {
-                $pdo->query("INSERT INTO $tabela set descricao = '$descricao', cliente = '$cliente', valor = '$valor_antigo', data_lanc = '$data_baixar', vencimento = '$nova_data_vencimento', frequencia = '$frequencia', forma_pgto = '$saida_antiga', arquivo = '$arquivo', pago = 'Não', referencia = '$referencia', usuario_lanc = '$id_usuario', caixa = '$id_caixa', hora = curTime()");
+                $pdo->query("INSERT INTO $tabela set descricao = '$descricao', cliente = '$cliente', valor = '$valor_antigo', data_lanc = '$data_lanc_antiga', vencimento = '$nova_data_vencimento', frequencia = '$frequencia', forma_pgto = '$saida_antiga', arquivo = '$arquivo', pago = 'Não', referencia = '$referencia', usuario_lanc = '$id_usuario', caixa = '$id_caixa', hora = curTime()");
         }
 } else {
         $descricao = '(Resíduo) ' . $descricao;
 
         $pdo->query("INSERT INTO linha_bancos SET 
-        descricao = '$descricao_banco',
-        id_banco = '$banco',
-        data = '$data_baixar', 
-        credito = '$valor_padrao',
-        debito = '0',
-        remetente = '$id_usuario'");
+    descricao = '$descricao_banco',
+    id_banco = '$banco',
+    data = '$data_baixar', 
+    credito = '$valor_padrao',
+    debito = '0',
+    remetente = '$id_usuario'");
 
         $pdo->query("UPDATE bancos SET saldo = saldo + $valor_padrao WHERE id = '$banco'");
 
         $valor_antigo = $valor_antigo - ($subtotal - $taxa - $multa - $juros);
 
-$pdo->query("INSERT INTO receber set 
-        id_ref = '$id', 
-        referencia = '$referencia', 
-        valor = '$valor_padrao', 
-        data_pgto = '$data_baixar', 
-        vencimento = '$data_baixar', 
-        data_lanc = '$data_baixar', 
-        descricao = '$descricao', 
-        usuario_lanc = '$id_usuario', 
-        usuario_pgto = '$id_usuario', 
-        cliente = '$cliente', 
-        forma_pgto = '$saida', 
-        frequencia = '$frequencia', 
-        arquivo = '$arquivo', 
-        subtotal = '$subtotal', 
-        pago = 'Sim', 
-        taxa = '$taxa', 
-        multa = '$multa', 
-        juros = '$juros', 
-        desconto = '$desconto', 
-        residuo = 'Sim', 
-        caixa = '$id_caixa', 
-        hora = curTime()");
+        $pdo->query("INSERT INTO receber set 
+    id_ref = '$id', 
+    referencia = '$referencia', 
+    valor = '$valor_padrao', 
+    data_pgto = '$data_baixar', 
+    vencimento = '$data_baixar', 
+    data_lanc = '$data_lanc_antiga',
+    descricao = '$descricao', 
+    usuario_lanc = '$id_usuario', 
+    usuario_pgto = '$id_usuario', 
+    cliente = '$cliente', 
+    forma_pgto = '$saida', 
+    frequencia = '$frequencia', 
+    arquivo = '$arquivo', 
+    subtotal = '$subtotal', 
+    pago = 'Sim', 
+    taxa = '$taxa', 
+    multa = '$multa', 
+    juros = '$juros', 
+    desconto = '$desconto', 
+    residuo = 'Sim', 
+    caixa = '$id_caixa', 
+    hora = curTime()");
 
-        // CORREÇÃO AQUI: Removido o data_pgto = '$data_baixar'
         $pdo->query("UPDATE $tabela set forma_pgto = '$saida', usuario_pgto = '$id_usuario', valor = '$valor_antigo' where id = '$id'");
 }
 
