@@ -169,6 +169,7 @@ function calcularValores3(linha) {
 }
 
 // Calcula os totais da seção de Produtos
+// Calcula os totais da seção de Produtos
 function calculaTotais() {
     const totalCaixaField = document.querySelector("#total_caixa");
     const totalKgField = document.querySelector("#total_kg");
@@ -190,7 +191,6 @@ function calculaTotais() {
     const linhas = document.querySelectorAll("#linha-container_1 .linha_1");
 
     linhas.forEach(linha => {
-        // Pula a linha de template
         if (linha.id === 'linha-template_1' || linha.style.display === 'none') return;
 
         const quantCaixaInput = linha.querySelector(".quant_caixa_1");
@@ -199,11 +199,7 @@ function calculaTotais() {
 
         const quantCaixa = parseFloat(quantCaixaInput.value.replace(",", ".")) || 0;
         const totalValor = parseFloat(totalInput.value.replace(",", ".")) || 0;
-
-        // --- CORREÇÃO APLICADA AQUI ---
-        // Pega o peso da caixa corretamente para somar o KG total
         const pesoDaCaixa = getNumberFromSelectText(tipoCaixaInput);
-        // --- FIM DA CORREÇÃO ---
 
         totalCaixaSoma += quantCaixa;
         totalBrutoSoma += totalValor;
@@ -220,25 +216,25 @@ function calculaTotais() {
             TotalGeralField.textContent = "DESC. Inválido";
             TotalGeralField.classList.add("danger");
         } else {
-            // Calcula o valor do desconto
-            totalDescSoma = totalBrutoSoma * (descontoPorcentagem / 100);
+            // --- CORREÇÃO DO CENTAVO AQUI ---
+            // 1. Calculamos o desconto e ARREDONDAMOS para 2 casas decimais primeiro
+            totalDescSoma = Math.round((totalBrutoSoma * (descontoPorcentagem / 100)) * 100) / 100;
 
-            // CORREÇÃO: Usamos Math.floor ou uma lógica de truncamento para evitar o arredondamento para cima
-            // Para garantir 5821,12 em vez de 5821,13:
-            TotalGeralSoma = Math.floor((totalBrutoSoma - totalDescSoma) * 100) / 100;
+            // 2. Agora a subtração será exata entre dois números de 2 casas
+            TotalGeralSoma = totalBrutoSoma - totalDescSoma;
 
             TotalGeralField.classList.remove("danger");
             TotalGeralField.textContent = TotalGeralSoma.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
         }
     } else {
         TotalGeralField.classList.remove("danger");
-        TotalGeralField.textContent = TotalGeralSoma.toFixed(2).replace(".", ",");
+        TotalGeralField.textContent = TotalGeralSoma.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     }
 
     totalCaixaField.textContent = totalCaixaSoma + " CXS";
-    totalKgField.textContent = totalKgSoma.toFixed(2).replace(".", ",") + " KG";
-    totalBrutoField.textContent = "R$ " + totalBrutoSoma.toFixed(2).replace(".", ",");
-    totalDescField.textContent = "R$ " + totalDescSoma.toFixed(2).replace(".", ",");
+    totalKgField.textContent = totalKgSoma.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) + " KG";
+    totalBrutoField.textContent = "R$ " + totalBrutoSoma.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+    totalDescField.textContent = "R$ " + totalDescSoma.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
 
     calculaTotaisFinal();
 }

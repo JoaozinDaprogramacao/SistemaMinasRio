@@ -70,14 +70,15 @@ try {
     foreach ($valor_3 as $v3) {
         if (!empty($v3)) $total_materiais += floatval(str_replace(',', '.', $v3));
     }
-    $valor_desc_avista = $total_bruto * ($desc_avista_perc / 100);
+    // 1. Calcula o valor do desconto de forma isolada e arredonda para 2 casas
+    $valor_desc_avista = round($total_bruto * ($desc_avista_perc / 100), 2);
 
-    // 2. Calcula o total líquido temporário
+    // 2. Calcula o total líquido (sem o floor)
     $temp_liquido = $total_bruto + $total_comissao + $total_materiais + floatval($adicional) - floatval($desconto_fixo) - $valor_desc_avista;
 
-    // 3. APLICA O TRUNCAMENTO (Força 2 casas decimais sem arredondar para cima)
-    // Multiplicamos por 100, removemos os decimais com floor, e dividimos por 100 novamente
-    $total_liquido = floor(round($temp_liquido, 4) * 100) / 100;
+    // 3. APLICA O ARREDONDAMENTO PADRÃO (Troque o floor por round)
+    // Isso garante que se der .789, ele vire .79, combinando com o que o usuário vê
+    $total_liquido = round($temp_liquido, 2);
     $pdo->beginTransaction();
 
     if ($id == "") {
