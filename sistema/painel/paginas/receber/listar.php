@@ -49,25 +49,24 @@ $res_totais = $pdo->query("SELECT
     SUM(CASE WHEN t.pago = 'Sim' THEN t.subtotal ELSE 0 END) as recebidas,
     SUM(CASE WHEN t.vencimento >= curDate() AND t.pago = 'Não' THEN t.valor ELSE 0 END) as a_vencer,
     SUM(t.valor) as total_bruto,
-    (SELECT SUM(COALESCE(r2.desconto, 0) + COALESCE((SELECT SUM(valor) FROM linha_produto WHERE id_romaneio = r2.id) * r2.desc_avista / 100, 0))
-     FROM romaneio_venda r2 
-     WHERE r2.id IN (SELECT DISTINCT id_romaneio FROM receber t2 WHERE t2.$tipo_data >= '$dataInicial' AND t2.$tipo_data <= '$dataFinal' $sql_usuario_lanc $sql_atacadista)
-    ) as desc_total_calculado,
-    (SELECT SUM(COALESCE(r3.adicional, 0))
-     FROM romaneio_venda r3
-     WHERE r3.id IN (SELECT DISTINCT id_romaneio FROM receber t3 WHERE t3.$tipo_data >= '$dataInicial' AND t3.$tipo_data <= '$dataFinal' $sql_usuario_lanc $sql_atacadista)
-    ) as acres_total
+    SUM(COALESCE(t.desconto, 0)) as desc_total,
+    SUM(COALESCE(t.juros, 0) + COALESCE(t.multa, 0) + COALESCE(t.taxa, 0)) as acres_total
     FROM $tabela t 
-    LEFT JOIN planos_pgto pl ON (SELECT r4.plano_pgto FROM romaneio_venda r4 WHERE r4.id = t.id_romaneio) = pl.id
+    LEFT JOIN romaneio_venda r ON t.id_romaneio = r.id
+    LEFT JOIN planos_pgto pl ON r.plano_pgto = pl.id
     $base_where")->fetch(PDO::FETCH_ASSOC);
 
 $total_vencidasF = number_format($res_totais['vencidas'] ?? 0, 2, ',', '.');
 $total_recebidasF = number_format($res_totais['recebidas'] ?? 0, 2, ',', '.');
 $total_a_vencerF = number_format($res_totais['a_vencer'] ?? 0, 2, ',', '.');
 $total_totalF = number_format($res_totais['total_bruto'] ?? 0, 2, ',', '.');
-$total_descontoF = number_format($res_totais['desc_total_calculado'] ?? 0, 2, ',', '.');
+
+// Agora pegamos o desconto e acréscimo direto da query acima
+$total_descontoF = number_format($res_totais['desc_total'] ?? 0, 2, ',', '.');
 $total_acrescimoF = number_format($res_totais['acres_total'] ?? 0, 2, ',', '.');
-$total_liquido = (($res_totais['total_bruto'] ?? 0) - ($res_totais['desc_total_calculado'] ?? 0)) + ($res_totais['acres_total'] ?? 0);
+
+// Cálculo do Líquido: Bruto - Descontos + Acréscimos (Multa/Juros/Taxa)
+$total_liquido = (($res_totais['total_bruto'] ?? 0) - ($res_totais['desc_total'] ?? 0)) + ($res_totais['acres_total'] ?? 0);
 $total_liquidoF = number_format($total_liquido, 2, ',', '.');
 
 $ordem = "ORDER BY t.vencimento ASC";
