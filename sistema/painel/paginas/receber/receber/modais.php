@@ -340,67 +340,6 @@
     </div>
 </div>
 
-
-
-<!-- Modal Arquivos -->
-<div class="modal fade" id="modalArquivos" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header bg-primary text-white">
-                <h4 class="modal-title" id="tituloModal">Gestão de Arquivos - <span id="nome-arquivo"> </span></h4>
-                <button id="btn-fechar-arquivos" aria-label="Close" class="btn-close" data-bs-dismiss="modal" type="button"><span class="text-white" aria-hidden="true">&times;</span></button>
-            </div>
-            <form id="form-arquivos" method="post">
-                <div class="modal-body">
-
-                    <div class="row">
-                        <div class="col-md-8">
-                            <div class="form-group">
-                                <label>Arquivo</label>
-                                <input class="form-control" type="file" name="arquivo_conta" onChange="carregarImgArquivos();" id="arquivo_conta">
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div id="divImgArquivos">
-                                <img src="images/arquivos/sem-foto.png" width="60px" id="target-arquivos">
-                            </div>
-                        </div>
-
-
-
-
-                    </div>
-
-                    <div class="row">
-                        <div class="col-md-8">
-                            <input type="text" class="form-control" name="nome-arq" id="nome-arq" placeholder="Nome do Arquivo * " required>
-                        </div>
-
-                        <div class="col-md-4">
-                            <button type="submit" class="btn btn-primary">Inserir</button>
-                        </div>
-                    </div>
-
-                    <hr>
-
-                    <small>
-                        <div id="listar-arquivos"></div>
-                    </small>
-
-                    <br>
-                    <small>
-                        <div align="center" id="mensagem-arquivo"></div>
-                    </small>
-
-                    <input type="hidden" class="form-control" name="id-arquivo" id="id-arquivo">
-
-
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
 <div class="modal fade" id="modalForm" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">

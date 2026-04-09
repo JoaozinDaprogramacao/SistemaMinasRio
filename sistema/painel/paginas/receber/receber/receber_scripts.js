@@ -75,6 +75,7 @@ $(document).ready(function () {
     $('#modalForm').on('shown.bs.modal', verificarDatasEExibirBanco);
     $('#modalForm').on('hidden.bs.modal', function () {
         $('#div-banco').addClass('d-none');
+        limparCampos();
     });
 });
 
@@ -172,14 +173,12 @@ function prepararBaixar(id, valor, descricao, forma_pgto) {
     $('#modalBaixar').modal('show');
 }
 
-function fecharEditarEAbrirBaixar(id, valor, descricao, forma_pgto_padrao, vencimento, cliente, romaneio) {
+function fecharEditarEAbrirBaixar(id, valor, descricao, forma_pgto_padrao, vencimento, cliente, romaneio, status_pagamento) {
     $('#modalForm').modal('hide');
     setTimeout(function () {
-        // AQUI ESTÁ A MISTURA:
-        baixar(id, descricao, valor, vencimento, cliente, romaneio, forma_pgto_padrao);
+        baixar(id, descricao, valor, vencimento, cliente, romaneio, forma_pgto_padrao, status_pagamento);
     }, 400);
 }
-
 // Adicione 'forma_padrao' como último parâmetro
 function editar(id, descricao, valor, cliente, vencimento, data_pgto, forma_pgto, frequencia, obs, arquivo, nome_cliente, id_romaneio, forma_padrao) {
 
@@ -200,8 +199,12 @@ function editar(id, descricao, valor, cliente, vencimento, data_pgto, forma_pgto
 
     $('#btn-baixar-modal').show();
 
-    $('#btn-baixar-modal').attr('onclick', `fecharEditarEAbrirBaixar('${id}', '${valor}', '${descricao}', '${forma_padrao}', '${vencimento}', '${nome_cliente}', '${id_romaneio}')`);
-    
+    // Identificamos se está pago verificando se a data de pagamento existe/é válida
+    let status = (data_pgto && data_pgto !== '0000-00-00' && data_pgto !== '') ? 'Pago' : 'Pendente';
+
+    // Passamos o 'status' como o último parâmetro para a função ponte
+    $('#btn-baixar-modal').attr('onclick', `fecharEditarEAbrirBaixar('${id}', '${valor}', '${descricao}', '${forma_padrao}', '${vencimento}', '${nome_cliente}', '${id_romaneio}', '${status}')`);
+
     $('#modalForm').modal('show');
 }
 
@@ -239,17 +242,30 @@ function limparCampos() {
     $('#id').val('');
     $('#descricao').val('');
     $('#valor').val('');
+
+    // Zera os inputs de data para o padrão (Cuidado para não apagar a sua tag PHP aqui se o JS estiver dentro do arquivo PHP)
     $('#vencimento').val("<?= $data_atual ?>");
     $('#data_pgto').val('');
+
     $('#obs').val('');
     $('#arquivo').val('');
-
     $('#target').attr("src", "images/contas/sem-foto.png");
+
+    // Novidade: Força a limpeza dos selects (muito importante pro Cliente, Forma Pgto e Frequência)
+    $('#cliente').val('0').change();
+    $('#forma_pgto').prop('selectedIndex', 0).change();
+    $('#frequencia').prop('selectedIndex', 0).change();
+    $('#banco').val('').change();
+    $('#descricao_banco').val('').change();
 
     $('#ids').val('');
     $('#btn-deletar').hide();
     $('#btn-baixar-modal').hide();
     $('#btn-baixar').hide();
+
+    // Limpa os títulos e mensagens de erro
+    $('#mensagem').text('');
+    $('#titulo_inserir').text('Inserir Registro');
 }
 
 function selecionar(id) {
@@ -342,7 +358,7 @@ function parcelar(id, valor, nome) {
 
 
 // Adicionei o parâmetro 'forma_padrao' no final
-function baixar(id, descricao, valor, vencimento, cliente, romaneio, forma_padrao) {
+function baixar(id, descricao, valor, vencimento, cliente, romaneio, forma_padrao, status_pagamento) {
     limparModalBaixar();
 
     $('#id-baixar').val(id);
@@ -351,22 +367,67 @@ function baixar(id, descricao, valor, vencimento, cliente, romaneio, forma_padra
     $('#romaneio-baixar').val(romaneio);
     $('#valor-original-baixar').val(valor);
     $('#vencimento-baixar').val(vencimento);
-    $('#valor-baixar').val(valor);
 
-    // Se o cliente tiver forma de pagamento padrão, seleciona ela
-    if (forma_padrao != "" && forma_padrao != "0" && forma_padrao != null) {
-        $('#saida-baixar').val(forma_padrao).change();
+    // Verifica se a conta já foi paga (você deve passar esse parâmetro lá do listar.php)
+    if (status_pagamento === 'Pago' || status_pagamento === 'Sim') {
+
+        $('#mensagem-baixar').text('Carregando dados da baixa...');
+
+        // AJAX para puxar os dados de uma baixa existente
+        $.ajax({
+            url: 'paginas/' + pag + "/buscar_baixa.php",
+            method: 'POST',
+            data: { id: id },
+            dataType: "json", // Importante: o PHP deve retornar um JSON
+            success: function (dados) {
+                $('#mensagem-baixar').text('');
+
+                // Preenche os inputs com os dados reais da transação
+                $('#valor-baixar').val(dados.valor_pago);
+                $('#data-baixar').val(dados.data_pgto);
+
+                // Força o change para atualizar a interface dos selects
+                $('#saida-baixar').val(dados.forma_pgto).change();
+                $('#banco').val(dados.banco).change();
+
+                $('#numero_operacao').val(dados.numero_operacao);
+                $('#valor-multa').val(dados.multa);
+                $('#valor-juros').val(dados.juros);
+                $('#valor-acrescimo').val(dados.acrescimo);
+                $('#valor-desconto').val(dados.desconto);
+                $('#obs-baixar').val(dados.obs);
+
+                totalizar(); // Recalcula o subtotal
+
+                // Estética: Muda a cor e o texto do botão para indicar edição
+                $('#form-baixar button[type="submit"]').text('Editar Baixa').removeClass('btn-success').addClass('btn-warning');
+
+                $('#modalBaixar').modal('show');
+            },
+            error: function () {
+                $('#mensagem-baixar').addClass('text-danger').text('Erro ao buscar os dados da baixa.');
+            }
+        });
+
     } else {
-        // Fallback: se não tiver padrão
-        $('#saida-baixar').val('1').change();
+        // Fluxo Normal: A conta ainda NÃO foi paga
+        $('#valor-baixar').val(valor);
+
+        if (forma_padrao != "" && forma_padrao != "0" && forma_padrao != null) {
+            $('#saida-baixar').val(forma_padrao).change();
+        } else {
+            $('#saida-baixar').val('1').change();
+        }
+
+        // Garante que o botão volta ao visual de "Confirmar Baixa" original
+        $('#form-baixar button[type="submit"]').text('Confirmar Baixa').removeClass('btn-warning').addClass('btn-success');
+
+        $('#modalBaixar').modal('show');
+
+        setTimeout(function () {
+            totalizar();
+        }, 200);
     }
-
-    $('#modalBaixar').modal('show');
-
-    // Pequeno delay para garantir que o modal abriu antes de totalizar
-    setTimeout(function () {
-        totalizar();
-    }, 200);
 }
 
 function mostrarResiduos(id) {
