@@ -140,6 +140,7 @@ if ($valor == $valor_antigo) {
 } else {
     $descricao = '(Resíduo) ' . $descricao;
 
+    // Adicionado classificacao e garantido valores numéricos
     $pdo->query("INSERT INTO linha_bancos SET 
     descricao = '$obs_baixar',
     id_banco = '$banco',
@@ -147,7 +148,11 @@ if ($valor == $valor_antigo) {
     credito = '$valor_padrao',
     debito = '0',
     remetente = '$id_usuario',
-    n_fiscal = '$numero_operacao'");
+    n_fiscal = '$numero_operacao',
+    classificacao = 1, 
+    mes_ref = MONTH('$data_baixar'),
+    status = 'Confirmado',
+    saldo = (SELECT saldo FROM bancos WHERE id = '$banco') + '$valor_padrao'");
 
     $pdo->query("UPDATE bancos SET saldo = saldo + $valor_padrao WHERE id = '$banco'");
 

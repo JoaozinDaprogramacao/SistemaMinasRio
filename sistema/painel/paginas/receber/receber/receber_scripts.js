@@ -174,9 +174,8 @@ function prepararBaixar(id, valor, descricao, forma_pgto) {
 
 function fecharEditarEAbrirBaixar(id, valor, descricao, forma_pgto_padrao, vencimento, cliente, romaneio) {
     $('#modalForm').modal('hide');
-
     setTimeout(function () {
-        // Passamos a forma_padrao como o último argumento
+        // AQUI ESTÁ A MISTURA:
         baixar(id, descricao, valor, vencimento, cliente, romaneio, forma_pgto_padrao);
     }, 400);
 }
@@ -201,10 +200,8 @@ function editar(id, descricao, valor, cliente, vencimento, data_pgto, forma_pgto
 
     $('#btn-baixar-modal').show();
 
-    // AQUI A MUDANÇA: Ordem dos parâmetros alinhada com a função baixar()
-    // Ordem: id, descricao, valor, vencimento, cliente, romaneio, forma_padrao
-    $('#btn-baixar-modal').attr('onclick', `fecharEditarEAbrirBaixar('${id}', '${descricao}', '${valor}', '${vencimento}', '${nome_cliente}', '${id_romaneio}', '${forma_padrao}')`);
-
+    $('#btn-baixar-modal').attr('onclick', `fecharEditarEAbrirBaixar('${id}', '${valor}', '${descricao}', '${forma_padrao}', '${vencimento}', '${nome_cliente}', '${id_romaneio}')`);
+    
     $('#modalForm').modal('show');
 }
 
