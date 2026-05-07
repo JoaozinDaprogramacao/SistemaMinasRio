@@ -1,22 +1,21 @@
 $(document).ready(function () {
-    // Limpa o valor se for 0 ao ganhar foco
     $(document).on('focus', '.input-zeravel', function () {
         if ($(this).val() == '0') {
             $(this).val('');
         }
     });
 
-    // Se o usuário sair do campo e não digitar nada, volta o 0 (para não quebrar o cálculo)
     $(document).on('blur', '.input-zeravel', function () {
         if ($(this).val().trim() == '') {
             $(this).val('0');
-            totalizar(); // Garante que o subtotal atualize
+            totalizar(); 
         }
     });
+
     $('#modalBaixar').on('hidden.bs.modal', function () {
         limparModalBaixar();
     });
-    // Forçar a inicialização mesmo que o elemento demore a aparecer
+
     function initDatePicker() {
         var start = moment(dataInicialPadrao);
         var end = moment(dataFinalPadrao);
@@ -26,7 +25,6 @@ $(document).ready(function () {
             $('#dataInicial').val(start.format('YYYY-MM-DD'));
             $('#dataFinal').val(end.format('YYYY-MM-DD'));
 
-            // Só chama buscar se a função existir para não dar erro no console
             if (typeof buscar === "function") { buscar(); }
         }
 
@@ -54,7 +52,6 @@ $(document).ready(function () {
         cb(start, end);
     }
 
-    // Executa a inicialização
     if (typeof $.fn.daterangepicker === 'function') {
         initDatePicker();
     } else {
@@ -79,23 +76,18 @@ $(document).ready(function () {
     });
 });
 
-// 1. Função chamada quando o utilizador mexe nos inputs de data manualmente
 function alteracaoManualData() {
-    // Muda o select para "" (Personalizado)
     document.getElementById('select_periodo').value = "";
-    // Executa a busca com as novas datas
     buscar();
 }
 
-// 2. Função para definir períodos rápidos via Select
 function definirPeriodo(valor) {
-    if (valor === "") return; // Se for personalizado, não faz nada
+    if (valor === "") return; 
 
     const hoje = new Date();
     let dataIni = new Date();
     let dataFim = new Date();
 
-    // Lógica de cálculo de datas (JS Puro)
     if (valor === 'hoje') {
         dataIni = hoje;
         dataFim = hoje;
@@ -110,7 +102,6 @@ function definirPeriodo(valor) {
         dataFim = new Date(hoje.getFullYear(), 11, 31);
     }
 
-    // Formata data para o padrão do input date: YYYY-MM-DD
     const f = (d) => {
         const mes = ("0" + (d.getMonth() + 1)).slice(-2);
         const dia = ("0" + d.getDate()).slice(-2);
@@ -124,16 +115,14 @@ function definirPeriodo(valor) {
 }
 
 function buscar() {
-    // Captura os valores dos campos corretamente pelos IDs do HTML
-    var filtro = ""; // Se você tiver um filtro de status (Vencidas/Recebidas) global, coloque aqui
+    var filtro = ""; 
     var dataInicial = $('#dataInicial').val();
     var dataFinal = $('#dataFinal').val();
-    var tipo_data = $('#filtrar_por').val(); // ID CORRETO do select de vencimento/lançamento
+    var tipo_data = $('#filtrar_por').val(); 
     var atacadista = $('#atacadista').val();
     var formaPGTO = $('#formaPGTO').val();
-    var tipo_conta = $('#tipo_conta').val(); // Você tem esse select no HTML, precisa enviar também
+    var tipo_conta = $('#tipo_conta').val(); 
 
-    // Passa para a função listar
     listar(filtro, dataInicial, dataFinal, tipo_data, atacadista, formaPGTO, tipo_conta);
 }
 
@@ -141,79 +130,16 @@ function listar(p1, p2, p3, p4, p5, p6, p7) {
     $.ajax({
         url: 'paginas/' + pag + "/listar.php",
         method: 'POST',
-        // Enviamos como p1, p2, p3... que é como o seu listar.php está configurado para receber
-        data: {
-            p1: p1,
-            p2: p2,
-            p3: p3,
-            p4: p4,
-            p5: p5,
-            p6: p6,
-            p7: p7
-        },
+        data: { p1: p1, p2: p2, p3: p3, p4: p4, p5: p5, p6: p6, p7: p7 },
         dataType: "html",
         success: function (result) {
             $("#listar").html(result);
         }
     });
-
-}
-
-function prepararBaixar(id, valor, descricao, forma_pgto) {
-    limparModalBaixar(); //
-    $('#id-baixar').val(id);
-    $('#descricao-baixar').text(descricao);
-    $('#valor-baixar').val(valor);
-    $('#saida-baixar').val(forma_pgto).change();
-
-    // Chama a função de totalizar que você já tem no formulário
-    totalizar();
-
-    // Abre o modal de baixar
-    $('#modalBaixar').modal('show');
-}
-
-function fecharEditarEAbrirBaixar(id, valor, descricao, forma_pgto_padrao, vencimento, cliente, romaneio, status_pagamento) {
-    $('#modalForm').modal('hide');
-    setTimeout(function () {
-        baixar(id, descricao, valor, vencimento, cliente, romaneio, forma_pgto_padrao, status_pagamento);
-    }, 400);
-}
-// Adicione 'forma_padrao' como último parâmetro
-function editar(id, descricao, valor, cliente, vencimento, data_pgto, forma_pgto, frequencia, obs, arquivo, nome_cliente, id_romaneio, forma_padrao) {
-
-    $('#mensagem').text('');
-    $('#titulo_inserir').text('Editar Registro');
-
-    // Preenchimento dos campos (já existente no seu código)
-    $('#id').val(id);
-    $('#descricao').val(descricao);
-    $('#valor').val(valor);
-    $('#cliente').val(cliente).change();
-    $('#vencimento').val(vencimento);
-    $('#data_pgto').val(data_pgto);
-    $('#forma_pgto').val(forma_pgto).change();
-    $('#frequencia').val(frequencia).change();
-    $('#obs').val(obs);
-    $('#target').attr('src', 'images/contas/' + arquivo);
-
-    $('#btn-baixar-modal').show();
-
-    // Identificamos se está pago verificando se a data de pagamento existe/é válida
-    let status = (data_pgto && data_pgto !== '0000-00-00' && data_pgto !== '') ? 'Pago' : 'Pendente';
-
-    // Passamos o 'status' como o último parâmetro para a função ponte
-    $('#btn-baixar-modal').attr('onclick', `fecharEditarEAbrirBaixar('${id}', '${valor}', '${descricao}', '${forma_padrao}', '${vencimento}', '${nome_cliente}', '${id_romaneio}', '${status}')`);
-
-    $('#modalForm').modal('show');
 }
 
 function mostrar(descricao, valor, cliente, vencimento, data_pgto, nome_pgto, frequencia, obs, arquivo, multa, juros, desconto, taxa, total, usu_lanc, usu_pgto, pago, arq) {
-
-    if (data_pgto == "") {
-        data_pgto = 'Pendente';
-    }
-
+    if (data_pgto == "") data_pgto = 'Pendente';
     $('#titulo_dados').text(descricao);
     $('#valor_dados').text(valor);
     $('#cliente_dados').text(cliente);
@@ -222,7 +148,6 @@ function mostrar(descricao, valor, cliente, vencimento, data_pgto, nome_pgto, fr
     $('#nome_pgto_dados').text(nome_pgto);
     $('#frequencia_dados').text(frequencia);
     $('#obs_dados').text(obs);
-
     $('#multa_dados').text(multa);
     $('#juros_dados').text(juros);
     $('#desconto_dados').text(desconto);
@@ -230,11 +155,9 @@ function mostrar(descricao, valor, cliente, vencimento, data_pgto, nome_pgto, fr
     $('#total_dados').text(total);
     $('#usu_lanc_dados').text(usu_lanc);
     $('#usu_pgto_dados').text(usu_pgto);
-
     $('#pago_dados').text(pago);
     $('#target_dados').attr("src", "images/contas/" + arquivo);
     $('#target_link_dados').attr("href", "images/contas/" + arq);
-
     $('#modalDados').modal('show');
 }
 
@@ -242,36 +165,26 @@ function limparCampos() {
     $('#id').val('');
     $('#descricao').val('');
     $('#valor').val('');
-
-    // Zera os inputs de data para o padrão (Cuidado para não apagar a sua tag PHP aqui se o JS estiver dentro do arquivo PHP)
     $('#vencimento').val("<?= $data_atual ?>");
     $('#data_pgto').val('');
-
     $('#obs').val('');
     $('#arquivo').val('');
     $('#target').attr("src", "images/contas/sem-foto.png");
-
-    // Novidade: Força a limpeza dos selects (muito importante pro Cliente, Forma Pgto e Frequência)
     $('#cliente').val('0').change();
     $('#forma_pgto').prop('selectedIndex', 0).change();
     $('#frequencia').prop('selectedIndex', 0).change();
     $('#banco').val('').change();
     $('#descricao_banco').val('').change();
-
     $('#ids').val('');
     $('#btn-deletar').hide();
     $('#btn-baixar-modal').hide();
     $('#btn-baixar').hide();
-
-    // Limpa os títulos e mensagens de erro
     $('#mensagem').text('');
     $('#titulo_inserir').text('Inserir Registro');
 }
 
 function selecionar(id) {
-
     var ids = $('#ids').val();
-
     if ($('#seletor-' + id).is(":checked") == true) {
         var novo_id = ids + id + '-';
         $('#ids').val(novo_id);
@@ -293,58 +206,37 @@ function selecionar(id) {
 function deletarSel() {
     var ids = $('#ids').val();
     var id = ids.split("-");
-
     for (i = 0; i < id.length - 1; i++) {
         excluirMultiplos(id[i]);
     }
-
-    setTimeout(() => {
-        listar();
-    }, 1000);
-
+    setTimeout(() => { listar(); }, 1000);
     limparCampos();
 }
-
 
 function deletarSelBaixar() {
     var ids = $('#ids').val();
     var id = ids.split("-");
-
     for (i = 0; i < id.length - 1; i++) {
         var novo_id = id[i];
         $.ajax({
             url: 'paginas/' + pag + "/baixar_multiplas.php",
             method: 'POST',
-            data: {
-                novo_id
-            },
-            dataType: "html",
-
-            success: function (result) {
-                //alert(result)
-
-            }
+            data: { novo_id },
+            dataType: "html"
         });
     }
-
     setTimeout(() => {
         buscar();
         limparCampos();
     }, 1000);
-
-
 }
 
-
 function permissoes(id, nome) {
-
     $('#id_permissoes').val(id);
     $('#nome_permissoes').text(nome);
-
     $('#modalPermissoes').modal('show');
     listarPermissoes(id);
 }
-
 
 function parcelar(id, valor, nome) {
     $('#id-parcelar').val(id);
@@ -356,97 +248,17 @@ function parcelar(id, valor, nome) {
     $('#mensagem-parcelar').text('');
 }
 
-
-// Adicionei o parâmetro 'forma_padrao' no final
-function baixar(id, descricao, valor, vencimento, cliente, romaneio, forma_padrao, status_pagamento) {
-    limparModalBaixar();
-
-    $('#id-baixar').val(id);
-    $('#descricao-baixar').text(descricao);
-    $('#cliente-baixar').val(cliente);
-    $('#romaneio-baixar').val(romaneio);
-    $('#valor-original-baixar').val(valor);
-    $('#vencimento-baixar').val(vencimento);
-
-    // Verifica se a conta já foi paga (você deve passar esse parâmetro lá do listar.php)
-    if (status_pagamento === 'Pago' || status_pagamento === 'Sim') {
-
-        $('#mensagem-baixar').text('Carregando dados da baixa...');
-
-        // AJAX para puxar os dados de uma baixa existente
-        $.ajax({
-            url: 'paginas/' + pag + "/buscar_baixa.php",
-            method: 'POST',
-            data: { id: id },
-            dataType: "json", // Importante: o PHP deve retornar um JSON
-            success: function (dados) {
-                $('#mensagem-baixar').text('');
-
-                // Preenche os inputs com os dados reais da transação
-                $('#valor-baixar').val(dados.valor_pago);
-                $('#data-baixar').val(dados.data_pgto);
-
-                // Força o change para atualizar a interface dos selects
-                $('#saida-baixar').val(dados.forma_pgto).change();
-                $('#banco').val(dados.banco).change();
-
-                $('#numero_operacao').val(dados.numero_operacao);
-                $('#valor-multa').val(dados.multa);
-                $('#valor-juros').val(dados.juros);
-                $('#valor-acrescimo').val(dados.acrescimo);
-                $('#valor-desconto').val(dados.desconto);
-                $('#obs-baixar').val(dados.obs);
-
-                totalizar(); // Recalcula o subtotal
-
-                // Estética: Muda a cor e o texto do botão para indicar edição
-                $('#form-baixar button[type="submit"]').text('Editar Baixa').removeClass('btn-success').addClass('btn-warning');
-
-                $('#modalBaixar').modal('show');
-            },
-            error: function () {
-                $('#mensagem-baixar').addClass('text-danger').text('Erro ao buscar os dados da baixa.');
-            }
-        });
-
-    } else {
-        // Fluxo Normal: A conta ainda NÃO foi paga
-        $('#valor-baixar').val(valor);
-
-        if (forma_padrao != "" && forma_padrao != "0" && forma_padrao != null) {
-            $('#saida-baixar').val(forma_padrao).change();
-        } else {
-            $('#saida-baixar').val('1').change();
-        }
-
-        // Garante que o botão volta ao visual de "Confirmar Baixa" original
-        $('#form-baixar button[type="submit"]').text('Confirmar Baixa').removeClass('btn-warning').addClass('btn-success');
-
-        $('#modalBaixar').modal('show');
-
-        setTimeout(function () {
-            totalizar();
-        }, 200);
-    }
-}
-
 function mostrarResiduos(id) {
-
     $.ajax({
         url: 'paginas/' + pag + "/listar-residuos.php",
         method: 'POST',
-        data: {
-            id
-        },
+        data: { id },
         dataType: "html",
-
         success: function (result) {
             $("#listar-residuos").html(result);
         }
     });
     $('#modalResiduos').modal('show');
-
-
 }
 
 function arquivo(id, nome) {
@@ -458,19 +270,13 @@ function arquivo(id, nome) {
     listarArquivos();
 }
 
-
 function cobrar(id) {
     $.ajax({
         url: 'paginas/' + pag + "/cobrar.php",
         method: 'POST',
-        data: {
-            id
-        },
+        data: { id },
         dataType: "html",
-
-        success: function (result) {
-            alert(result);
-        }
+        success: function (result) { alert(result); }
     });
 }
 
@@ -481,17 +287,11 @@ function tipoData(tipo) {
 
 $(document).on('click', '#relatorio', function (e) {
     e.preventDefault();
-    var dataInicial = $('#dataInicial').val();
-    var dataFinal = $('#dataFinal').val();
-    var tipo_data = $('#tipo_data').val();
-    var atacadista = $('#atacadista').val();
-    var formaPGTO = $('#formaPGTO').val();
-
-    var url = 'rel/receber_class.php?dataInicial=' + dataInicial +
-        '&dataFinal=' + dataFinal +
-        '&tipo_data=' + tipo_data +
-        '&atacadista=' + atacadista +
-        '&formaPGTO=' + formaPGTO;
+    var url = 'rel/receber_class.php?dataInicial=' + $('#dataInicial').val() +
+        '&dataFinal=' + $('#dataFinal').val() +
+        '&tipo_data=' + $('#tipo_data').val() +
+        '&atacadista=' + $('#atacadista').val() +
+        '&formaPGTO=' + $('#formaPGTO').val();
     window.open(url, '_blank');
 });
 
@@ -514,8 +314,6 @@ function excluir(id) {
 
 $(document).on('submit', '#form-baixar', function (e) {
     e.preventDefault();
-
-    // Limpa mensagens anteriores e avisa que está processando
     $('#mensagem-baixar').removeClass('text-danger text-success').text('Processando...');
 
     var formData = new FormData(this);
@@ -527,15 +325,11 @@ $(document).on('submit', '#form-baixar', function (e) {
         contentType: false,
         processData: false,
         success: function (mensagem) {
-            // Remove o "Processando..."
             $('#mensagem-baixar').text('');
-
             if (mensagem.trim() == "Baixado com Sucesso") {
-                // Se deu certo, fecha o modal
                 $('#btn-fechar-baixar').click();
-                buscar(); // Recarrega a lista
+                buscar(); 
             } else {
-                // EXIBE O ERRO DENTRO DO MODAL
                 $('#mensagem-baixar').addClass('text-danger').html(mensagem);
             }
         },
@@ -545,23 +339,6 @@ $(document).on('submit', '#form-baixar', function (e) {
     });
 });
 
-function limparModalBaixar() {
-    $('#id-baixar').val('');
-    $('#valor-baixar').val('');
-    $('#valor-multa').val('0');
-    $('#valor-juros').val('0');
-    $('#valor-desconto').val('0');
-    $('#valor-acrescimo').val('0'); // Atualizado: substituiu o valor-taxa
-    $('#subtotal').val('');
-    $('#mensagem-baixar').text('');
-
-    // Limpa os campos de texto/dados da transação
-    $('#numero_operacao').val(''); // Atualizado: substituiu o descricao_banco
-    $('#obs-baixar').val('');      // Novo: limpa o campo de observações (textarea)
-
-    // Mantém o reset do banco
-    $('#banco').val('').change();
-}
 $("#form-parcelar").submit(function (e) {
     e.preventDefault();
     var formData = new FormData(this);
@@ -583,50 +360,11 @@ $("#form-parcelar").submit(function (e) {
     });
 });
 
-function totalizar() {
-    let valor = parseFloat($('#valor-baixar').val().replace(',', '.')) || 0;
-    let multa = parseFloat($('#valor-multa').val().replace(',', '.')) || 0;
-    let juros = parseFloat($('#valor-juros').val().replace(',', '.')) || 0;
-    let acrescimo = parseFloat($('#valor-acrescimo').val().replace(',', '.')) || 0; // Somando Acréscimo
-    let desconto = parseFloat($('#valor-desconto').val().replace(',', '.')) || 0;
-
-    // SOMA TUDO e SUBTRAI apenas o desconto
-    let subtotal = (valor + multa + juros + acrescimo) - desconto;
-
-    // Formata para preencher o input do subtotal (2 casas decimais)
-    $('#subtotal').val(subtotal.toFixed(2));
-}
-function calcularTaxa() {
-    var pgto = $('#saida-baixar').val();
-    var valor = $('#valor-baixar').val();
-
-    // Só dispara o AJAX se tivermos os dois dados
-    if (pgto != "" && valor != "") {
-        $.ajax({
-            url: 'paginas/' + pag + "/calcular_taxa.php",
-            method: 'POST',
-            data: { valor, pgto },
-            success: function (result) {
-                // Remove qualquer espaço ou quebra de linha que o PHP possa enviar
-                var taxaLimpa = result.trim();
-                $('#valor-taxa').val(taxaLimpa);
-                totalizar();
-            }
-        });
-    } else {
-        $('#valor-taxa').val(0);
-        totalizar();
-    }
-}
-
 function marcarTodos() {
     let checkbox = document.getElementById('input-todos');
     var usuario = $('#id_permissoes').val();
-    if (checkbox.checked) {
-        adicionarPermissoes(usuario);
-    } else {
-        limparPermissoes(usuario);
-    }
+    if (checkbox.checked) { adicionarPermissoes(usuario); } 
+    else { limparPermissoes(usuario); }
 }
 
 function carregarImg() {
@@ -636,16 +374,14 @@ function carregarImg() {
 
     var reader = new FileReader();
     var ext = file.name.split('.').pop().toLowerCase();
-
     var icones = {
         'pdf': 'pdf.png', 'rar': 'rar.png', 'zip': 'rar.png',
         'doc': 'word.png', 'docx': 'word.png', 'txt': 'word.png',
         'xlsx': 'excel.png', 'xlsm': 'excel.png', 'xls': 'excel.png', 'xml': 'xml.png'
     };
 
-    if (icones[ext]) {
-        $('#target').attr('src', "images/" + icones[ext]);
-    } else {
+    if (icones[ext]) { $('#target').attr('src', "images/" + icones[ext]); } 
+    else {
         reader.onloadend = function () { target.src = reader.result; };
         reader.readAsDataURL(file);
     }
@@ -680,9 +416,7 @@ function listarArquivos() {
         url: 'paginas/' + pag + "/listar-arquivos.php",
         method: 'POST',
         data: { id },
-        success: function (result) {
-            $("#listar-arquivos").html(result);
-        }
+        success: function (result) { $("#listar-arquivos").html(result); }
     });
 }
 
@@ -692,8 +426,252 @@ function valorBaixar() {
         url: 'paginas/' + pag + "/valor_baixar.php",
         method: 'POST',
         data: { ids },
-        success: function (result) {
-            $("#total_contas").html(result);
+        success: function (result) { $("#total_contas").html(result); }
+    });
+}
+
+
+// ==========================================
+// CÁLCULOS E LAYOUT DO PAINEL
+// ==========================================
+
+function getFloatValue(elementId) {
+    let element = document.getElementById(elementId);
+    if (!element) return 0; 
+    let val = element.value;
+    if (val === undefined || val === null || val === "") return 0; 
+    
+    val = String(val).trim();
+    if (val.indexOf(',') === -1) {
+        return parseFloat(val) || 0;
+    }
+    
+    let valorStr = val.replace(/\./g, '').replace(',', '.');
+    return parseFloat(valorStr) || 0;
+}
+
+function totalizar() {
+    let valorOriginal = getFloatValue('valor-original-baixar');
+    let multa = getFloatValue('valor-multa');
+    let juros = getFloatValue('valor-juros');
+    let acrescimo = getFloatValue('valor-acrescimo');
+    let desconto = getFloatValue('valor-desconto');
+
+    let subtotalLiquido = (valorOriginal + multa + juros + acrescimo) - desconto;
+    
+    if (subtotalLiquido < 0) subtotalLiquido = 0;
+
+    let subtotalInput = document.getElementById('subtotal');
+    if (subtotalInput) {
+        subtotalInput.value = subtotalLiquido.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+    
+    totalizarPagamentos();
+}
+
+function totalizarPagamentos() {
+    let totalRecebido = 0;
+    const linhas = document.querySelectorAll("#linha-container-pagamento .linha-pagamento");
+
+    linhas.forEach(linha => {
+        const valorInput = linha.querySelector(".valor_pagamento");
+        if (valorInput && valorInput.value) {
+            let valorStr = String(valorInput.value).replace(/\./g, '').replace(',', '.');
+            let valorNum = parseFloat(valorStr) || 0;
+            totalRecebido += valorNum;
         }
     });
+
+    let lblTotalRecebido = document.getElementById('lbl-total-recebido');
+    if (lblTotalRecebido) {
+        lblTotalRecebido.textContent = "R$ " + totalRecebido.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    let subtotalInput = document.getElementById('subtotal');
+    let subtotalStr = subtotalInput ? subtotalInput.value : "0";
+    if (!subtotalStr) subtotalStr = "0";
+
+    let subtotalLiquido = parseFloat(String(subtotalStr).replace(/\./g, '').replace(',', '.')) || 0;
+    
+    let statusLabel = document.getElementById('lbl-status-conta');
+    if (!statusLabel) return;
+
+    let diferenca = totalRecebido - subtotalLiquido;
+
+    if (totalRecebido === 0) {
+        statusLabel.textContent = "Aguardando...";
+        statusLabel.className = "fs-4 fw-bold text-muted";
+    } else if (diferenca < 0) {
+        statusLabel.className = "fs-4 fw-bold text-danger";
+        statusLabel.textContent = "Falta: R$ " + Math.abs(diferenca).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    } else if (diferenca > 0) {
+        statusLabel.className = "fs-4 fw-bold text-primary";
+        statusLabel.textContent = "Troco: R$ " + diferenca.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    } else {
+        statusLabel.className = "fs-4 fw-bold text-success";
+        statusLabel.textContent = "Valor Exato ✓";
+    }
+}
+
+function mascaraMoedaInput(input) {
+    if (!input.value) return;
+    let valor = input.value.replace(/\D/g, ''); 
+    if (valor === "") {
+        input.value = "";
+        return;
+    }
+    valor = (parseFloat(valor) / 100).toFixed(2); 
+    valor = valor.replace('.', ','); 
+    valor = valor.replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1.'); 
+    input.value = valor;
+}
+
+document.addEventListener('input', function (e) {
+    if (e.target.classList.contains('input-zeravel') || e.target.classList.contains('valor_pagamento')) {
+        mascaraMoedaInput(e.target);
+        totalizarPagamentos();
+    }
+}, false);
+
+
+// ==========================================
+// FUNÇÕES DE ABERTURA DO MODAL (BAIXAR) E LINHAS
+// ==========================================
+
+document.addEventListener("DOMContentLoaded", () => {
+    addNewPagamentoLine();
+});
+
+function addNewPagamentoLine() {
+    const template = document.getElementById("linha-template-pagamento");
+    const container = document.getElementById("linha-container-pagamento");
+    if (!template || !container) return;
+
+    const newLine = template.cloneNode(true);
+    newLine.style.display = "flex"; 
+    newLine.id = ""; 
+    
+    const inputsText = newLine.querySelectorAll('input[type="text"]');
+    inputsText.forEach(input => input.value = "");
+    
+    const selects = newLine.querySelectorAll('select');
+    selects.forEach(select => select.selectedIndex = 0);
+
+    container.appendChild(newLine);
+}
+
+function handlePagamentoInput(input) {
+    const linha = input.closest(".linha-pagamento");
+    const container = document.getElementById("linha-container-pagamento");
+    
+    const valor = linha.querySelector(".valor_pagamento").value.trim();
+    const data = linha.querySelector(".data_pagamento").value.trim();
+    const forma = linha.querySelector(".forma_pagamento").value.trim();
+    const banco = linha.querySelector(".banco_pagamento").value.trim(); 
+    
+    const isEssentialFilled = (valor !== "" && data !== "" && forma !== "" && banco !== "");
+
+    if (isEssentialFilled && linha === container.lastElementChild) {
+        addNewPagamentoLine();
+    }
+}
+
+function limparModalBaixar() {
+    $('#id-baixar').val('');
+    $('#valor-original-baixar').val('');
+    $('#valor-multa').val('0');
+    $('#valor-juros').val('0');
+    $('#valor-desconto').val('0');
+    $('#valor-acrescimo').val('0'); 
+    $('#subtotal').val('');
+    $('#lbl-status-conta').text('-');
+    $('#lbl-total-recebido').text('R$ 0,00');
+    $('#mensagem-baixar').text('');
+    $('#obs-baixar').val('');      
+
+    $('#linha-container-pagamento').empty();
+    addNewPagamentoLine();
+}
+
+function baixar(id, descricao, valor, vencimento, cliente, romaneio, forma_padrao, status_pagamento) {
+    limparModalBaixar();
+
+    $('#id-baixar').val(id);
+    $('#descricao-baixar').text(descricao);
+    $('#cliente-baixar').val(cliente);
+    $('#romaneio-baixar').val(romaneio);
+    
+    let valorFloat = parseFloat(valor) || 0;
+    let valorFormatadoBR = valorFloat.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    
+    $('#valor-original-baixar').val(valorFormatadoBR);
+    $('#vencimento-baixar').val(vencimento);
+
+    if (status_pagamento === 'Pago' || status_pagamento === 'Sim' || status_pagamento === 'Parcial') {
+        $('#mensagem-baixar').text('Carregando dados da baixa...');
+
+        $.ajax({
+            url: 'paginas/' + pag + "/buscar_baixa.php",
+            method: 'POST',
+            data: { id: id },
+            dataType: "json", 
+            success: function (dados) {
+                $('#mensagem-baixar').text('');
+                
+                $('#linha-container-pagamento').empty();
+
+                if (dados.pagamentos && dados.pagamentos.length > 0) {
+                    dados.pagamentos.forEach((pgto) => {
+                        addNewPagamentoLine();
+                        let linhas = document.querySelectorAll("#linha-container-pagamento .linha-pagamento");
+                        let ultimaLinha = linhas[linhas.length - 1]; 
+                        
+                        let vPGTO = parseFloat(pgto.valor) || 0;
+                        ultimaLinha.querySelector(".valor_pagamento").value = vPGTO.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                        ultimaLinha.querySelector(".data_pagamento").value = pgto.data || '';
+                        ultimaLinha.querySelector(".forma_pagamento").value = pgto.forma || '';
+                        ultimaLinha.querySelector(".banco_pagamento").value = pgto.banco || '';
+                        ultimaLinha.querySelector(".operacao_pagamento").value = pgto.operacao || '';
+                    });
+                    
+                    // Adiciona sempre uma linha extra em branco para o usuário continuar baixando
+                    addNewPagamentoLine(); 
+                    
+                } else {
+                    addNewPagamentoLine();
+                }
+
+                $('#valor-multa').val(dados.multa);
+                $('#valor-juros').val(dados.juros);
+                $('#valor-acrescimo').val(dados.acrescimo);
+                $('#valor-desconto').val(dados.desconto);
+                $('#obs-baixar').val(dados.obs);
+
+                totalizar(); 
+                $('#form-baixar button[type="submit"]').text('Editar Baixa').removeClass('btn-success').addClass('btn-warning');
+                $('#modalBaixar').modal('show');
+            },
+            error: function () {
+                $('#mensagem-baixar').addClass('text-danger').text('Erro ao buscar os dados da baixa.');
+            }
+        });
+
+    } else {
+        let primeiraLinha = document.querySelector("#linha-container-pagamento .linha-pagamento");
+        if (primeiraLinha) {
+            primeiraLinha.querySelector(".valor_pagamento").value = ""; 
+            
+            let selectForma = primeiraLinha.querySelector(".forma_pagamento");
+            if(selectForma) {
+                selectForma.value = (forma_padrao != "" && forma_padrao != "0" && forma_padrao != null) ? forma_padrao : '1';
+            }
+        }
+
+        $('#form-baixar button[type="submit"]').text('Confirmar Baixa').removeClass('btn-warning').addClass('btn-success');
+        $('#modalBaixar').modal('show');
+
+        setTimeout(function () {
+            totalizar(); 
+        }, 200);
+    }
 }

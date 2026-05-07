@@ -13,6 +13,8 @@ if (@$receber == 'ocultar') {
 ?>
 
 
+
+<script src="paginas/js/<?php echo $pag; ?>/receber.js"></script>
 <script src="../painel/paginas/receber/receber/receber_scripts.js"></script>
 
 <div class="d-flex justify-content-between align-items-center mt-2 mb-3 flex-wrap gap-2">

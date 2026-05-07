@@ -60,12 +60,9 @@ $total_vencidasF = number_format($res_totais['vencidas'] ?? 0, 2, ',', '.');
 $total_recebidasF = number_format($res_totais['recebidas'] ?? 0, 2, ',', '.');
 $total_a_vencerF = number_format($res_totais['a_vencer'] ?? 0, 2, ',', '.');
 $total_totalF = number_format($res_totais['total_bruto'] ?? 0, 2, ',', '.');
-
-// Agora pegamos o desconto e acréscimo direto da query acima
 $total_descontoF = number_format($res_totais['desc_total'] ?? 0, 2, ',', '.');
 $total_acrescimoF = number_format($res_totais['acres_total'] ?? 0, 2, ',', '.');
 
-// Cálculo do Líquido: Bruto - Descontos + Acréscimos (Multa/Juros/Taxa)
 $total_liquido = (($res_totais['total_bruto'] ?? 0) - ($res_totais['desc_total'] ?? 0)) + ($res_totais['acres_total'] ?? 0);
 $total_liquidoF = number_format($total_liquido, 2, ',', '.');
 
@@ -127,6 +124,8 @@ HTML;
         $forma_pgto_row = $res[$i]['forma_pgto'];
         $frequencia = $res[$i]['frequencia'];
         $obs = $res[$i]['obs'];
+        
+        $valor_restante = $res[$i]['valor_restante'] ?? $valor;
 
         $data_lancF = date('d/m/Y', strtotime($data_lanc));
         $vencimentoF = date('d/m/Y', strtotime($vencimento));
@@ -134,10 +133,21 @@ HTML;
 
         if ($pago == 'Sim') {
             $classe_pago = 'verde';
+            $texto_badge = 'Pago';
             $total_pago += $subtotal;
             $valor_finalF = number_format($subtotal, 2, ',', '.');
+        } else if ($pago == 'Parcial') {
+            $classe_pago = 'text-warning'; 
+            $texto_badge = 'Pag. Parcial';
+            
+            $ja_pago = $subtotal - $valor_restante;
+            if($ja_pago > 0) { $total_pago += $ja_pago; }
+            $total_pendentes += $valor_restante;
+            
+            $valor_finalF = number_format($valor, 2, ',', '.');
         } else {
             $classe_pago = 'text-danger';
+            $texto_badge = 'Pendente';
             $total_pendentes += $valor;
             $valor_finalF = number_format($valor, 2, ',', '.');
         }
@@ -167,17 +177,15 @@ HTML;
     <td class="esc"><a href="images/contas/{$arquivo}" target="_blank"><img src="images/contas/{$tumb_arquivo}" width="25px"></a></td>
     <td>
     <big>
-        <a href="#" onclick="editar('{$id}','{$descricao}','{$valor}','{$cliente}','{$vencimento}','{$data_pgto}','{$forma_pgto_row}','{$frequencia}','{$obs}','{$arquivo}', '{$nome_cliente}', '{$id_romaneio}', '{$pgto_padrao}')" title="Editar Dados">
-            <i class="fa fa-edit text-primary"></i>
+        <a href="#" onclick="baixar('{$id}', '{$descricao}', '{$valor}', '{$vencimento}', '{$nome_cliente}', '{$id_romaneio}', '{$pgto_padrao}', '{$pago}')" title="Baixar / Ver Conta">
+            <i class="fa fa-check-square text-success"></i>
         </a>
     </big>
 HTML;
-        // BOTÃO IMPRIMIR (SEGUNDO)
         if (!empty($id_ref)) {
             echo " <big><a href='#' onclick=\"imprimir('{$id_ref}')\" title='Imprimir Romaneio'><i class='fa fa-file-pdf-o text-info'></i></a></big>";
         }
 
-        // BOTÃO EXCLUIR (ÚLTIMO)
         echo <<<HTML
         <div style="display: inline-block;" class="dropdown">
             <a href="#" data-bs-toggle="dropdown"><i class="fa fa-trash text-danger"></i></a>
@@ -188,7 +196,7 @@ HTML;
     </td>
 </tr>
 HTML;
-    } // FECHAMENTO DO FOR
+    }
 
     $total_pagoF = number_format($total_pago, 2, ',', '.');
     $total_pendentesF = number_format($total_pendentes, 2, ',', '.');
