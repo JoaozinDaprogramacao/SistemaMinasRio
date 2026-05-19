@@ -10,6 +10,10 @@ if (trim($obs_baixar) == "") {
     $obs_baixar = "Baixa de Título";
 }
 
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+
 $acrescimo = $_POST['valor-acrescimo'] ?? 0;
 $acrescimo = str_replace(',', '.', str_replace('.', '', $acrescimo));
 
