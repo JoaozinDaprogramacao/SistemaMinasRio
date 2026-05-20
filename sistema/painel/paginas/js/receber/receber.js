@@ -64,21 +64,6 @@ function totalizarPagamentos() {
     if (!statusLabel) return;
 
     let diferenca = totalRecebido - subtotalLiquido;
-
-    // Atualizado para usar tamanho fs-4 em todas as mensagens
-    if (totalRecebido === 0) {
-        statusLabel.textContent = "Aguardando...";
-        statusLabel.className = "fs-4 fw-bold text-muted";
-    } else if (diferenca < 0) {
-        statusLabel.className = "fs-4 fw-bold text-danger";
-        statusLabel.textContent = "Falta: R$ " + Math.abs(diferenca).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    } else if (diferenca > 0) {
-        statusLabel.className = "fs-4 fw-bold text-primary";
-        statusLabel.textContent = "Troco: R$ " + diferenca.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    } else {
-        statusLabel.className = "fs-4 fw-bold text-success";
-        statusLabel.textContent = "Valor Exato ✓";
-    }
 }
 
 function mascaraMoedaInput(input) {

@@ -8,7 +8,7 @@ $(document).ready(function () {
     $(document).on('blur', '.input-zeravel', function () {
         if ($(this).val().trim() == '') {
             $(this).val('0');
-            totalizar(); 
+            totalizar();
         }
     });
 
@@ -82,7 +82,7 @@ function alteracaoManualData() {
 }
 
 function definirPeriodo(valor) {
-    if (valor === "") return; 
+    if (valor === "") return;
 
     const hoje = new Date();
     let dataIni = new Date();
@@ -115,13 +115,13 @@ function definirPeriodo(valor) {
 }
 
 function buscar() {
-    var filtro = ""; 
+    var filtro = "";
     var dataInicial = $('#dataInicial').val();
     var dataFinal = $('#dataFinal').val();
-    var tipo_data = $('#filtrar_por').val(); 
+    var tipo_data = $('#filtrar_por').val();
     var atacadista = $('#atacadista').val();
     var formaPGTO = $('#formaPGTO').val();
-    var tipo_conta = $('#tipo_conta').val(); 
+    var tipo_conta = $('#tipo_conta').val();
 
     listar(filtro, dataInicial, dataFinal, tipo_data, atacadista, formaPGTO, tipo_conta);
 }
@@ -328,7 +328,7 @@ $(document).on('submit', '#form-baixar', function (e) {
             $('#mensagem-baixar').text('');
             if (mensagem.trim() == "Baixado com Sucesso") {
                 $('#btn-fechar-baixar').click();
-                buscar(); 
+                buscar();
             } else {
                 $('#mensagem-baixar').addClass('text-danger').html(mensagem);
             }
@@ -363,7 +363,7 @@ $("#form-parcelar").submit(function (e) {
 function marcarTodos() {
     let checkbox = document.getElementById('input-todos');
     var usuario = $('#id_permissoes').val();
-    if (checkbox.checked) { adicionarPermissoes(usuario); } 
+    if (checkbox.checked) { adicionarPermissoes(usuario); }
     else { limparPermissoes(usuario); }
 }
 
@@ -380,7 +380,7 @@ function carregarImg() {
         'xlsx': 'excel.png', 'xlsm': 'excel.png', 'xls': 'excel.png', 'xml': 'xml.png'
     };
 
-    if (icones[ext]) { $('#target').attr('src', "images/" + icones[ext]); } 
+    if (icones[ext]) { $('#target').attr('src', "images/" + icones[ext]); }
     else {
         reader.onloadend = function () { target.src = reader.result; };
         reader.readAsDataURL(file);
@@ -437,15 +437,15 @@ function valorBaixar() {
 
 function getFloatValue(elementId) {
     let element = document.getElementById(elementId);
-    if (!element) return 0; 
+    if (!element) return 0;
     let val = element.value;
-    if (val === undefined || val === null || val === "") return 0; 
-    
+    if (val === undefined || val === null || val === "") return 0;
+
     val = String(val).trim();
     if (val.indexOf(',') === -1) {
         return parseFloat(val) || 0;
     }
-    
+
     let valorStr = val.replace(/\./g, '').replace(',', '.');
     return parseFloat(valorStr) || 0;
 }
@@ -458,14 +458,14 @@ function totalizar() {
     let desconto = getFloatValue('valor-desconto');
 
     let subtotalLiquido = (valorOriginal + multa + juros + acrescimo) - desconto;
-    
+
     if (subtotalLiquido < 0) subtotalLiquido = 0;
 
     let subtotalInput = document.getElementById('subtotal');
     if (subtotalInput) {
         subtotalInput.value = subtotalLiquido.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     }
-    
+
     totalizarPagamentos();
 }
 
@@ -482,6 +482,9 @@ function totalizarPagamentos() {
         }
     });
 
+    // CORREÇÃO: Arredonda o total recebido para 2 casas decimais para evitar imprecisão
+    totalRecebido = Math.round(totalRecebido * 100) / 100;
+
     let lblTotalRecebido = document.getElementById('lbl-total-recebido');
     if (lblTotalRecebido) {
         lblTotalRecebido.textContent = "R$ " + totalRecebido.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -492,11 +495,17 @@ function totalizarPagamentos() {
     if (!subtotalStr) subtotalStr = "0";
 
     let subtotalLiquido = parseFloat(String(subtotalStr).replace(/\./g, '').replace(',', '.')) || 0;
-    
+
+    // CORREÇÃO: Arredonda o subtotal para 2 casas decimais
+    subtotalLiquido = Math.round(subtotalLiquido * 100) / 100;
+
     let statusLabel = document.getElementById('lbl-status-conta');
     if (!statusLabel) return;
 
     let diferenca = totalRecebido - subtotalLiquido;
+
+    // CORREÇÃO: Arredonda a diferença final para garantir que 0 seja exatamento 0
+    diferenca = Math.round(diferenca * 100) / 100;
 
     if (totalRecebido === 0) {
         statusLabel.textContent = "Aguardando...";
@@ -515,14 +524,14 @@ function totalizarPagamentos() {
 
 function mascaraMoedaInput(input) {
     if (!input.value) return;
-    let valor = input.value.replace(/\D/g, ''); 
+    let valor = input.value.replace(/\D/g, '');
     if (valor === "") {
         input.value = "";
         return;
     }
-    valor = (parseFloat(valor) / 100).toFixed(2); 
-    valor = valor.replace('.', ','); 
-    valor = valor.replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1.'); 
+    valor = (parseFloat(valor) / 100).toFixed(2);
+    valor = valor.replace('.', ',');
+    valor = valor.replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1.');
     input.value = valor;
 }
 
@@ -548,12 +557,12 @@ function addNewPagamentoLine() {
     if (!template || !container) return;
 
     const newLine = template.cloneNode(true);
-    newLine.style.display = "flex"; 
-    newLine.id = ""; 
-    
+    newLine.style.display = "flex";
+    newLine.id = "";
+
     const inputsText = newLine.querySelectorAll('input[type="text"]');
     inputsText.forEach(input => input.value = "");
-    
+
     const selects = newLine.querySelectorAll('select');
     selects.forEach(select => select.selectedIndex = 0);
 
@@ -563,12 +572,12 @@ function addNewPagamentoLine() {
 function handlePagamentoInput(input) {
     const linha = input.closest(".linha-pagamento");
     const container = document.getElementById("linha-container-pagamento");
-    
+
     const valor = linha.querySelector(".valor_pagamento").value.trim();
     const data = linha.querySelector(".data_pagamento").value.trim();
     const forma = linha.querySelector(".forma_pagamento").value.trim();
-    const banco = linha.querySelector(".banco_pagamento").value.trim(); 
-    
+    const banco = linha.querySelector(".banco_pagamento").value.trim();
+
     const isEssentialFilled = (valor !== "" && data !== "" && forma !== "" && banco !== "");
 
     if (isEssentialFilled && linha === container.lastElementChild) {
@@ -582,12 +591,12 @@ function limparModalBaixar() {
     $('#valor-multa').val('0');
     $('#valor-juros').val('0');
     $('#valor-desconto').val('0');
-    $('#valor-acrescimo').val('0'); 
+    $('#valor-acrescimo').val('0');
     $('#subtotal').val('');
     $('#lbl-status-conta').text('-');
     $('#lbl-total-recebido').text('R$ 0,00');
     $('#mensagem-baixar').text('');
-    $('#obs-baixar').val('');      
+    $('#obs-baixar').val('');
 
     $('#linha-container-pagamento').empty();
     addNewPagamentoLine();
@@ -600,10 +609,10 @@ function baixar(id, descricao, valor, vencimento, cliente, romaneio, forma_padra
     $('#descricao-baixar').text(descricao);
     $('#cliente-baixar').val(cliente);
     $('#romaneio-baixar').val(romaneio);
-    
+
     let valorFloat = parseFloat(valor) || 0;
     let valorFormatadoBR = valorFloat.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    
+
     $('#valor-original-baixar').val(valorFormatadoBR);
     $('#vencimento-baixar').val(vencimento);
 
@@ -614,18 +623,18 @@ function baixar(id, descricao, valor, vencimento, cliente, romaneio, forma_padra
             url: 'paginas/' + pag + "/buscar_baixa.php",
             method: 'POST',
             data: { id: id },
-            dataType: "json", 
+            dataType: "json",
             success: function (dados) {
                 $('#mensagem-baixar').text('');
-                
+
                 $('#linha-container-pagamento').empty();
 
                 if (dados.pagamentos && dados.pagamentos.length > 0) {
                     dados.pagamentos.forEach((pgto) => {
                         addNewPagamentoLine();
                         let linhas = document.querySelectorAll("#linha-container-pagamento .linha-pagamento");
-                        let ultimaLinha = linhas[linhas.length - 1]; 
-                        
+                        let ultimaLinha = linhas[linhas.length - 1];
+
                         let vPGTO = parseFloat(pgto.valor) || 0;
                         ultimaLinha.querySelector(".valor_pagamento").value = vPGTO.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
                         ultimaLinha.querySelector(".data_pagamento").value = pgto.data || '';
@@ -633,10 +642,10 @@ function baixar(id, descricao, valor, vencimento, cliente, romaneio, forma_padra
                         ultimaLinha.querySelector(".banco_pagamento").value = pgto.banco || '';
                         ultimaLinha.querySelector(".operacao_pagamento").value = pgto.operacao || '';
                     });
-                    
+
                     // Adiciona sempre uma linha extra em branco para o usuário continuar baixando
-                    addNewPagamentoLine(); 
-                    
+                    addNewPagamentoLine();
+
                 } else {
                     addNewPagamentoLine();
                 }
@@ -647,7 +656,7 @@ function baixar(id, descricao, valor, vencimento, cliente, romaneio, forma_padra
                 $('#valor-desconto').val(dados.desconto);
                 $('#obs-baixar').val(dados.obs);
 
-                totalizar(); 
+                totalizar();
                 $('#form-baixar button[type="submit"]').text('Editar Baixa').removeClass('btn-success').addClass('btn-warning');
                 $('#modalBaixar').modal('show');
             },
@@ -659,10 +668,10 @@ function baixar(id, descricao, valor, vencimento, cliente, romaneio, forma_padra
     } else {
         let primeiraLinha = document.querySelector("#linha-container-pagamento .linha-pagamento");
         if (primeiraLinha) {
-            primeiraLinha.querySelector(".valor_pagamento").value = ""; 
-            
+            primeiraLinha.querySelector(".valor_pagamento").value = "";
+
             let selectForma = primeiraLinha.querySelector(".forma_pagamento");
-            if(selectForma) {
+            if (selectForma) {
                 selectForma.value = (forma_padrao != "" && forma_padrao != "0" && forma_padrao != null) ? forma_padrao : '1';
             }
         }
@@ -671,7 +680,7 @@ function baixar(id, descricao, valor, vencimento, cliente, romaneio, forma_padra
         $('#modalBaixar').modal('show');
 
         setTimeout(function () {
-            totalizar(); 
+            totalizar();
         }, 200);
     }
 }
