@@ -302,7 +302,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     </div>
 
                     <div class="mb-3 border-bottom pb-3">
-                        <label class="fw-bold text-dark mb-2">Detalhes dos Pagamentos</label>
+                        <label class="fw-bold text-dark mb-2">Detalhes dos Recebimentos</label>
 
                         <div id="linha-template-pagamento" class="linha-pagamento row g-2 mb-2 align-items-end p-2 bg-light border rounded" style="display: none;">
                             <div class="col-md-2">
@@ -347,7 +347,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     </div>
                     <div class="row g-3">
                         <div class="col-md-7">
-                            <label class="small fw-bold text-secondary text-uppercase" for="obs-baixar">Descrição / Obs.</label>
+                            <label class="small fw-bold text-secondary text-uppercase" for="obs-baixar">Observações</label>
 
                             <textarea class="form-control shadow-sm" name="obs-baixar" id="obs-baixar" rows="2" maxlength="1000" placeholder="Informações adicionais sobre o recebimento..."></textarea>
 
