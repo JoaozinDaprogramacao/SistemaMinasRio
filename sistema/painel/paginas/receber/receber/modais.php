@@ -123,6 +123,33 @@
     </div>
 </div>
 
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const textarea = document.getElementById('obs-baixar');
+    const contador = document.getElementById('contador-obs');
+    const limite = 1000;
+
+    textarea.addEventListener('input', function() {
+        // Pega a quantidade de caracteres digitados
+        const caracteresDigitados = this.value.length;
+        
+        // Calcula quanto falta
+        const caracteresRestantes = limite - caracteresDigitados;
+        
+        // Atualiza o texto na tela
+        contador.textContent = `${caracteresRestantes} caracteres restantes`;
+
+        // BÔNUS: Muda a cor do texto para vermelho se faltarem 50 ou menos caracteres
+        if (caracteresRestantes <= 50) {
+            contador.classList.add('text-danger');
+            contador.classList.remove('text-muted');
+        } else {
+            contador.classList.remove('text-danger');
+            contador.classList.add('text-muted');
+        }
+    });
+});
+</script>
 
 
 
@@ -318,18 +345,22 @@
 
                         <div id="linha-container-pagamento"></div>
                     </div>
-
                     <div class="row g-3">
                         <div class="col-md-7">
-                            <label class="small fw-bold text-secondary text-uppercase">Descrição / Obs.</label>
-                            <textarea class="form-control shadow-sm" name="obs-baixar" id="obs-baixar" rows="2" placeholder="Informações adicionais sobre o recebimento..."></textarea>
+                            <label class="small fw-bold text-secondary text-uppercase" for="obs-baixar">Descrição / Obs.</label>
+
+                            <textarea class="form-control shadow-sm" name="obs-baixar" id="obs-baixar" rows="2" maxlength="1000" placeholder="Informações adicionais sobre o recebimento..."></textarea>
+
+                            <div id="contador-obs" class="form-text text-end text-muted" style="font-size: 0.75rem;">
+                                1000 caracteres restantes
+                            </div>
+
                         </div>
                         <div class="col-md-5">
-                            <label class="small fw-bold text-secondary text-uppercase">Arquivar Comprovante</label>
+                            <label class="small fw-bold text-secondary text-uppercase" for="comprovante">Arquivar Comprovante</label>
                             <input type="file" class="form-control shadow-sm" name="comprovante" id="comprovante" accept="image/*,.pdf">
                         </div>
                     </div>
-
                     <input type="hidden" name="id-baixar" id="id-baixar">
                 </div>
 
