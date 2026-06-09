@@ -116,8 +116,9 @@ function buscar() {
     var atacadista  = $('#atacadista').val();
     var formaPGTO   = $('#formaPGTO').val();
     var funcionario = $('#funcionario_filtro').val();
+    var categoria   = $('#categoria_filtro').val();
 
-    listar(filtro, dataInicial, dataFinal, tipo_data, atacadista, formaPGTO, funcionario);
+    listar(filtro, dataInicial, dataFinal, tipo_data, atacadista, formaPGTO, funcionario, categoria);
 }
 
 function listar(p1, p2, p3, p4, p5, p6, p7) {
@@ -246,7 +247,7 @@ function arquivo(id, nome) {
     listarArquivos();
 }
 
-function editar(id, descricao, valor, fornecedor, funcionario, vencimento, data_pgto, forma_pgto, frequencia, obs, arquivo) {
+function editar(id, descricao, valor, fornecedor, funcionario, vencimento, data_pgto, forma_pgto, frequencia, obs, arquivo, categoria) {
     $('#mensagem').text('');
     $('#titulo_inserir').text('Editar Registro');
     $('#id').val(id);
@@ -260,6 +261,7 @@ function editar(id, descricao, valor, fornecedor, funcionario, vencimento, data_
     $('#frequencia').val(frequencia).change();
     $('#obs').val(obs);
     $('#target').attr('src', 'images/contas/' + arquivo);
+    if ($('#categoria_pagar').length) $('#categoria_pagar').val(categoria || '').change();
     $('#modalForm').modal('show');
 }
 
@@ -276,6 +278,7 @@ function limparCampos() {
     if ($('#funcionario').length) $('#funcionario').val('0').change();
     if ($('#forma_pgto').length) $('#forma_pgto').prop('selectedIndex', 0).change();
     if ($('#frequencia').length) $('#frequencia').prop('selectedIndex', 0).change();
+    if ($('#categoria_pagar').length) $('#categoria_pagar').val('').change();
     $('#ids').val('');
     $('#btn-deletar, #btn-baixar').hide();
     $('#mensagem').text('');

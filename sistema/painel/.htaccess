@@ -41,6 +41,7 @@ RewriteRule ^formas_pgto(.*)$ index.php?pagina=formas_pgto [L]
 RewriteRule ^planos_pgto(.*)$ index.php?pagina=planos_pgto [L]
 RewriteRule ^frequencias(.*)$ index.php?pagina=frequencias [L]
 RewriteRule ^descricao_banco(.*)$ index.php?pagina=descricao_banco [L]
+RewriteRule ^categorias_pagar(.*)$ index.php?pagina=categorias_pagar [L]
 
 # ==========================================================
 # MÓDULO DE MATERIAIS, PRODUTOS E ESTOQUE

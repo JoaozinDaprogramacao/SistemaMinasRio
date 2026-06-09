@@ -500,6 +500,8 @@ if (@count($res1) > 0) {
 
 									<li class="<?php echo @$pagar ?> "><a class="slide-item" href="pagar"> Pagar</a></li>
 
+									<li class="<?php echo @$categorias_pagar ?> "><a class="slide-item" href="categorias_pagar"> Categorias Despesas</a></li>
+
 									<li class="<?php echo @$lista_vendas ?> "><a class="slide-item" href="lista_vendas"> Lista de Vendas</a></li>
 
 									<!--<li class="<?php echo @$comissoes ?> "><a class="slide-item" href="comissoes"> Lista de Comissões</a></li>-->

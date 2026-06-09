@@ -17,6 +17,7 @@ $obs = $_POST['obs'];
 $id = $_POST['id'];
 $banco = $_POST['banco'] ?? 0;
 $descricao_banco = $_POST['descricao_banco'] ?? 0;
+$categoria_pagar = !empty($_POST['categoria_pagar']) ? (int)$_POST['categoria_pagar'] : 'NULL';
 
 $valor = str_replace(',', '.', $valor);
 $valorF = @number_format($valor, 2, ',', '.');
@@ -104,37 +105,40 @@ $query1 = $pdo->query("SELECT * FROM caixas WHERE operador = '$id_usuario' AND d
 $res1 = $query1->fetchAll(PDO::FETCH_ASSOC);
 $id_caixa = (@count($res1) > 0) ? $res1[0]['id'] : 0;
 
+$sql_categoria = ($categoria_pagar !== 'NULL') ? ", categoria_pagar = $categoria_pagar" : ", categoria_pagar = NULL";
+
 // INSERT ou UPDATE
 if($id == ""){
-	$query = $pdo->prepare("INSERT INTO $tabela SET 
-		descricao = :descricao, 
-		fornecedor = :fornecedor, 
-		funcionario = :funcionario, 
-		valor = :valor, 
-		vencimento = '$vencimento' $pgto, 
-		data_lanc = curDate(), 
-		forma_pgto = '$forma_pgto', 
-		frequencia = '$frequencia', 
-		obs = :obs, 
-		arquivo = '$foto', 
-		subtotal = :valor, 
-		usuario_lanc = '$id_usuario' $usu_pgto, 
-		pago = '$pago', 
-		referencia = 'Conta', 
-		caixa = '$id_caixa', 
-		hora = curTime()");
+	$query = $pdo->prepare("INSERT INTO $tabela SET
+		descricao = :descricao,
+		fornecedor = :fornecedor,
+		funcionario = :funcionario,
+		valor = :valor,
+		vencimento = '$vencimento' $pgto,
+		data_lanc = curDate(),
+		forma_pgto = '$forma_pgto',
+		frequencia = '$frequencia',
+		obs = :obs,
+		arquivo = '$foto',
+		subtotal = :valor,
+		usuario_lanc = '$id_usuario' $usu_pgto,
+		pago = '$pago',
+		referencia = 'Conta',
+		caixa = '$id_caixa',
+		hora = curTime() $sql_categoria");
 } else {
-	$query = $pdo->prepare("UPDATE $tabela SET 
-		descricao = :descricao, 
-		fornecedor = :fornecedor, 
-		funcionario = :funcionario, 
-		valor = :valor, 
-		vencimento = '$vencimento' $pgto, 
-		forma_pgto = '$forma_pgto', 
-		frequencia = '$frequencia', 
-		obs = :obs, 
-		arquivo = '$foto', 
-		subtotal = :valor 
+	$query = $pdo->prepare("UPDATE $tabela SET
+		descricao = :descricao,
+		fornecedor = :fornecedor,
+		funcionario = :funcionario,
+		valor = :valor,
+		vencimento = '$vencimento' $pgto,
+		forma_pgto = '$forma_pgto',
+		frequencia = '$frequencia',
+		obs = :obs,
+		arquivo = '$foto',
+		subtotal = :valor
+		$sql_categoria
 		WHERE id = '$id'");
 }
 

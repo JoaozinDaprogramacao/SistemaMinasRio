@@ -28,14 +28,23 @@ $tipo_data   = @$_POST['p4'] ?: 'vencimento';
 $atacadista  = @$_POST['p5'];
 $forma_pgto  = @$_POST['p6'];
 $funcionario = @$_POST['p7'];
+$categoria   = @$_POST['p8'];
 
-$sql_fornecedor  = !empty($atacadista)  ? " AND t.fornecedor = '$atacadista'"   : "";
-$sql_pgto        = !empty($forma_pgto)  ? " AND t.forma_pgto = '$forma_pgto'"   : "";
-$sql_funcionario = !empty($funcionario) ? " AND t.funcionario = '$funcionario'" : "";
+$sql_fornecedor  = !empty($atacadista)  ? " AND t.fornecedor = '$atacadista'"      : "";
+$sql_pgto        = !empty($forma_pgto)  ? " AND t.forma_pgto = '$forma_pgto'"      : "";
+$sql_funcionario = !empty($funcionario) ? " AND t.funcionario = '$funcionario'"    : "";
+$sql_categoria   = !empty($categoria)   ? " AND t.categoria_pagar = '$categoria'" : "";
 
-$base_from  = " FROM $tabela t ";
+// Verifica se a tabela categorias_pagar existe
+$tem_categorias = false;
+try { $pdo->query("SELECT 1 FROM categorias_pagar LIMIT 1"); $tem_categorias = true; } catch (Exception $e) {}
+
+$join_categoria = $tem_categorias ? " LEFT JOIN categorias_pagar cp ON t.categoria_pagar = cp.id " : "";
+$sel_categoria  = $tem_categorias ? ", cp.nome as nome_categoria" : ", '' as nome_categoria";
+
+$base_from  = " FROM $tabela t $join_categoria ";
 $base_where = " WHERE t.$tipo_data >= '$dataInicial' AND t.$tipo_data <= '$dataFinal'
-                $sql_usuario_lanc $sql_fornecedor $sql_pgto $sql_funcionario ";
+                $sql_usuario_lanc $sql_fornecedor $sql_pgto $sql_funcionario $sql_categoria ";
 
 // Totais para os cards (query única)
 $res_totais = $pdo->query("SELECT
@@ -80,7 +89,7 @@ if ($filtro == 'Vencidas') {
     $where_filtro = " AND t.vencimento >= curDate() AND t.pago IN ('Não','Parcial')";
 }
 
-$query = $pdo->query("SELECT t.* $base_from $base_where $where_filtro $ordem");
+$query = $pdo->query("SELECT t.* $sel_categoria $base_from $base_where $where_filtro $ordem");
 $res = $query->fetchAll(PDO::FETCH_ASSOC);
 $linhas = @count($res);
 
@@ -96,6 +105,7 @@ if ($linhas > 0) {
             <th align="center" width="5%" class="text-center">Selecionar</th>
             <th class="esc">Data Lançamento</th>
             <th>Descrição</th>
+            <th class="esc">Categoria</th>
             <th>Valor</th>
             <th class="esc">Pessoa</th>
             <th class="esc">Vencimento</th>
@@ -123,9 +133,11 @@ HTML;
         $forma_pgto_row = $res[$i]['forma_pgto'];
         $frequencia     = $res[$i]['frequencia'];
         $obs            = $res[$i]['obs'];
-        $valor_restante = $res[$i]['valor_restante'] ?? $valor;
-        $id_romaneio    = $res[$i]['id_romaneio'] ?? 0;
-        $referencia     = $res[$i]['referencia'] ?? '';
+        $valor_restante  = $res[$i]['valor_restante'] ?? $valor;
+        $id_romaneio     = $res[$i]['id_romaneio'] ?? 0;
+        $referencia      = $res[$i]['referencia'] ?? '';
+        $nome_categoria  = $res[$i]['nome_categoria'] ?? '';
+        $cat_id          = $res[$i]['categoria_pagar'] ?? '';
 
         $data_lancF  = date('d/m/Y', strtotime($data_lanc));
         $vencimentoF = date('d/m/Y', strtotime($vencimento));
@@ -175,6 +187,7 @@ HTML;
     </td>
     <td class="esc">{$data_lancF}</td>
     <td><i class="fa fa-square {$classe_pago} mr-1"></i> {$descricao}</td>
+    <td class="esc"><small class="badge bg-secondary text-white">{$nome_categoria}</small></td>
     <td>R$ {$valor_finalF}</td>
     <td class="esc">{$nome_pessoa}</td>
     <td class="esc {$classe_venc}">{$vencimentoF}</td>
@@ -184,6 +197,11 @@ HTML;
     <big>
         <a href="#" onclick="baixar('{$id}', '{$descricao}', '{$valor}', '{$vencimento}', '{$nome_pessoa}', '{$pgto_padrao}', '{$pago}', '{$id_romaneio}', '{$referencia}', '{$data_lancF}')" title="Baixar / Pagar Conta">
             <i class="fa fa-check-square text-success"></i>
+        </a>
+    </big>
+    <big>
+        <a href="#" onclick="editar('{$id}','{$descricao}','{$valor}','{$fornecedor_row}','{$funcionario_row}','{$vencimento}','{$data_pgto}','{$forma_pgto_row}','{$frequencia}','{$obs}','{$arquivo}','{$cat_id}')" title="Editar Conta">
+            <i class="fa fa-edit text-primary"></i>
         </a>
     </big>
     <div style="display: inline-block;" class="dropdown">

@@ -407,18 +407,34 @@ document.addEventListener('DOMContentLoaded', function () {
 			<form id="form" enctype="multipart/form-data">
 				<div class="modal-body">
 					<div class="row">
-						<div class="col-md-5 mb-2">
-							<label>Descrição</label>
-							<input type="text" class="form-control" id="descricao" name="descricao" placeholder="Descrição">
+						<div class="col-md-4 mb-2">
+							<label>Categoria</label>
+							<select name="categoria_pagar" id="categoria_pagar" class="form-select">
+								<option value="">— Selecione a Categoria —</option>
+								<?php
+								try {
+									$q = $pdo->query("SELECT id, nome FROM categorias_pagar ORDER BY nome ASC");
+									foreach ($q->fetchAll(PDO::FETCH_ASSOC) as $row) {
+										echo '<option value="' . $row['id'] . '">' . htmlspecialchars($row['nome']) . '</option>';
+									}
+								} catch (Exception $e) {}
+								?>
+							</select>
 						</div>
-						<div class="col-md-2 mb-2">
+						<div class="col-md-3 mb-2">
 							<label>Valor</label>
 							<input type="text" class="form-control" id="valor" name="valor" placeholder="0,00" onkeyup="mascara_moeda(this)">
 						</div>
 						<div class="col-md-5 mb-2">
+							<label>Descrição</label>
+							<input type="text" class="form-control" id="descricao" name="descricao" placeholder="Ex: Salário Janeiro, Conta de Luz...">
+						</div>
+					</div>
+					<div class="row">
+						<div class="col-md-6 mb-2">
 							<label>Fornecedor</label>
 							<select name="fornecedor" id="fornecedor" class="form-select">
-								<option value="0">Selecione um Fornecedor</option>
+								<option value="0">— Nenhum —</option>
 								<?php
 								$q = $pdo->query("SELECT id, nome_atacadista FROM fornecedores ORDER BY nome_atacadista ASC");
 								foreach ($q->fetchAll(PDO::FETCH_ASSOC) as $row) {
@@ -427,12 +443,10 @@ document.addEventListener('DOMContentLoaded', function () {
 								?>
 							</select>
 						</div>
-					</div>
-					<div class="row">
-						<div class="col-md-4 mb-2">
+						<div class="col-md-6 mb-2">
 							<label>Funcionário</label>
 							<select name="funcionario" id="funcionario" class="form-select">
-								<option value="0">Selecione um Funcionário</option>
+								<option value="0">— Nenhum —</option>
 								<?php
 								$q = $pdo->query("SELECT id, nome FROM funcionarios ORDER BY nome ASC");
 								foreach ($q->fetchAll(PDO::FETCH_ASSOC) as $row) {
@@ -441,6 +455,8 @@ document.addEventListener('DOMContentLoaded', function () {
 								?>
 							</select>
 						</div>
+					</div>
+					<div class="row">
 						<div class="col-md-2 mb-2">
 							<label>Vencimento</label>
 							<input type="date" name="vencimento" id="vencimento" value="<?php echo date('Y-m-d') ?>" class="form-control">

@@ -39,6 +39,20 @@
     </div>
 
     <div class="col-auto">
+        <select id="categoria_filtro" class="form-select form-select-sm" onchange="buscar()">
+            <option value="">Categoria</option>
+            <?php
+            try {
+                $q = $pdo->query("SELECT id, nome FROM categorias_pagar ORDER BY nome ASC");
+                foreach ($q->fetchAll(PDO::FETCH_ASSOC) as $row) {
+                    echo '<option value="' . $row['id'] . '">' . htmlspecialchars($row['nome']) . '</option>';
+                }
+            } catch (Exception $e) {}
+            ?>
+        </select>
+    </div>
+
+    <div class="col-auto">
         <select id="filtrar_por" class="form-select form-select-sm" onchange="buscar()">
             <option value="vencimento">Por Vencimento</option>
             <option value="data_lanc">Por Faturamento</option>
