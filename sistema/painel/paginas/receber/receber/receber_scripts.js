@@ -165,7 +165,7 @@ function limparCampos() {
     $('#id').val('');
     $('#descricao').val('');
     $('#valor').val('');
-    $('#vencimento').val("<?= $data_atual ?>");
+    $('#vencimento').val('');
     $('#data_pgto').val('');
     $('#obs').val('');
     $('#arquivo').val('');

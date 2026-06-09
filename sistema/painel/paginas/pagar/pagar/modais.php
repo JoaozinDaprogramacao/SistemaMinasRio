@@ -395,3 +395,130 @@ document.addEventListener('DOMContentLoaded', function () {
 		</div>
 	</div>
 </div>
+
+<!-- Modal Form: Inserir / Editar Conta a Pagar -->
+<div class="modal fade" id="modalForm" tabindex="-1" aria-hidden="true">
+	<div class="modal-dialog modal-lg">
+		<div class="modal-content">
+			<div class="modal-header bg-primary text-white">
+				<h4 class="modal-title"><span id="titulo_inserir">Inserir Registro</span></h4>
+				<button id="btn-fechar" aria-label="Close" class="btn-close" data-bs-dismiss="modal" type="button"><span class="text-white" aria-hidden="true">&times;</span></button>
+			</div>
+			<form id="form" enctype="multipart/form-data">
+				<div class="modal-body">
+					<div class="row">
+						<div class="col-md-5 mb-2">
+							<label>Descrição</label>
+							<input type="text" class="form-control" id="descricao" name="descricao" placeholder="Descrição">
+						</div>
+						<div class="col-md-2 mb-2">
+							<label>Valor</label>
+							<input type="text" class="form-control" id="valor" name="valor" placeholder="0,00" onkeyup="mascara_moeda(this)">
+						</div>
+						<div class="col-md-5 mb-2">
+							<label>Fornecedor</label>
+							<select name="fornecedor" id="fornecedor" class="form-select">
+								<option value="0">Selecione um Fornecedor</option>
+								<?php
+								$q = $pdo->query("SELECT id, nome_atacadista FROM fornecedores ORDER BY nome_atacadista ASC");
+								foreach ($q->fetchAll(PDO::FETCH_ASSOC) as $row) {
+									echo '<option value="' . $row['id'] . '">' . htmlspecialchars($row['nome_atacadista']) . '</option>';
+								}
+								?>
+							</select>
+						</div>
+					</div>
+					<div class="row">
+						<div class="col-md-4 mb-2">
+							<label>Funcionário</label>
+							<select name="funcionario" id="funcionario" class="form-select">
+								<option value="0">Selecione um Funcionário</option>
+								<?php
+								$q = $pdo->query("SELECT id, nome FROM funcionarios ORDER BY nome ASC");
+								foreach ($q->fetchAll(PDO::FETCH_ASSOC) as $row) {
+									echo '<option value="' . $row['id'] . '">' . htmlspecialchars($row['nome']) . '</option>';
+								}
+								?>
+							</select>
+						</div>
+						<div class="col-md-2 mb-2">
+							<label>Vencimento</label>
+							<input type="date" name="vencimento" id="vencimento" value="<?php echo date('Y-m-d') ?>" class="form-control">
+						</div>
+						<div class="col-md-2 mb-2">
+							<label>Pago Em</label>
+							<input type="date" name="data_pgto" id="data_pgto" value="" class="form-control">
+						</div>
+						<div class="col-md-2 mb-2">
+							<label>Forma Pgto</label>
+							<select name="forma_pgto" id="forma_pgto" class="form-select">
+								<?php
+								$q = $pdo->query("SELECT id, nome FROM formas_pgto ORDER BY id ASC");
+								foreach ($q->fetchAll(PDO::FETCH_ASSOC) as $row) {
+									echo '<option value="' . $row['id'] . '">' . $row['nome'] . '</option>';
+								}
+								?>
+							</select>
+						</div>
+						<div class="col-md-2 mb-2">
+							<label>Frequência</label>
+							<select name="frequencia" id="frequencia" class="form-select">
+								<?php
+								$q = $pdo->query("SELECT dias, frequencia FROM frequencias ORDER BY id ASC");
+								foreach ($q->fetchAll(PDO::FETCH_ASSOC) as $row) {
+									echo '<option value="' . $row['dias'] . '">' . $row['frequencia'] . '</option>';
+								}
+								?>
+							</select>
+						</div>
+					</div>
+					<div class="row">
+						<div class="col-md-6 mb-2">
+							<label>Observações</label>
+							<input type="text" class="form-control" id="obs" name="obs" placeholder="Observações">
+						</div>
+						<div class="col-md-4 mb-2">
+							<label>Arquivo</label>
+							<input type="file" class="form-control" id="arquivo" name="foto" onchange="carregarImg()">
+						</div>
+						<div class="col-md-2">
+							<img width="80px" id="target" src="images/contas/sem-foto.png">
+						</div>
+					</div>
+					<div class="row d-none" id="div-banco">
+						<div class="col-md-6 mb-2">
+							<label>Banco</label>
+							<select class="form-select" name="banco" id="banco">
+								<option value="">Selecione</option>
+								<?php
+								$q = $pdo->query("SELECT id, banco FROM bancos ORDER BY id ASC");
+								foreach ($q->fetchAll(PDO::FETCH_ASSOC) as $row) {
+									echo '<option value="' . $row['id'] . '">' . $row['banco'] . '</option>';
+								}
+								?>
+							</select>
+						</div>
+						<div class="col-md-6 mb-2">
+							<label>Descrição (Banco)</label>
+							<select class="form-select" name="descricao_banco" id="descricao_banco">
+								<option value="">Selecione a Classificação</option>
+								<?php
+								$q = $pdo->query("SELECT id, descricao FROM descricao_banco ORDER BY descricao ASC");
+								foreach ($q->fetchAll(PDO::FETCH_ASSOC) as $row) {
+									echo '<option value="' . $row['id'] . '">' . htmlspecialchars($row['descricao']) . '</option>';
+								}
+								?>
+							</select>
+						</div>
+					</div>
+					<input type="hidden" id="id" name="id">
+					<br>
+					<small><div id="mensagem" align="center"></div></small>
+				</div>
+				<div class="modal-footer">
+					<button type="submit" id="btn_salvar" class="btn btn-success">Salvar</button>
+				</div>
+			</form>
+		</div>
+	</div>
+</div>
