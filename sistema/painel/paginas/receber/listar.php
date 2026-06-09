@@ -44,10 +44,16 @@ $base_from = " FROM $tabela t
 $base_where = " WHERE t.$tipo_data >= '$dataInicial' AND t.$tipo_data <= '$dataFinal' 
                  $sql_usuario_lanc $sql_atacadista $sql_pgto $sql_tipo_conta ";
 
-$res_totais = $pdo->query("SELECT 
-    SUM(CASE WHEN t.vencimento < curDate() AND t.pago = 'Não' THEN t.valor ELSE 0 END) as vencidas,
+$res_totais = $pdo->query("SELECT
+    SUM(CASE
+        WHEN t.vencimento < curDate() AND t.pago = 'Não' THEN t.valor
+        WHEN t.vencimento < curDate() AND t.pago = 'Parcial' THEN COALESCE(t.valor_restante, t.valor)
+        ELSE 0 END) as vencidas,
     SUM(CASE WHEN t.pago = 'Sim' THEN t.subtotal ELSE 0 END) as recebidas,
-    SUM(CASE WHEN t.vencimento >= curDate() AND t.pago = 'Não' THEN t.valor ELSE 0 END) as a_vencer,
+    SUM(CASE
+        WHEN t.vencimento >= curDate() AND t.pago = 'Não' THEN t.valor
+        WHEN t.vencimento >= curDate() AND t.pago = 'Parcial' THEN COALESCE(t.valor_restante, t.valor)
+        ELSE 0 END) as a_vencer,
     SUM(t.valor) as total_bruto,
     SUM(COALESCE(t.desconto, 0)) as desc_total,
     SUM(COALESCE(t.juros, 0) + COALESCE(t.multa, 0) + COALESCE(t.taxa, 0)) as acres_total
@@ -69,16 +75,16 @@ $total_liquidoF = number_format($total_liquido, 2, ',', '.');
 $ordem = "ORDER BY t.vencimento ASC";
 $where_filtro = "";
 if ($filtro == 'Vencidas') {
-    $where_filtro = " AND t.vencimento < curDate() AND t.pago = 'Não'";
+    $where_filtro = " AND t.vencimento < curDate() AND t.pago IN ('Não','Parcial')";
 } else if ($filtro == 'Recebidas') {
     $where_filtro = " AND t.pago = 'Sim'";
     $ordem = "ORDER BY t.data_pgto DESC";
 } else if ($filtro == 'AVencer') {
-    $where_filtro = " AND t.vencimento >= curDate() AND t.pago = 'Não'";
+    $where_filtro = " AND t.vencimento >= curDate() AND t.pago IN ('Não','Parcial')";
 } else {
-    $ordem = "ORDER BY CASE 
-                WHEN t.pago = 'Não' AND t.vencimento < curDate() THEN 1 
-                WHEN t.pago = 'Não' AND t.vencimento >= curDate() THEN 2 
+    $ordem = "ORDER BY CASE
+                WHEN t.pago IN ('Não','Parcial') AND t.vencimento < curDate() THEN 1
+                WHEN t.pago IN ('Não','Parcial') AND t.vencimento >= curDate() THEN 2
                 ELSE 3 END ASC, t.vencimento ASC";
 }
 

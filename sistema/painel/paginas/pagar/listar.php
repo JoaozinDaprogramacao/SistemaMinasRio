@@ -39,9 +39,15 @@ $base_where = " WHERE t.$tipo_data >= '$dataInicial' AND t.$tipo_data <= '$dataF
 
 // Totais para os cards (query única)
 $res_totais = $pdo->query("SELECT
-    SUM(CASE WHEN t.vencimento < curDate() AND t.pago = 'Não' THEN t.valor ELSE 0 END) as vencidas,
+    SUM(CASE
+        WHEN t.vencimento < curDate() AND t.pago = 'Não' THEN t.valor
+        WHEN t.vencimento < curDate() AND t.pago = 'Parcial' THEN COALESCE(t.valor_restante, t.valor)
+        ELSE 0 END) as vencidas,
     SUM(CASE WHEN t.pago = 'Sim' THEN t.subtotal ELSE 0 END) as pagas,
-    SUM(CASE WHEN t.vencimento >= curDate() AND t.pago = 'Não' THEN t.valor ELSE 0 END) as a_vencer,
+    SUM(CASE
+        WHEN t.vencimento >= curDate() AND t.pago = 'Não' THEN t.valor
+        WHEN t.vencimento >= curDate() AND t.pago = 'Parcial' THEN COALESCE(t.valor_restante, t.valor)
+        ELSE 0 END) as a_vencer,
     SUM(t.valor) as total_bruto,
     SUM(COALESCE(t.desconto, 0)) as desc_total,
     SUM(COALESCE(t.juros, 0) + COALESCE(t.multa, 0) + COALESCE(t.taxa, 0)) as acres_total
@@ -57,21 +63,21 @@ $total_acrescimoF = number_format($res_totais['acres_total'] ?? 0, 2, ',', '.');
 $total_liquido  = (($res_totais['total_bruto'] ?? 0) - ($res_totais['desc_total'] ?? 0)) + ($res_totais['acres_total'] ?? 0);
 $total_liquidoF = number_format($total_liquido, 2, ',', '.');
 
-// Ordenação inteligente: vencidas primeiro, depois a vencer, depois pagas
+// Ordenação inteligente: vencidas/parcial vencida primeiro, depois a vencer, depois pagas
 $ordem = "ORDER BY CASE
-            WHEN t.pago = 'Não' AND t.vencimento < curDate() THEN 1
-            WHEN t.pago = 'Não' AND t.vencimento >= curDate() THEN 2
+            WHEN t.pago IN ('Não','Parcial') AND t.vencimento < curDate() THEN 1
+            WHEN t.pago IN ('Não','Parcial') AND t.vencimento >= curDate() THEN 2
             ELSE 3 END ASC, t.vencimento ASC";
 
 $where_filtro = "";
 if ($filtro == 'Vencidas') {
-    $where_filtro = " AND t.vencimento < curDate() AND t.pago = 'Não'";
+    $where_filtro = " AND t.vencimento < curDate() AND t.pago IN ('Não','Parcial')";
     $ordem = "ORDER BY t.vencimento ASC";
 } else if ($filtro == 'Pagas') {
     $where_filtro = " AND t.pago = 'Sim'";
     $ordem = "ORDER BY t.data_pgto DESC";
 } else if ($filtro == 'AVencer') {
-    $where_filtro = " AND t.vencimento >= curDate() AND t.pago = 'Não'";
+    $where_filtro = " AND t.vencimento >= curDate() AND t.pago IN ('Não','Parcial')";
 }
 
 $query = $pdo->query("SELECT t.* $base_from $base_where $where_filtro $ordem");
