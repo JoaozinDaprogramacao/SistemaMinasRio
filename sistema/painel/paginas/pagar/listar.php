@@ -182,7 +182,7 @@ HTML;
     <td class="esc"><a href="images/contas/{$arquivo}" target="_blank"><img src="images/contas/{$tumb_arquivo}" width="25px"></a></td>
     <td>
     <big>
-        <a href="#" onclick="baixar('{$id}', '{$descricao}', '{$valor}', '{$vencimento}', '{$nome_pessoa}', '{$pgto_padrao}', '{$pago}', '{$id_romaneio}', '{$referencia}')" title="Baixar / Pagar Conta">
+        <a href="#" onclick="baixar('{$id}', '{$descricao}', '{$valor}', '{$vencimento}', '{$nome_pessoa}', '{$pgto_padrao}', '{$pago}', '{$id_romaneio}', '{$referencia}', '{$data_lancF}')" title="Baixar / Pagar Conta">
             <i class="fa fa-check-square text-success"></i>
         </a>
     </big>

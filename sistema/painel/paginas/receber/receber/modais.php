@@ -245,9 +245,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 <div class="modal-body bg-white">
 
                     <div class="row g-2 mb-3 pb-3 border-bottom">
-                        <div class="col-md-5">
+                        <div class="col-md-4">
                             <label class="text-uppercase fw-bold text-muted small">Cliente</label>
                             <input type="text" class="form-control form-control-sm bg-light border-0" id="cliente-baixar" readonly>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="text-uppercase fw-bold text-muted small">Faturamento</label>
+                            <input type="text" class="form-control form-control-sm bg-light border-0" id="fat-baixar" readonly>
                         </div>
                         <div class="col-md-2">
                             <label class="text-uppercase fw-bold text-muted small">Romaneio</label>
@@ -257,7 +261,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             <label class="text-uppercase fw-bold text-muted small">Valor Original</label>
                             <input type="text" class="form-control form-control-sm bg-light border-0 fw-bold" id="valor-original-baixar" readonly>
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-2">
                             <label class="text-uppercase fw-bold text-muted small">Vencimento</label>
                             <input type="text" class="form-control form-control-sm bg-light border-0" id="vencimento-baixar" readonly>
                         </div>

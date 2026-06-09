@@ -536,6 +536,7 @@ function limparModalBaixar() {
     $('#id-baixar').val('');
     $('#pessoa-baixar').val('');
     $('#fornecedor-baixar').val('');
+    $('#fat-baixar').val('');
     $('#romaneio-baixar').val('');
     $('#valor-original-baixar').val('');
     $('#vencimento-baixar').val('');
@@ -558,7 +559,7 @@ function limparModalBaixar() {
 // ABRIR MODAL BAIXAR
 // =============================================
 
-function baixar(id, descricao, valor, vencimento, pessoa, forma_padrao, status_pagamento, id_romaneio, referencia) {
+function baixar(id, descricao, valor, vencimento, pessoa, forma_padrao, status_pagamento, id_romaneio, referencia, data_fat) {
     limparModalBaixar();
 
     const ehRomaneio = (referencia === 'romaneio_compra');
@@ -572,6 +573,7 @@ function baixar(id, descricao, valor, vencimento, pessoa, forma_padrao, status_p
     if (ehRomaneio) {
         $('#secao-romaneio-baixar').show();
         $('#fornecedor-baixar').val(pessoa);
+        $('#fat-baixar').val(data_fat || '');
         $('#romaneio-baixar').val(id_romaneio || '—');
         $('#valor-original-baixar').val(valorFormatado);
         $('#vencimento-baixar').val(vencimento);

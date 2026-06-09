@@ -587,6 +587,9 @@ function handlePagamentoInput(input) {
 
 function limparModalBaixar() {
     $('#id-baixar').val('');
+    $('#cliente-baixar').val('');
+    $('#fat-baixar').val('');
+    $('#romaneio-baixar').val('');
     $('#valor-original-baixar').val('');
     $('#valor-multa').val('0');
     $('#valor-juros').val('0');
@@ -602,12 +605,13 @@ function limparModalBaixar() {
     addNewPagamentoLine();
 }
 
-function baixar(id, descricao, valor, vencimento, cliente, romaneio, forma_padrao, status_pagamento) {
+function baixar(id, descricao, valor, vencimento, cliente, romaneio, forma_padrao, status_pagamento, data_fat) {
     limparModalBaixar();
 
     $('#id-baixar').val(id);
     $('#descricao-baixar').text(descricao);
     $('#cliente-baixar').val(cliente);
+    $('#fat-baixar').val(data_fat || '');
     $('#romaneio-baixar').val(romaneio);
 
     let valorFloat = parseFloat(valor) || 0;

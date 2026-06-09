@@ -183,15 +183,19 @@ document.addEventListener('DOMContentLoaded', function () {
 								<i class="fa fa-file-text-o me-1"></i> Romaneio de Compra
 							</span>
 						</div>
-						<div class="col-md-4">
+						<div class="col-md-3">
 							<label class="text-uppercase fw-bold text-muted small">Fornecedor</label>
 							<input type="text" class="form-control form-control-sm bg-light border-0" id="fornecedor-baixar" readonly>
+						</div>
+						<div class="col-md-2">
+							<label class="text-uppercase fw-bold text-muted small">Faturamento</label>
+							<input type="text" class="form-control form-control-sm bg-light border-0" id="fat-baixar" readonly>
 						</div>
 						<div class="col-md-2">
 							<label class="text-uppercase fw-bold text-muted small">Romaneio #</label>
 							<input type="text" class="form-control form-control-sm bg-light border-0" id="romaneio-baixar" readonly>
 						</div>
-						<div class="col-md-3">
+						<div class="col-md-2">
 							<label class="text-uppercase fw-bold text-muted small">Valor Original</label>
 							<input type="text" class="form-control form-control-sm bg-light border-0 fw-bold" id="valor-original-baixar" readonly>
 						</div>
