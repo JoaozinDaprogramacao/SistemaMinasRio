@@ -49,7 +49,10 @@ $res_totais = $pdo->query("SELECT
         WHEN t.vencimento < curDate() AND t.pago = 'Não' THEN t.valor
         WHEN t.vencimento < curDate() AND t.pago = 'Parcial' THEN COALESCE(t.valor_restante, t.valor)
         ELSE 0 END) as vencidas,
-    SUM(CASE WHEN t.pago = 'Sim' THEN t.subtotal ELSE 0 END) as recebidas,
+    SUM(CASE
+        WHEN t.pago = 'Sim' THEN t.subtotal
+        WHEN t.pago = 'Parcial' THEN (t.subtotal - COALESCE(t.valor_restante, 0))
+        ELSE 0 END) as recebidas,
     SUM(CASE
         WHEN t.vencimento >= curDate() AND t.pago = 'Não' THEN t.valor
         WHEN t.vencimento >= curDate() AND t.pago = 'Parcial' THEN COALESCE(t.valor_restante, t.valor)
