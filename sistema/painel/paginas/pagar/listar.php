@@ -35,9 +35,13 @@ $sql_pgto        = !empty($forma_pgto)  ? " AND t.forma_pgto = '$forma_pgto'"   
 $sql_funcionario = !empty($funcionario) ? " AND t.funcionario = '$funcionario'"    : "";
 $sql_categoria   = !empty($categoria)   ? " AND t.categoria_pagar = '$categoria'" : "";
 
-// Verifica se a tabela categorias_pagar existe
+// Verifica se a tabela e a coluna categoria_pagar existem
 $tem_categorias = false;
-try { $pdo->query("SELECT 1 FROM categorias_pagar LIMIT 1"); $tem_categorias = true; } catch (Exception $e) {}
+try {
+    $pdo->query("SELECT 1 FROM categorias_pagar LIMIT 1");
+    $col = $pdo->query("SHOW COLUMNS FROM pagar LIKE 'categoria_pagar'")->fetch();
+    if ($col) $tem_categorias = true;
+} catch (Exception $e) {}
 
 $join_categoria = $tem_categorias ? " LEFT JOIN categorias_pagar cp ON t.categoria_pagar = cp.id " : "";
 $sel_categoria  = $tem_categorias ? ", cp.nome as nome_categoria" : ", '' as nome_categoria";
