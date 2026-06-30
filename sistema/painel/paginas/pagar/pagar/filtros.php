@@ -43,6 +43,8 @@
             <option value="">Categoria</option>
             <?php
             try {
+                require_once(__DIR__ . "/../../categorias_pagar/funcoes.php");
+                garantir_categoria_romaneio($pdo);
                 $q = $pdo->query("SELECT id, nome FROM categorias_pagar ORDER BY nome ASC");
                 foreach ($q->fetchAll(PDO::FETCH_ASSOC) as $row) {
                     echo '<option value="' . $row['id'] . '">' . htmlspecialchars($row['nome']) . '</option>';

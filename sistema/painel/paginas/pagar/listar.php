@@ -30,18 +30,33 @@ $forma_pgto  = @$_POST['p6'];
 $funcionario = @$_POST['p7'];
 $categoria   = @$_POST['p8'];
 
-$sql_fornecedor  = !empty($atacadista)  ? " AND t.fornecedor = '$atacadista'"      : "";
-$sql_pgto        = !empty($forma_pgto)  ? " AND t.forma_pgto = '$forma_pgto'"      : "";
-$sql_funcionario = !empty($funcionario) ? " AND t.funcionario = '$funcionario'"    : "";
-$sql_categoria   = !empty($categoria)   ? " AND t.categoria_pagar = '$categoria'" : "";
+$sql_fornecedor  = !empty($atacadista)  ? " AND t.fornecedor = '$atacadista'"   : "";
+$sql_pgto        = !empty($forma_pgto)  ? " AND t.forma_pgto = '$forma_pgto'"   : "";
+$sql_funcionario = !empty($funcionario) ? " AND t.funcionario = '$funcionario'" : "";
 
-// Verifica se a tabela e a coluna categoria_pagar existem
-$tem_categorias = false;
-try {
-    $pdo->query("SELECT 1 FROM categorias_pagar LIMIT 1");
-    $col = $pdo->query("SHOW COLUMNS FROM pagar LIKE 'categoria_pagar'")->fetch();
-    if ($col) $tem_categorias = true;
-} catch (Exception $e) {}
+// Garante estrutura de categorias (auto-migração)
+require_once("../categorias_pagar/funcoes.php");
+$id_categoria_romaneio = garantir_categoria_romaneio($pdo);
+
+$col_check = $pdo->query("SELECT COUNT(*) as n FROM INFORMATION_SCHEMA.COLUMNS
+    WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'pagar' AND COLUMN_NAME = 'categoria_pagar'")->fetch(PDO::FETCH_ASSOC);
+if (!$col_check || $col_check['n'] == 0) {
+    $pdo->query("ALTER TABLE `pagar` ADD COLUMN `categoria_pagar` INT(11) DEFAULT NULL");
+}
+$tem_categorias = true;
+
+// Normaliza lançamentos antigos de romaneio que ficaram sem a categoria marcada
+$pdo->query("UPDATE pagar SET categoria_pagar = '$id_categoria_romaneio'
+    WHERE id_romaneio > 0 AND (categoria_pagar IS NULL OR categoria_pagar = 0)");
+
+// A categoria "Romaneio" é dinâmica (cadastrada em Categorias Despesas), mas sempre existe.
+// Ao selecioná-la, mostramos os lançamentos vinculados a um romaneio (id_romaneio preenchido),
+// e não apenas os que tiverem o campo categoria_pagar marcado manualmente.
+if (!empty($categoria) && (int) $categoria === $id_categoria_romaneio) {
+    $sql_categoria = " AND t.id_romaneio > 0";
+} else {
+    $sql_categoria = ($tem_categorias && !empty($categoria)) ? " AND t.categoria_pagar = '$categoria'" : "";
+}
 
 $join_categoria = $tem_categorias ? " LEFT JOIN categorias_pagar cp ON t.categoria_pagar = cp.id " : "";
 $sel_categoria  = $tem_categorias ? ", cp.nome as nome_categoria" : ", '' as nome_categoria";

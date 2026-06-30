@@ -171,11 +171,20 @@ try {
     $pdo->prepare("DELETE FROM pagar WHERE id_ref = :id AND referencia = 'romaneio_compra'")->execute([':id' => $romaneioId]);
 
     if ($total_liquido > 0) {
-        $sqlPagar = "INSERT INTO pagar (descricao, fornecedor, valor, vencimento, data_lanc, forma_pgto, frequencia, referencia, id_romaneio, usuario_lanc, usuario_pgto, funcionario, id_ref) VALUES (:desc, :forn, :valor, :ven, :dtl, :fp, '0', 'romaneio_compra', :idr, :ul, null, '0', :idref)";
+        require_once("../categorias_pagar/funcoes.php");
+        $id_categoria_romaneio = garantir_categoria_romaneio($pdo);
+
+        $col_cat = $pdo->query("SELECT COUNT(*) as n FROM INFORMATION_SCHEMA.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'pagar' AND COLUMN_NAME = 'categoria_pagar'")->fetch(PDO::FETCH_ASSOC);
+        if (!$col_cat || $col_cat['n'] == 0) {
+            $pdo->query("ALTER TABLE `pagar` ADD COLUMN `categoria_pagar` INT(11) DEFAULT NULL");
+        }
+
+        $sqlPagar = "INSERT INTO pagar (descricao, fornecedor, valor, vencimento, data_lanc, forma_pgto, frequencia, referencia, id_romaneio, usuario_lanc, usuario_pgto, funcionario, id_ref, categoria_pagar) VALUES (:desc, :forn, :valor, :ven, :dtl, :fp, '0', 'romaneio_compra', :idr, :ul, null, '0', :idref, :cat)";
         $pdo->prepare($sqlPagar)->execute([
             'desc' => "Romaneio Compra #{$romaneioId}", 'forn' => $fornecedor, 'valor' => $total_liquido,
             'ven' => $vencimento, 'dtl' => date('Y-m-d'), 'fp' => is_numeric($plano_pgto) ? (int)$plano_pgto : null,
-            'idr' => $romaneioId, 'ul' => $id_usuario, 'idref' => $romaneioId
+            'idr' => $romaneioId, 'ul' => $id_usuario, 'idref' => $romaneioId, 'cat' => $id_categoria_romaneio
         ]);
     }
 

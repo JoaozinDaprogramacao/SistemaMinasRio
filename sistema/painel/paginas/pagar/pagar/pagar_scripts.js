@@ -121,11 +121,11 @@ function buscar() {
     listar(filtro, dataInicial, dataFinal, tipo_data, atacadista, formaPGTO, funcionario, categoria);
 }
 
-function listar(p1, p2, p3, p4, p5, p6, p7) {
+function listar(p1, p2, p3, p4, p5, p6, p7, p8) {
     $.ajax({
         url: 'paginas/' + pag + "/listar.php",
         method: 'POST',
-        data: { p1, p2, p3, p4, p5, p6, p7 },
+        data: { p1, p2, p3, p4, p5, p6, p7, p8 },
         dataType: "html",
         success: function (result) {
             $("#listar").html(result);

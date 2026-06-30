@@ -1,7 +1,10 @@
 <?php
 require_once("../../../conexao.php");
 require_once("../../verificar.php");
+require_once("funcoes.php");
 $tabela = 'categorias_pagar';
+
+garantir_categoria_romaneio($pdo);
 
 $query = $pdo->query("SELECT * FROM $tabela ORDER BY nome ASC");
 $res   = $query->fetchAll(PDO::FETCH_ASSOC);
@@ -21,18 +24,15 @@ if ($total > 0) {
 HTML;
 
     foreach ($res as $row) {
-        $id   = $row['id'];
-        $nome = htmlspecialchars($row['nome']);
-        echo <<<HTML
-    <tr>
-        <td align="center">
-            <div class="custom-checkbox custom-control">
-                <input type="checkbox" class="custom-control-input" id="seletor-{$id}" onchange="selecionar('{$id}')">
-                <label for="seletor-{$id}" class="custom-control-label mt-1 text-dark"></label>
-            </div>
-        </td>
-        <td>{$nome}</td>
-        <td>
+        $id        = $row['id'];
+        $nome      = htmlspecialchars($row['nome']);
+        $protegida = !empty($row['protegida']);
+        $disabled_attr = $protegida ? 'disabled' : '';
+
+        if ($protegida) {
+            $acoes = '<small class="text-muted"><i class="fa fa-lock"></i> Categoria do sistema</small>';
+        } else {
+            $acoes = <<<HTML
             <big><a class="btn btn-info btn-sm" href="#" onclick="editar('{$id}','{$nome}')" title="Editar"><i class="fa fa-edit"></i></a></big>
             <div class="dropdown" style="display: inline-block;">
                 <a class="btn btn-danger btn-sm" href="#" data-bs-toggle="dropdown"><i class="fa fa-trash"></i></a>
@@ -42,7 +42,21 @@ HTML;
                     </div>
                 </div>
             </div>
+HTML;
+        }
+
+        $nome_exibicao = $protegida ? "{$nome} <i class=\"fa fa-lock text-muted\" title=\"Categoria do sistema\"></i>" : $nome;
+
+        echo <<<HTML
+    <tr>
+        <td align="center">
+            <div class="custom-checkbox custom-control">
+                <input type="checkbox" class="custom-control-input" id="seletor-{$id}" onchange="selecionar('{$id}')" {$disabled_attr}>
+                <label for="seletor-{$id}" class="custom-control-label mt-1 text-dark"></label>
+            </div>
         </td>
+        <td>{$nome_exibicao}</td>
+        <td>{$acoes}</td>
     </tr>
 HTML;
     }
