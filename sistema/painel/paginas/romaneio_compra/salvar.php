@@ -112,6 +112,22 @@ try {
     if (!$tem_produtos && count(array_filter($valor_1)) > 0) $erros[] = "Adicione produtos válidos.";
     if ($erros) throw new Exception(implode("<br>", $erros));
 
+    // Migrações de schema (DDL) precisam rodar FORA da transação: no MySQL,
+    // comandos como CREATE TABLE/ALTER TABLE dão commit implícito e "quebram"
+    // a transação aberta abaixo, fazendo o commit final falhar com
+    // "There is no active transaction" mesmo com os dados já salvos.
+    $id_categoria_romaneio = null;
+    if ($total_liquido > 0) {
+        require_once("../categorias_pagar/funcoes.php");
+        $id_categoria_romaneio = garantir_categoria_romaneio($pdo);
+
+        $col_cat = $pdo->query("SELECT COUNT(*) as n FROM INFORMATION_SCHEMA.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'pagar' AND COLUMN_NAME = 'categoria_pagar'")->fetch(PDO::FETCH_ASSOC);
+        if (!$col_cat || $col_cat['n'] == 0) {
+            $pdo->query("ALTER TABLE `pagar` ADD COLUMN `categoria_pagar` INT(11) DEFAULT NULL");
+        }
+    }
+
     $pdo->beginTransaction();
 
     $data_mysql = $data;
@@ -171,15 +187,6 @@ try {
     $pdo->prepare("DELETE FROM pagar WHERE id_ref = :id AND referencia = 'romaneio_compra'")->execute([':id' => $romaneioId]);
 
     if ($total_liquido > 0) {
-        require_once("../categorias_pagar/funcoes.php");
-        $id_categoria_romaneio = garantir_categoria_romaneio($pdo);
-
-        $col_cat = $pdo->query("SELECT COUNT(*) as n FROM INFORMATION_SCHEMA.COLUMNS
-            WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'pagar' AND COLUMN_NAME = 'categoria_pagar'")->fetch(PDO::FETCH_ASSOC);
-        if (!$col_cat || $col_cat['n'] == 0) {
-            $pdo->query("ALTER TABLE `pagar` ADD COLUMN `categoria_pagar` INT(11) DEFAULT NULL");
-        }
-
         $sqlPagar = "INSERT INTO pagar (descricao, fornecedor, valor, vencimento, data_lanc, forma_pgto, frequencia, referencia, id_romaneio, usuario_lanc, usuario_pgto, funcionario, id_ref, categoria_pagar) VALUES (:desc, :forn, :valor, :ven, :dtl, :fp, '0', 'romaneio_compra', :idr, :ul, null, '0', :idref, :cat)";
         $pdo->prepare($sqlPagar)->execute([
             'desc' => "Romaneio Compra #{$romaneioId}", 'forn' => $fornecedor, 'valor' => $total_liquido,
