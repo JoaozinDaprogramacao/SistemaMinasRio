@@ -1,5 +1,5 @@
 <?php
-// Garante que a categoria "Romaneio" sempre exista e fica marcada como protegida
+// Garante que a categoria "Produtor Rural" sempre exista e fica marcada como protegida
 // (não pode ser excluída/renomeada), pois o filtro de Contas a Pagar depende dela
 // para localizar os lançamentos gerados automaticamente pelos romaneios de compra.
 function garantir_categoria_romaneio($pdo)
@@ -17,7 +17,7 @@ function garantir_categoria_romaneio($pdo)
         $pdo->query("ALTER TABLE `categorias_pagar` ADD COLUMN `protegida` TINYINT(1) NOT NULL DEFAULT 0");
     }
 
-    $row = $pdo->query("SELECT id, protegida FROM categorias_pagar WHERE nome = 'Romaneio'")->fetch(PDO::FETCH_ASSOC);
+    $row = $pdo->query("SELECT id, protegida FROM categorias_pagar WHERE nome = 'Produtor Rural'")->fetch(PDO::FETCH_ASSOC);
     if ($row) {
         if (!$row['protegida']) {
             $pdo->query("UPDATE categorias_pagar SET protegida = 1 WHERE id = '{$row['id']}'");
@@ -25,6 +25,6 @@ function garantir_categoria_romaneio($pdo)
         return (int) $row['id'];
     }
 
-    $pdo->prepare("INSERT INTO categorias_pagar (nome, protegida) VALUES ('Romaneio', 1)")->execute();
+    $pdo->prepare("INSERT INTO categorias_pagar (nome, protegida) VALUES ('Produtor Rural', 1)")->execute();
     return (int) $pdo->lastInsertId();
 }
