@@ -190,7 +190,7 @@ try {
         $sqlPagar = "INSERT INTO pagar (descricao, fornecedor, valor, vencimento, data_lanc, forma_pgto, frequencia, referencia, id_romaneio, usuario_lanc, usuario_pgto, funcionario, id_ref, categoria_pagar) VALUES (:desc, :forn, :valor, :ven, :dtl, :fp, '0', 'romaneio_compra', :idr, :ul, null, '0', :idref, :cat)";
         $pdo->prepare($sqlPagar)->execute([
             'desc' => "Romaneio Compra #{$romaneioId}", 'forn' => $fornecedor, 'valor' => $total_liquido,
-            'ven' => $vencimento, 'dtl' => date('Y-m-d'), 'fp' => is_numeric($plano_pgto) ? (int)$plano_pgto : null,
+            'ven' => $vencimento, 'dtl' => substr($data_mysql, 0, 10), 'fp' => is_numeric($plano_pgto) ? (int)$plano_pgto : null,
             'idr' => $romaneioId, 'ul' => $id_usuario, 'idref' => $romaneioId, 'cat' => $id_categoria_romaneio
         ]);
     }
