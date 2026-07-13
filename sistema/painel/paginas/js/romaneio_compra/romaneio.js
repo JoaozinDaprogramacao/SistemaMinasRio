@@ -94,7 +94,7 @@ function calculaTotais() {
             const q = parseFloat(linha.querySelector(".quant_caixa_1").value.replace(',', '.')) || 0;
             const t = parseFloat(linha.querySelector(".tipo_cx_1").value.replace(',', '.')) || 0;
             const v = Math.round(parseBrasil(linha.querySelector(".valor_1").value) * 100);
-            
+
             totalCaixaSoma += q;
             totalBrutoCents += v;
             totalKgSoma += (q * t);
@@ -108,7 +108,7 @@ function calculaTotais() {
                 totalGeralField.classList.add("danger");
             } else {
                 totalGeralField.classList.remove("danger");
-                descontoCents = Math.round(totalBrutoCents * (dPerc / 100));
+                descontoCents = Math.round((totalBrutoCents * dPerc) / 100);
             }
         } else {
             totalGeralField.classList.remove("danger");
@@ -146,7 +146,7 @@ function calcularTotalAbatimentos() {
         const infoVal = selInfo.value.toLowerCase().trim();
         const precoRaw = selPreco.value;
         let pUnit = parseFloat(precoRaw.replace(/\./g, '').replace(',', '.').replace('%', '').trim()) || 0;
-        
+
         let valorCalculadoCents = 0;
 
         if (desc === 'TAXA ADM') {
@@ -154,7 +154,7 @@ function calcularTotalAbatimentos() {
             valorCalculadoCents = Math.round((taxaInput * pUnit) * 100);
         } else if (desc === 'FUNRURAL') {
             let base = infoVal.includes('bruto') ? totals.bruto : totals.liquido;
-            valorCalculadoCents = Math.round((base * 100) * (pUnit / 100));
+            valorCalculadoCents = Math.round(base * pUnit); // <--- Nova linha
         } else {
             if (infoVal === 'kg') {
                 valorCalculadoCents = Math.round((pUnit * totals.kg) * 100);
@@ -162,7 +162,7 @@ function calcularTotalAbatimentos() {
                 valorCalculadoCents = Math.round((pUnit * totals.caixas) * 100);
             } else {
                 if (precoRaw.includes('%')) {
-                    valorCalculadoCents = Math.round((totals.bruto * 100) * (pUnit / 100));
+                    valorCalculadoCents = Math.round(totals.bruto * pUnit); // <--- Nova linha
                 } else {
                     valorCalculadoCents = Math.round(pUnit * 100);
                 }
@@ -236,8 +236,8 @@ function updateLiquidPayable() {
     const liquidBaseCents = Math.round(parseBrasil(document.getElementById('valor_liquido').value) * 100);
     const comissaoCents = Math.round(parseBrasil(document.getElementById('total_comissao').textContent) * 100);
     const descontosCents = Math.round(parseBrasil(document.getElementById('total_descontos_diversos').textContent) * 100);
-    
+
     const finalLiquidoCents = liquidBaseCents - comissaoCents + descontosCents;
-    
+
     document.getElementById('total_liquido_pagar').textContent = (finalLiquidoCents / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
 }

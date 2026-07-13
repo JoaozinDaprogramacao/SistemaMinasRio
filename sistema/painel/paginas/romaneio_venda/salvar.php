@@ -7,18 +7,7 @@ $id_usuario = @$_SESSION['id'];
 
 header('Content-Type: application/json; charset=utf-8');
 
-function gravarLog($mensagem) {
-    $arquivo = 'debug_log_venda.txt';
-    $dataHora = date('d/m/Y H:i:s');
-    if (is_array($mensagem) || is_object($mensagem)) {
-        $mensagem = json_encode($mensagem, JSON_UNESCAPED_UNICODE);
-    }
-    $texto = "[$dataHora] $mensagem" . PHP_EOL;
-    file_put_contents($arquivo, $texto, FILE_APPEND);
-}
-
 try {
-    gravarLog("INICIANDO SALVAR VENDA");
 
     $id = $_POST['id'] ?? '';
     $romaneios_selecionados = $_POST['romaneios_selecionados'] ?? '';
@@ -28,18 +17,19 @@ try {
     $nota_fiscal = $_POST['nota_fiscal'] ?? '';
     $vencimento = $_POST['vencimento'] ?? '';
     $quant_dias = $_POST['quant_dias'] ?: 0;
+
     $adicional = str_replace(',', '.', $_POST['valor_adicional'] ?? 0);
     $descricao_a = $_POST['descricao_adicional'] ?? '';
     $desconto_fixo = str_replace(',', '.', $_POST['valor_desconto'] ?? 0);
     $descricao_d = $_POST['descricao_desconto'] ?? '';
     $desc_avista_perc = !empty($_POST['desc-avista']) ? str_replace(',', '.', $_POST['desc-avista']) : 0;
 
-    $quant_caixa_1 = $_POST['quant_caixa_1'] ?? [];
+    $valor_1 = $_POST['valor_1'] ?? [];
     $produto_1 = $_POST['produto_1'] ?? [];
+    $quant_caixa_1 = $_POST['quant_caixa_1'] ?? [];
     $preco_kg_1 = $_POST['preco_kg_1'] ?? [];
     $tipo_cx_1 = $_POST['tipo_cx_1'] ?? [];
     $preco_unit_1 = $_POST['preco_unit_1'] ?? [];
-    $valor_1 = $_POST['valor_1'] ?? [];
 
     $desc_2 = $_POST['desc_2'] ?? [];
     $arr_valor_2 = $_POST['valor_2'] ?? [];
@@ -80,17 +70,22 @@ try {
     foreach ($valor_3 as $v3) {
         if (!empty($v3)) $total_materiais += floatval(str_replace(',', '.', $v3));
     }
+    // 1. Calcula o valor do desconto de forma isolada e arredonda para 2 casas
+    $valor_desc_avista = round($total_bruto * ($desc_avista_perc / 100), 2);
 
-    $valor_desc_avista = $total_bruto * ($desc_avista_perc / 100);
-    $total_liquido = $total_bruto + $total_comissao + $total_materiais + floatval($adicional) - floatval($desconto_fixo) - $valor_desc_avista;
+    // 2. Calcula o total líquido (sem o floor)
+    $temp_liquido = $total_bruto + $total_comissao + $total_materiais + floatval($adicional) - floatval($desconto_fixo) - $valor_desc_avista;
 
+    // 3. APLICA O ARREDONDAMENTO PADRÃO (Troque o floor por round)
+    // Isso garante que se der .789, ele vire .79, combinando com o que o usuário vê
+    $total_liquido = round($temp_liquido, 2);
     $pdo->beginTransaction();
 
     if ($id == "") {
-        $sql = "INSERT INTO $tabela SET atacadista=:atacadista, data=:data, nota_fiscal=:nota_fiscal, plano_pgto=:plano_pgto, vencimento=:vencimento, total_liquido=:total_liquido, quant_dias=:quant_dias, adicional=:adicional, descricao_a=:descricao_a, desconto=:desconto, descricao_d=:descricao_d, desc_avista=:desc_avista";
+        $sql = "INSERT INTO $tabela (atacadista, data, nota_fiscal, plano_pgto, vencimento, total_liquido, quant_dias, adicional, descricao_a, desconto, descricao_d, desc_avista) 
+                VALUES (:atacadista, :data, :nota_fiscal, :plano_pgto, :vencimento, :total_liquido, :quant_dias, :adicional, :descricao_a, :desconto, :descricao_d, :desc_avista)";
         $query = $pdo->prepare($sql);
     } else {
-        // Estorno: Subtrai as vendas das categorias antes de atualizar os produtos
         $query_antigos = $pdo->prepare("SELECT lp.variedade, lp.quant, p.categoria FROM linha_produto lp INNER JOIN produtos p ON lp.variedade = p.id WHERE lp.id_romaneio = ?");
         $query_antigos->execute([$id]);
         foreach ($query_antigos->fetchAll(PDO::FETCH_ASSOC) as $antigo) {
@@ -122,18 +117,17 @@ try {
     $romaneio_venda_id = $id ?: $pdo->lastInsertId();
 
     if ($id != "") {
-        $pdo->prepare("DELETE FROM romaneio_venda_compra WHERE id_romaneio_venda = ?")->execute([$romaneio_venda_id]);
         $pdo->prepare("DELETE FROM linha_produto WHERE id_romaneio = ?")->execute([$romaneio_venda_id]);
         $pdo->prepare("DELETE FROM linha_comissao WHERE id_romaneio = ?")->execute([$romaneio_venda_id]);
         $pdo->prepare("DELETE FROM linha_observacao WHERE id_romaneio = ?")->execute([$romaneio_venda_id]);
     }
 
     foreach ($valor_1 as $key => $valor) {
-        if (!empty($valor)) {
+        $v_limpo = str_replace(',', '.', $valor);
+        if (!empty($v_limpo) && !empty($produto_1[$key])) {
             $pdo->prepare("INSERT INTO linha_produto (id_romaneio, quant, variedade, preco_kg, tipo_caixa, preco_unit, valor) VALUES (?, ?, ?, ?, ?, ?, ?)")
-                ->execute([$romaneio_venda_id, $quant_caixa_1[$key], $produto_1[$key], str_replace(',', '.', $preco_kg_1[$key]), $tipo_cx_1[$key], str_replace(',', '.', $preco_unit_1[$key]), str_replace(',', '.', $valor)]);
+                ->execute([$romaneio_venda_id, $quant_caixa_1[$key], $produto_1[$key], str_replace(',', '.', $preco_kg_1[$key]), $tipo_cx_1[$key], str_replace(',', '.', $preco_unit_1[$key]), $v_limpo]);
 
-            // Incrementa vendas na categoria
             $query_cat = $pdo->prepare("SELECT categoria FROM produtos WHERE id = ?");
             $query_cat->execute([$produto_1[$key]]);
             $res_c = $query_cat->fetch(PDO::FETCH_ASSOC);
@@ -148,11 +142,11 @@ try {
         if (!empty($observacao) || !empty($material[$key])) {
             $pdo->prepare("INSERT INTO linha_observacao (id_romaneio, observacoes, descricao, quant, preco_unit, valor) VALUES (?, ?, ?, ?, ?, ?)")
                 ->execute([$romaneio_venda_id, $observacao, $material[$key] ?? null, $quant_3[$key] ?? 0, str_replace(',', '.', $preco_unit_3[$key] ?? 0), str_replace(',', '.', $valor_3[$key] ?? 0)]);
-            
+
             $matId = (int)($material[$key] ?? 0);
             $qtdUsada = (int)($quant_3[$key] ?? 0);
             if ($matId > 0 && $qtdUsada > 0) {
-                $check = $pdo->prepare("SELECT tem_estoque, estoque FROM materiais WHERE id = ?");
+                $check = $pdo->prepare("SELECT tem_estoque FROM materiais WHERE id = ?");
                 $check->execute([$matId]);
                 $row = $check->fetch(PDO::FETCH_ASSOC);
                 if ($row) {
@@ -172,20 +166,38 @@ try {
         }
     }
 
+    // Usando o nome correto: forma_pagamento
+    $query_f = $pdo->prepare("SELECT forma_pagamento FROM clientes WHERE id = :cliente_id");
+    $query_f->bindValue(":cliente_id", $atacadista);
+    $query_f->execute();
+    $res_f = $query_f->fetch(PDO::FETCH_ASSOC);
+
+    // Se o cliente não tiver forma definida, assume 0 ou um ID padrão do seu sistema
+    $forma_pgto_cliente = $res_f['forma_pagamento'] ?? 0;
+    // -------------------------------------------------------
+
     $check_receber = $pdo->prepare("SELECT id FROM receber WHERE id_ref = ? AND referencia = 'Romaneio Venda'");
     $check_receber->execute([$romaneio_venda_id]);
 
     if ($check_receber->rowCount() > 0) {
-        $query_receber = $pdo->prepare("UPDATE receber SET cliente=:cliente, valor=:valor, vencimento=:vencimento, usuario_pgto = 0 WHERE id_ref=:id_ref AND referencia='Romaneio Venda'");
+        // UPDATE: Incluímos forma_pgto
+        $query_receber = $pdo->prepare("UPDATE receber SET cliente=:cliente, valor=:valor, vencimento=:vencimento, id_romaneio=:id_romaneio, data_lanc=:data_lanc, forma_pgto=:forma_pgto, usuario_pgto = 0 WHERE id_ref=:id_ref AND referencia='Romaneio Venda'");
     } else {
-        $query_receber = $pdo->prepare("INSERT INTO receber SET descricao=:descricao, cliente=:cliente, valor=:valor, vencimento=:vencimento, data_lanc=CURDATE(), usuario_lanc=:usuario_lanc, pago='Não', referencia='Romaneio Venda', id_ref=:id_ref, usuario_pgto = 0");
+        // INSERT: Incluímos forma_pgto
+        $query_receber = $pdo->prepare("INSERT INTO receber (descricao, cliente, valor, vencimento, data_lanc, usuario_lanc, pago, referencia, id_ref, id_romaneio, usuario_pgto, forma_pgto) VALUES (:descricao, :cliente, :valor, :vencimento, :data_lanc, :usuario_lanc, 'Não', 'Romaneio Venda', :id_ref, :id_romaneio, 0, :forma_pgto)");
+
         $query_receber->bindValue(":descricao", "Venda Romaneio Nº " . $romaneio_venda_id);
         $query_receber->bindValue(":usuario_lanc", $id_usuario);
     }
+
+    // Bindings comuns a ambos
     $query_receber->bindValue(":cliente", $atacadista);
     $query_receber->bindValue(":valor", $total_liquido);
     $query_receber->bindValue(":vencimento", $vencimento);
     $query_receber->bindValue(":id_ref", $romaneio_venda_id);
+    $query_receber->bindValue(":id_romaneio", $romaneio_venda_id);
+    $query_receber->bindValue(":data_lanc", $data);
+    $query_receber->bindValue(":forma_pgto", $forma_pgto_cliente); // <--- VALOR VINDO DO CLIENTE
     $query_receber->execute();
 
     if (!empty($romaneios_selecionados)) {
@@ -196,10 +208,7 @@ try {
 
     $pdo->commit();
     echo json_encode(['status' => 'sucesso', 'mensagem' => 'Romaneio salvo com sucesso!']);
-
 } catch (Exception $e) {
     if (isset($pdo) && $pdo->inTransaction()) $pdo->rollBack();
-    gravarLog("ERRO: " . $e->getMessage());
     echo json_encode(['status' => 'erro', 'mensagem' => $e->getMessage()], JSON_UNESCAPED_UNICODE);
 }
-?>

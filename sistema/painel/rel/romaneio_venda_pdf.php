@@ -44,25 +44,41 @@ $materiais = $query->fetchAll(PDO::FETCH_ASSOC);
 
 // --- ÁREA DE CÁLCULO (CORREÇÃO DO BUG MATEMÁTICO) ---
 
-// Soma dos itens individuais
-$total_bruto_banana = array_sum(array_column($produtos, 'valor'));
-$total_comissao     = array_sum(array_column($comissoes, 'valor'));
-$total_materiais    = array_sum(array_column($materiais, 'valor'));
+// --- ÁREA DE CÁLCULO (CORREÇÃO DEFINITIVA) ---
 
-// Recupera valores extras do banco
-$adicional_banco     = $romaneio['adicional'] ?? 0;
-$desconto_fixo_banco = $romaneio['desconto'] ?? 0;
-$perc_avista_banco   = $romaneio['desc_avista'] ?? 0;
+// 1. Soma dos itens (usando round 2 para limpar dízimas do banco)
+// --- ÁREA DE CÁLCULO (VERSÃO PARA CRAVAR ,12) ---
 
-// Calcula o valor monetário do desconto à vista (baseado no bruto)
-$valor_desc_avista = $total_bruto_banana * ($perc_avista_banco / 100);
+// --- ÁREA DE CÁLCULO (CORREÇÃO DEFINITIVA PARA O PDF) ---
 
-// Calcula o Total Líquido da Banana (Bruto - Descontos)
-$total_liquido_banana = $total_bruto_banana - $valor_desc_avista - $desconto_fixo_banco;
+// 1. Soma dos itens (garantindo 2 casas decimais)
+$total_bruto_banana = round(array_sum(array_column($produtos, 'valor')), 2);
+$total_comissao     = round(array_sum(array_column($comissoes, 'valor')), 2);
+$total_materiais    = round(array_sum(array_column($materiais, 'valor')), 2);
 
-// Calcula o Valor Final a Receber (Líquido Banana + Adicional + Comissão - Materiais)
-$valor_total_final = $total_liquido_banana
-    + $adicional_banco
+// 2. Recupera valores extras do banco
+$adicional_banco     = floatval($romaneio['adicional'] ?? 0);
+$desconto_fixo_banco = floatval($romaneio['desconto'] ?? 0);
+$perc_avista_banco   = floatval($romaneio['desc_avista'] ?? 0);
+
+// 3. O AJUSTE DO DESCONTO: 
+// Troquei o CEIL por ROUND para manter a consistência matemática
+$valor_desc_avista = round($total_bruto_banana * ($perc_avista_banco / 100), 2);
+
+// 4. Calcula o Líquido da Banana
+// Ex: 6788,32 - 271,53 = 6516,79
+$total_liquido_banana = round($total_bruto_banana - $valor_desc_avista - $desconto_fixo_banco, 2);
+
+// 5. Valor Final a Receber (Soma de tudo)
+$valor_total_final = $total_liquido_banana + $adicional_banco + $total_comissao + $total_materiais;
+
+// --- FIM DA ÁREA DE CÁLCULO ---
+// --- FIM DA ÁREA DE CÁLCULO ---
+
+// --- FIM DA ÁREA DE CÁLCULO ---
+
+
++$adicional_banco
     + $total_comissao
     + $total_materiais;
 

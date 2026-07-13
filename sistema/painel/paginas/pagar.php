@@ -13,6 +13,9 @@ if (@$pagar == 'ocultar') {
 }
 ?>
 
+
+<script src="../painel/paginas/pagar/pagar/pagar_scripts.js"></script>
+
 <div class="d-flex justify-content-between align-items-center mt-2 mb-3 flex-wrap gap-2">
 	<div>
 		<a class="btn btn-primary text-white" onclick="inserir()" type="button">
@@ -76,5 +79,4 @@ if (@$pagar == 'ocultar') {
 	};
 </script>
 
-<script src="../painel/paginas/pagar/pagar/pagar_scripts.js"></script>
 <script src="js/ajax.js"></script>

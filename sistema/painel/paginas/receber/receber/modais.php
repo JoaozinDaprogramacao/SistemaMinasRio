@@ -123,6 +123,33 @@
     </div>
 </div>
 
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const textarea = document.getElementById('obs-baixar');
+    const contador = document.getElementById('contador-obs');
+    const limite = 1000;
+
+    textarea.addEventListener('input', function() {
+        // Pega a quantidade de caracteres digitados
+        const caracteresDigitados = this.value.length;
+        
+        // Calcula quanto falta
+        const caracteresRestantes = limite - caracteresDigitados;
+        
+        // Atualiza o texto na tela
+        contador.textContent = `${caracteresRestantes} caracteres restantes`;
+
+        // BÔNUS: Muda a cor do texto para vermelho se faltarem 50 ou menos caracteres
+        if (caracteresRestantes <= 50) {
+            contador.classList.add('text-danger');
+            contador.classList.remove('text-muted');
+        } else {
+            contador.classList.remove('text-danger');
+            contador.classList.add('text-muted');
+        }
+    });
+});
+</script>
 
 
 
@@ -206,172 +233,148 @@
         </div>
     </div>
 </div>
-
-
-
-
-
-
-<!-- Modal -->
 <div class="modal fade" id="modalBaixar" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header bg-primary text-white">
-                <h4 class="modal-title" id="tituloModal">Baixar Conta: <span id="descricao-baixar"> </span></h4>
-                <button id="btn-fechar-baixar" aria-label="Close" class="btn-close" data-bs-dismiss="modal" type="button"><span class="text-white" aria-hidden="true">&times;</span></button>
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-primary text-white py-2">
+                <h5 class="modal-title" id="tituloModal">Baixar Conta: <span id="descricao-baixar" class="fw-light"></span></h5>
+                <button id="btn-fechar-baixar" aria-label="Close" class="btn-close btn-close-white" data-bs-dismiss="modal" type="button"></button>
             </div>
-            <form id="form-baixar" method="post">
-                <div class="modal-body">
 
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label>Valor <small class="text-muted">(Total ou Parcial)</small></label>
-                                <input onkeyup="totalizar()" type="text" class="form-control" name="valor-baixar" id="valor-baixar" required>
+            <form id="form-baixar" method="post" enctype="multipart/form-data">
+                <div class="modal-body bg-white">
+
+                    <div class="row g-2 mb-3 pb-3 border-bottom">
+                        <div class="col-md-4">
+                            <label class="text-uppercase fw-bold text-muted small">Cliente</label>
+                            <input type="text" class="form-control form-control-sm bg-light border-0" id="cliente-baixar" readonly>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="text-uppercase fw-bold text-muted small">Faturamento</label>
+                            <input type="text" class="form-control form-control-sm bg-light border-0" id="fat-baixar" readonly>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="text-uppercase fw-bold text-muted small">Romaneio</label>
+                            <input type="text" class="form-control form-control-sm bg-light border-0" id="romaneio-baixar" readonly>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="text-uppercase fw-bold text-muted small">Valor Original</label>
+                            <input type="text" class="form-control form-control-sm bg-light border-0 fw-bold" id="valor-original-baixar" readonly>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="text-uppercase fw-bold text-muted small">Vencimento</label>
+                            <input type="text" class="form-control form-control-sm bg-light border-0" id="vencimento-baixar" readonly>
+                        </div>
+                    </div>
+
+                    <div class="row g-2 mb-4 p-3 rounded border bg-light">
+                        <div class="col-md-3">
+                            <label class="small text-muted fw-bold text-uppercase">Multa (+)</label>
+                            <input onkeyup="totalizar()" type="text" class="form-control form-control-sm input-zeravel" name="valor-multa" id="valor-multa" value="0">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="small text-muted fw-bold text-uppercase">Juros (+)</label>
+                            <input onkeyup="totalizar()" type="text" class="form-control form-control-sm input-zeravel" name="valor-juros" id="valor-juros" value="0">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="small text-muted fw-bold text-uppercase">Acréscimo (+)</label>
+                            <input onkeyup="totalizar()" type="text" class="form-control form-control-sm input-zeravel" name="valor-acrescimo" id="valor-acrescimo" value="0">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="small text-muted fw-bold text-uppercase">Desconto (-)</label>
+                            <input onkeyup="totalizar()" type="text" class="form-control form-control-sm input-zeravel" name="valor-desconto" id="valor-desconto" value="0">
+                        </div>
+                    </div>
+
+                    <div class="row g-0 mb-4 p-3 rounded border align-items-center shadow-sm" style="background-color: #f8f9fa;">
+                        <div class="col-md-4 text-center px-2">
+                            <label class="small text-primary fw-bold text-uppercase mb-1">Subtotal Líquido</label>
+                            <input type="text" class="form-control form-control-lg fw-bold bg-white border-primary text-primary text-center mx-auto shadow-none" name="subtotal" id="subtotal" readonly style="height: 45px;">
+                        </div>
+                        <div class="col-md-4 text-center border-start border-end px-2">
+                            <label class="small text-success fw-bold text-uppercase mb-1">Total Recebido</label>
+                            <div class="d-flex align-items-center justify-content-center" style="height: 45px;">
+                                <span class="fs-4 fw-bold text-success" id="lbl-total-recebido">R$ 0,00</span>
                             </div>
                         </div>
+                        <div class="col-md-4 text-center px-2">
+                            <label class="small text-secondary fw-bold text-uppercase mb-1">Status da Conta</label>
+                            <div class="d-flex align-items-center justify-content-center" style="height: 45px;">
+                                <span class="fs-4" id="lbl-status-conta" style="font-weight: 700;">-</span>
+                            </div>
+                        </div>
+                    </div>
 
+                    <div class="mb-3 border-bottom pb-3">
+                        <label class="fw-bold text-dark mb-2">Detalhes dos Recebimentos</label>
 
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label>Forma PGTO</label>
-                                <select class="form-select" name="saida-baixar" id="saida-baixar" required onchange="calcularTaxa()">
+                        <div id="linha-template-pagamento" class="linha-pagamento row g-2 mb-2 align-items-end p-2 bg-light border rounded" style="display: none;">
+                            <div class="col-md-2">
+                                <label class="small fw-bold text-secondary text-uppercase">Valor</label>
+                                <input type="text" class="form-control form-control-sm valor_pagamento" name="valor_baixar[]" onkeyup="handlePagamentoInput(this); totalizarPagamentos();">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="small fw-bold text-secondary text-uppercase">Data</label>
+                                <input type="date" class="form-control form-control-sm data_pagamento" name="data_baixar[]" value="<?php echo date('Y-m-d') ?>" onchange="handlePagamentoInput(this)">
+                            </div>
+                            <div class="col-md-2">
+                                <label class="small fw-bold text-secondary text-uppercase">Forma</label>
+                                <select class="form-select form-select-sm forma_pagamento" name="saida_baixar[]" onchange="handlePagamentoInput(this)">
+                                    <option value="">Selecione...</option>
                                     <?php
                                     $query = $pdo->query("SELECT * FROM formas_pgto order by id asc");
                                     $res = $query->fetchAll(PDO::FETCH_ASSOC);
-                                    for ($i = 0; $i < @count($res); $i++) {
-                                        foreach ($res[$i] as $key => $value) {
-                                        }
-
-                                    ?>
+                                    for ($i = 0; $i < @count($res); $i++) { ?>
                                         <option value="<?php echo $res[$i]['id'] ?>"><?php echo $res[$i]['nome'] ?></option>
-
                                     <?php } ?>
-
                                 </select>
                             </div>
-                        </div>
-
-                    </div>
-
-
-                    <div class="row">
-
-
-                        <div class="col-md-3">
-                            <div class="mb-3">
-                                <label>Multa em R$</label>
-                                <input onkeyup="totalizar()" type="text" class="form-control" name="valor-multa" id="valor-multa" placeholder="Ex 15.00" value="0">
-                            </div>
-                        </div>
-
-                        <div class="col-md-3">
-                            <div class="mb-3">
-                                <label>Júros em R$</label>
-                                <input onkeyup="totalizar()" type="text" class="form-control" name="valor-juros" id="valor-juros" placeholder="Ex 0.15" value="0">
-                            </div>
-                        </div>
-
-                        <div class="col-md-3">
-                            <div class="mb-3">
-                                <label>Desconto R$</label>
-                                <input onkeyup="totalizar()" type="text" class="form-control" name="valor-desconto" id="valor-desconto" placeholder="Ex 15.00" value="0">
-                            </div>
-                        </div>
-
-
-
-                        <div class="col-md-3">
-                            <div class="mb-3">
-                                <label>Taxa PGTO</label>
-                                <input onkeyup="totalizar()" type="text" class="form-control" name="valor-taxa" id="valor-taxa" placeholder="" value="">
-                            </div>
-                        </div>
-
-                    </div>
-
-
-                    <div class="row">
-
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label>Data da Baixa</label>
-                                <input type="date" class="form-control" name="data-baixar" id="data-baixar" value="<?php echo date('Y-m-d') ?>">
-                            </div>
-                        </div>
-
-
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label>SubTotal</label>
-                                <input type="text" class="form-control" name="subtotal" id="subtotal" readonly>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="row">
-
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label>Banco</label>
-                                <select class="form-select" name="banco" id="banco" required onchange="calcularTaxa()">
-                                    <option value="">Selecione</option>
+                            <div class="col-md-2">
+                                <label class="small fw-bold text-secondary text-uppercase">Banco</label>
+                                <select class="form-select form-select-sm banco_pagamento" name="banco_baixar[]" onchange="handlePagamentoInput(this)">
+                                    <option value="">Selecione...</option>
                                     <?php
                                     $query = $pdo->query("SELECT * FROM bancos order by id asc");
                                     $res = $query->fetchAll(PDO::FETCH_ASSOC);
-                                    for ($i = 0; $i < @count($res); $i++) {
-                                        foreach ($res[$i] as $key => $value) {
-                                        }
-
-                                    ?>
+                                    for ($i = 0; $i < @count($res); $i++) { ?>
                                         <option value="<?php echo $res[$i]['id'] ?>"><?php echo $res[$i]['banco'] ?></option>
-
                                     <?php } ?>
-
                                 </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="small fw-bold text-secondary text-uppercase">N° Operação</label>
+                                <input type="text" class="form-control form-control-sm operacao_pagamento" name="numero_operacao[]" placeholder="Cód/DOC" onkeyup="handlePagamentoInput(this)">
+                            </div>
+                        </div>
+
+                        <div id="linha-container-pagamento"></div>
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-md-7">
+                            <label class="small fw-bold text-secondary text-uppercase" for="obs-baixar">Observações</label>
+
+                            <textarea class="form-control shadow-sm" name="obs-baixar" id="obs-baixar" rows="2" maxlength="1000" placeholder="Informações adicionais sobre o recebimento..."></textarea>
+
+                            <div id="contador-obs" class="form-text text-end text-muted" style="font-size: 0.75rem;">
+                                1000 caracteres restantes
                             </div>
 
                         </div>
-                        <div class="col-md-6 mb-2">
-                            <label>Descrição (Banco)</label>
-                            <select class="form-select" name="descricao_banco" id="descricao_banco">
-                                <option value="">Selecione a Classificação</option>
-                                <?php
-                                // Correção: Removido o ponto e vírgula antes do "order by"
-                                $query_class = $pdo->query("SELECT * FROM descricao_banco order by descricao asc");
-                                $res_class = $query_class->fetchAll(PDO::FETCH_ASSOC);
-                                for ($i = 0; $i < @count($res_class); $i++) {
-                                ?>
-                                    <option value="<?php echo $res_class[$i]['id'] ?>">
-                                        <?php echo $res_class[$i]['descricao'] ?>
-                                    </option>
-                                <?php } ?>
-                            </select>
+                        <div class="col-md-5">
+                            <label class="small fw-bold text-secondary text-uppercase" for="comprovante">Arquivar Comprovante</label>
+                            <input type="file" class="form-control shadow-sm" name="comprovante" id="comprovante" accept="image/*,.pdf">
                         </div>
                     </div>
-
-
-
-
-                    <small>
-                        <div id="mensagem-baixar" align="center"></div>
-                    </small>
-
-                    <input type="hidden" class="form-control" name="id-baixar" id="id-baixar">
-
-
+                    <input type="hidden" name="id-baixar" id="id-baixar">
                 </div>
-                <div class="modal-footer">
 
-                    <button type="submit" class="btn btn-success">Baixar</button>
+                <div class="modal-footer bg-light border-0">
+                    <button type="submit" class="btn btn-success px-5 fw-bold shadow-sm">Confirmar Baixa</button>
                 </div>
             </form>
         </div>
     </div>
 </div>
-
-
-
 
 <!-- Modal -->
 <div class="modal fade" id="modalResiduos" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
@@ -393,205 +396,94 @@
     </div>
 </div>
 
-
-
-<!-- Modal Arquivos -->
-<div class="modal fade" id="modalArquivos" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header bg-primary text-white">
-                <h4 class="modal-title" id="tituloModal">Gestão de Arquivos - <span id="nome-arquivo"> </span></h4>
-                <button id="btn-fechar-arquivos" aria-label="Close" class="btn-close" data-bs-dismiss="modal" type="button"><span class="text-white" aria-hidden="true">&times;</span></button>
-            </div>
-            <form id="form-arquivos" method="post">
-                <div class="modal-body">
-
-                    <div class="row">
-                        <div class="col-md-8">
-                            <div class="form-group">
-                                <label>Arquivo</label>
-                                <input class="form-control" type="file" name="arquivo_conta" onChange="carregarImgArquivos();" id="arquivo_conta">
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div id="divImgArquivos">
-                                <img src="images/arquivos/sem-foto.png" width="60px" id="target-arquivos">
-                            </div>
-                        </div>
-
-
-
-
-                    </div>
-
-                    <div class="row">
-                        <div class="col-md-8">
-                            <input type="text" class="form-control" name="nome-arq" id="nome-arq" placeholder="Nome do Arquivo * " required>
-                        </div>
-
-                        <div class="col-md-4">
-                            <button type="submit" class="btn btn-primary">Inserir</button>
-                        </div>
-                    </div>
-
-                    <hr>
-
-                    <small>
-                        <div id="listar-arquivos"></div>
-                    </small>
-
-                    <br>
-                    <small>
-                        <div align="center" id="mensagem-arquivo"></div>
-                    </small>
-
-                    <input type="hidden" class="form-control" name="id-arquivo" id="id-arquivo">
-
-
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
-<div class="modal fade" id="modalForm" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+<!-- Modal Form: Inserir / Editar Conta a Receber -->
+<div class="modal fade" id="modalForm" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header bg-primary text-white">
-                <h4 class="modal-title" id="exampleModalLabel"><span id="titulo_inserir"></span></h4>
+                <h4 class="modal-title"><span id="titulo_inserir">Inserir Registro</span></h4>
                 <button id="btn-fechar" aria-label="Close" class="btn-close" data-bs-dismiss="modal" type="button"><span class="text-white" aria-hidden="true">&times;</span></button>
             </div>
-            <form id="form">
+            <form id="form" enctype="multipart/form-data">
                 <div class="modal-body">
-
-
                     <div class="row">
-                        <div class="col-md-5 mb-2 col-8">
+                        <div class="col-md-5 mb-2">
                             <label>Descrição</label>
                             <input type="text" class="form-control" id="descricao" name="descricao" placeholder="Descrição">
                         </div>
-
-                        <div class="col-md-2 col-4">
+                        <div class="col-md-2 mb-2">
                             <label>Valor</label>
-                            <input type="text" class="form-control" id="valor" name="valor" placeholder="" required>
+                            <input type="text" class="form-control" id="valor" name="valor" placeholder="0,00" onkeyup="mascara_moeda(this)">
                         </div>
-
-                        <div class="col-md-5">
+                        <div class="col-md-5 mb-2">
                             <label>Cliente</label>
-                            <select name="cliente" id="cliente" class="sel2" style="width:100%; height:35px; ">
+                            <select name="cliente" id="cliente" class="form-select">
                                 <option value="0">Selecione um Cliente</option>
                                 <?php
-                                if ($mostrar_registros == 'Não') {
-                                    $query = $pdo->query("SELECT * from clientes where usuario = '$id_usuario' order by id asc");
-                                } else {
-                                    $query = $pdo->query("SELECT * from clientes order by id asc");
-                                }
-                                $res = $query->fetchAll(PDO::FETCH_ASSOC);
-                                $linhas = @count($res);
-                                if ($linhas > 0) {
-                                    for ($i = 0; $i < $linhas; $i++) {
-                                        echo '<option value="' . $res[$i]['id'] . '">' . $res[$i]['nome'] . '</option>';
-                                    }
+                                $q = $pdo->query("SELECT id, nome FROM clientes ORDER BY nome ASC");
+                                foreach ($q->fetchAll(PDO::FETCH_ASSOC) as $row) {
+                                    echo '<option value="' . $row['id'] . '">' . htmlspecialchars($row['nome']) . '</option>';
                                 }
                                 ?>
                             </select>
                         </div>
-
-
                     </div>
-
-
                     <div class="row">
-
-
-
-
-                        <div class="col-md-3 mb-2 col-6">
+                        <div class="col-md-3 mb-2">
                             <label>Vencimento</label>
-                            <input type="date" name="vencimento" id="vencimento" value="<?php echo $data_atual ?>" class="form-control">
+                            <input type="date" name="vencimento" id="vencimento" value="<?php echo date('Y-m-d') ?>" class="form-control">
                         </div>
-
-
-                        <div class="col-md-3 col-6">
-                            <label>Pago Em</label>
+                        <div class="col-md-3 mb-2">
+                            <label>Recebido Em</label>
                             <input type="date" name="data_pgto" id="data_pgto" value="" class="form-control">
                         </div>
-
-
-                        <div class="col-md-3 col-6">
+                        <div class="col-md-3 mb-2">
                             <label>Forma Pgto</label>
                             <select name="forma_pgto" id="forma_pgto" class="form-select">
                                 <?php
-                                $query = $pdo->query("SELECT * from formas_pgto order by id asc");
-                                $res = $query->fetchAll(PDO::FETCH_ASSOC);
-                                $linhas = @count($res);
-                                if ($linhas > 0) {
-                                    for ($i = 0; $i < $linhas; $i++) {
-                                        echo '<option value="' . $res[$i]['id'] . '">' . $res[$i]['nome'] . '</option>';
-                                    }
-                                } else {
-                                    echo '<option value="0">Cadastre uma Forma de Pagamento</option>';
+                                $q = $pdo->query("SELECT id, nome FROM formas_pgto ORDER BY id ASC");
+                                foreach ($q->fetchAll(PDO::FETCH_ASSOC) as $row) {
+                                    echo '<option value="' . $row['id'] . '">' . $row['nome'] . '</option>';
                                 }
                                 ?>
                             </select>
                         </div>
-
-                        <div class="col-md-3 col-6 mb-2">
+                        <div class="col-md-3 mb-2">
                             <label>Frequência</label>
                             <select name="frequencia" id="frequencia" class="form-select">
                                 <?php
-                                $query = $pdo->query("SELECT * from frequencias order by id asc");
-                                $res = $query->fetchAll(PDO::FETCH_ASSOC);
-                                $linhas = @count($res);
-                                if ($linhas > 0) {
-                                    for ($i = 0; $i < $linhas; $i++) {
-                                        echo '<option value="' . $res[$i]['dias'] . '">' . $res[$i]['frequencia'] . '</option>';
-                                    }
-                                } else {
-                                    echo '<option value="0">Cadastre uma Forma de Pagamento</option>';
+                                $q = $pdo->query("SELECT dias, frequencia FROM frequencias ORDER BY id ASC");
+                                foreach ($q->fetchAll(PDO::FETCH_ASSOC) as $row) {
+                                    echo '<option value="' . $row['dias'] . '">' . $row['frequencia'] . '</option>';
                                 }
                                 ?>
                             </select>
                         </div>
-
-
-
                     </div>
-
                     <div class="row">
                         <div class="col-md-6 mb-2">
                             <label>Observações</label>
                             <input type="text" class="form-control" id="obs" name="obs" placeholder="Observações">
                         </div>
-
                         <div class="col-md-4 mb-2">
                             <label>Arquivo</label>
                             <input type="file" class="form-control" id="arquivo" name="foto" onchange="carregarImg()">
                         </div>
-
                         <div class="col-md-2">
-                            <img width="80px" id="target">
-
+                            <img width="80px" id="target" src="images/contas/sem-foto.png">
                         </div>
-
                     </div>
                     <div class="row d-none" id="div-banco">
                         <div class="col-md-6 mb-2">
                             <label>Banco</label>
-                            <select class="form-select" name="banco" id="banco" onchange="calcularTaxa()">
+                            <select class="form-select" name="banco" id="banco">
                                 <option value="">Selecione</option>
                                 <?php
-                                $query = $pdo->query("SELECT * FROM bancos order by id asc");
-                                $res = $query->fetchAll(PDO::FETCH_ASSOC);
-                                for ($i = 0; $i < @count($res); $i++) {
-                                    foreach ($res[$i] as $key => $value) {
-                                    }
-
+                                $q = $pdo->query("SELECT id, banco FROM bancos ORDER BY id ASC");
+                                foreach ($q->fetchAll(PDO::FETCH_ASSOC) as $row) {
+                                    echo '<option value="' . $row['id'] . '">' . $row['banco'] . '</option>';
+                                }
                                 ?>
-                                    <option value="<?php echo $res[$i]['id'] ?>"><?php echo $res[$i]['banco'] ?></option>
-
-                                <?php } ?>
-
                             </select>
                         </div>
                         <div class="col-md-6 mb-2">
@@ -599,34 +491,20 @@
                             <select class="form-select" name="descricao_banco" id="descricao_banco">
                                 <option value="">Selecione a Classificação</option>
                                 <?php
-                                // Correção: Removido o ponto e vírgula antes do "order by"
-                                $query_class = $pdo->query("SELECT * FROM descricao_banco order by descricao asc");
-                                $res_class = $query_class->fetchAll(PDO::FETCH_ASSOC);
-                                for ($i = 0; $i < @count($res_class); $i++) {
+                                $q = $pdo->query("SELECT id, descricao FROM descricao_banco ORDER BY descricao ASC");
+                                foreach ($q->fetchAll(PDO::FETCH_ASSOC) as $row) {
+                                    echo '<option value="' . $row['id'] . '">' . htmlspecialchars($row['descricao']) . '</option>';
+                                }
                                 ?>
-                                    <option value="<?php echo $res_class[$i]['id'] ?>">
-                                        <?php echo $res_class[$i]['descricao'] ?>
-                                    </option>
-                                <?php } ?>
                             </select>
                         </div>
                     </div>
-
-
-
-
-
-
-
-                    <input type="hidden" class="form-control" id="id" name="id">
-
+                    <input type="hidden" id="id" name="id">
                     <br>
-                    <small>
-                        <div id="mensagem" align="center"></div>
-                    </small>
+                    <small><div id="mensagem" align="center"></div></small>
                 </div>
                 <div class="modal-footer">
-                    <button id="btn_salvar" type="submit" class="btn btn-primary">Salvar</button>
+                    <button type="submit" id="btn_salvar" class="btn btn-success">Salvar</button>
                 </div>
             </form>
         </div>

@@ -6,6 +6,22 @@ $tabela = 'bancos';
 require_once("../../../conexao.php");
 require_once("../../verificar.php");
 
+// --- LÓGICA PARA BUSCAR DADOS (SEM PRECISAR DE OUTRO ARQUIVO) ---
+if (@$_POST['action'] == 'buscar') {
+	$id = @$_POST['id'];
+	$query = $pdo->query("SELECT * from $tabela where id = '$id'");
+	$res = $query->fetchAll(PDO::FETCH_ASSOC);
+
+	if (@count($res) > 0) {
+		$dados = $res[0];
+		// Formata o saldo para o modal
+		$dados['saldo'] = number_format($dados['saldo'], 2, ',', '.');
+		echo json_encode($dados);
+	}
+	exit(); // Para a execução aqui para não carregar o resto da tabela
+}
+// ---------------------------------------------------------------
+
 if ($mostrar_registros == 'Não') {
 	$sql_usuario_lanc = " WHERE usuario_lanc = '$id_usuario '";
 } else {
@@ -57,7 +73,7 @@ HTML;
 			<td>R$ {$saldo}</td>
 			<td>
 				<big>
-					<a class="btn btn-info btn-sm" href="#" onclick="editar('{$id}','{$correntista}','{$banco}','{$agencia}','{$conta}','{$saldo}')" title="Editar Dados">
+					<a class="btn btn-info btn-sm" href="#" onclick="editar('{$id}')" title="Editar Dados">
 						<i class="fa fa-edit"></i>
 					</a>
 
@@ -90,12 +106,19 @@ HTML;
 
 <script type="text/javascript">
 	$(document).ready(function() {
+		if ($.fn.DataTable.isDataTable('#tabela')) {
+			$('#tabela').DataTable().destroy();
+		}
+
 		$('#tabela').DataTable({
-			"ordering": false,
-			"stateSave": true,
-			"language": {
-				"url": "//cdn.datatables.net/plug-ins/1.13.2/i18n/pt-BR.json"
+			ordering: false,
+			stateSave: true,
+			language: {
+				url: "//cdn.datatables.net/plug-ins/1.13.2/i18n/pt-BR.json"
 			}
 		});
 	});
+
+
+
 </script>
