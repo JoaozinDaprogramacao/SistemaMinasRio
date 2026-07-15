@@ -1,4 +1,4 @@
-<?php 
+<?php
 $tabela = 'pagar';
 require_once("../../../conexao.php");
 
@@ -11,11 +11,13 @@ $total_ids = @count($separar);
 
 for($i=0; $i<$total_ids; $i++){
 		$id = $separar[$i];
-		$query = $pdo->query("SELECT * FROM $tabela where id = '$id' and pago = 'Não'");
+		$query = $pdo->query("SELECT * FROM $tabela where id = '$id' and pago != 'Sim'");
 		$res = $query->fetchAll(PDO::FETCH_ASSOC);
-		$valor = @$res[0]['valor'];
-		$total_contas += $valor;
-        
+		if(@count($res) > 0){
+			$conta = $res[0];
+			$valor = ($conta['pago'] === 'Parcial') ? $conta['valor_restante'] : ($conta['subtotal'] ?: $conta['valor']);
+			$total_contas += $valor;
+		}
     }
 
 $total_contas = @number_format($total_contas, 2, ',', '.');

@@ -33,15 +33,10 @@ if (@$pagar == 'ocultar') {
 			</div>
 		</div>
 
-		<div id="btn-baixar" style="display:none" class="dropdown">
-			<a href="#" class="btn btn-success btn-sm dropdown-toggle" data-bs-toggle="dropdown" onclick="valorBaixar()">
+		<div id="btn-baixar" style="display:none">
+			<a href="#" class="btn btn-success btn-sm" onclick="abrirModalBaixaMassa()">
 				<i class="fa fa-check-square"></i> Baixar
 			</a>
-			<div class="dropdown-menu p-3 text-muted" style="width: 220px;">
-				<p>Baixar selecionadas?</p>
-				<p>Total: <span class="text-success fw-bold" id="total_contas"></span></p>
-				<a href="#" onclick="deletarSelBaixar()" class="btn btn-success btn-sm w-100">Confirmar</a>
-			</div>
 		</div>
 
 		<button type="button" id="relatorio" class="btn btn-danger btn-sm">

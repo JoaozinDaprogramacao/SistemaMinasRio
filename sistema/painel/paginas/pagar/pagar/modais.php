@@ -333,6 +333,75 @@ document.addEventListener('DOMContentLoaded', function () {
 	</div>
 </div>
 
+<!-- Modal Baixa em Massa -->
+<div class="modal fade" id="modalBaixarMassa" tabindex="-1" aria-hidden="true">
+	<div class="modal-dialog">
+		<div class="modal-content border-0 shadow">
+			<div class="modal-header bg-success text-white py-2">
+				<h5 class="modal-title">Baixa em Massa</h5>
+				<button id="btn-fechar-baixar-massa" aria-label="Close" class="btn-close btn-close-white" data-bs-dismiss="modal" type="button"></button>
+			</div>
+			<form id="form-baixar-massa" method="post">
+				<div class="modal-body bg-white">
+					<div class="alert alert-light border d-flex justify-content-between align-items-center mb-3">
+						<span><span id="qtd_contas_massa">0</span> título(s) selecionado(s)</span>
+						<span class="text-success fw-bold" id="total_contas"></span>
+					</div>
+
+					<div class="row g-2 mb-2">
+						<div class="col-md-6">
+							<label class="small fw-bold text-secondary text-uppercase">Data do Pagamento</label>
+							<input type="date" class="form-control form-control-sm" name="data_baixar" id="data-baixar-massa" value="<?php echo date('Y-m-d') ?>" required>
+						</div>
+						<div class="col-md-6">
+							<label class="small fw-bold text-secondary text-uppercase">Forma de Pagamento</label>
+							<select class="form-select form-select-sm" name="forma_baixar" id="forma-baixar-massa" required>
+								<option value="">Selecione...</option>
+								<?php
+								$query = $pdo->query("SELECT * FROM formas_pgto order by id asc");
+								$res = $query->fetchAll(PDO::FETCH_ASSOC);
+								for ($i = 0; $i < @count($res); $i++) { ?>
+									<option value="<?php echo $res[$i]['id'] ?>"><?php echo $res[$i]['nome'] ?></option>
+								<?php } ?>
+							</select>
+						</div>
+					</div>
+
+					<div class="row g-2 mb-2">
+						<div class="col-md-6">
+							<label class="small fw-bold text-secondary text-uppercase">Banco</label>
+							<select class="form-select form-select-sm" name="banco_baixar" id="banco-baixar-massa" required>
+								<option value="">Selecione...</option>
+								<?php
+								$query = $pdo->query("SELECT * FROM bancos order by id asc");
+								$res = $query->fetchAll(PDO::FETCH_ASSOC);
+								for ($i = 0; $i < @count($res); $i++) { ?>
+									<option value="<?php echo $res[$i]['id'] ?>"><?php echo $res[$i]['banco'] ?></option>
+								<?php } ?>
+							</select>
+						</div>
+						<div class="col-md-6">
+							<label class="small fw-bold text-secondary text-uppercase">N° Operação</label>
+							<input type="text" class="form-control form-control-sm" name="numero_operacao_baixar" id="operacao-baixar-massa" placeholder="Cód/DOC">
+						</div>
+					</div>
+
+					<div class="mb-2">
+						<label class="small fw-bold text-secondary text-uppercase">Observações</label>
+						<textarea class="form-control form-control-sm" name="obs_baixar" id="obs-baixar-massa" rows="2" placeholder="Aplicada a todos os títulos selecionados..."></textarea>
+					</div>
+
+					<input type="hidden" name="ids" id="ids-baixar-massa">
+					<div id="mensagem-baixar-massa" class="mt-2"></div>
+				</div>
+				<div class="modal-footer bg-light border-0">
+					<button type="submit" class="btn btn-success px-4 fw-bold shadow-sm">Confirmar Baixa</button>
+				</div>
+			</form>
+		</div>
+	</div>
+</div>
+
 <!-- Modal Residuos -->
 <div class="modal fade" id="modalResiduos" tabindex="-1" aria-hidden="true">
 	<div class="modal-dialog">

@@ -148,9 +148,34 @@ function selecionar(id) {
         $('#ids').val(ids + id + '-');
     } else {
         $('#ids').val(ids.replace(id + '-', ''));
+        $('#selecionar-todos').prop('checked', false);
     }
     var ids_final = $('#ids').val();
     if (ids_final == "") {
+        $('#btn-deletar, #btn-baixar').hide();
+    } else {
+        $('#btn-deletar, #btn-baixar').show();
+    }
+}
+
+function selecionarTodos(master) {
+    var linhas;
+    if ($.fn.DataTable.isDataTable('#tabela')) {
+        linhas = $('#tabela').DataTable().rows({ search: 'applied' }).nodes();
+    } else {
+        linhas = $('#tabela tbody tr');
+    }
+
+    var ids = "";
+    $(linhas).find('input[type="checkbox"][id^="seletor-"]').each(function () {
+        this.checked = master.checked;
+        if (master.checked) {
+            ids += this.id.replace('seletor-', '') + '-';
+        }
+    });
+
+    $('#ids').val(ids);
+    if (ids == "") {
         $('#btn-deletar, #btn-baixar').hide();
     } else {
         $('#btn-deletar, #btn-baixar').show();
@@ -166,21 +191,6 @@ function deletarSel() {
     setTimeout(() => { buscar(); limparCampos(); }, 1000);
 }
 
-function deletarSelBaixar() {
-    var ids = $('#ids').val();
-    var id = ids.split("-");
-    for (var i = 0; i < id.length - 1; i++) {
-        var novo_id = id[i];
-        $.ajax({
-            url: 'paginas/' + pag + "/baixar_multiplas.php",
-            method: 'POST',
-            data: { novo_id },
-            dataType: "html"
-        });
-    }
-    setTimeout(() => { buscar(); limparCampos(); }, 1000);
-}
-
 function valorBaixar() {
     var ids = $('#ids').val();
     $.ajax({
@@ -188,9 +198,52 @@ function valorBaixar() {
         method: 'POST',
         data: { ids },
         dataType: "html",
-        success: function (result) { $("#total_contas").html(result); }
+        success: function (result) { $("#total_contas").html('R$ ' + result); }
     });
 }
+
+function abrirModalBaixaMassa() {
+    var ids = $('#ids').val();
+    var qtd = ids.split("-").filter(v => v !== "").length;
+
+    $('#ids-baixar-massa').val(ids);
+    $('#qtd_contas_massa').text(qtd);
+    $('#data-baixar-massa').val(new Date().toISOString().slice(0, 10));
+    $('#forma-baixar-massa').prop('selectedIndex', 0);
+    $('#banco-baixar-massa').prop('selectedIndex', 0);
+    $('#operacao-baixar-massa').val('');
+    $('#obs-baixar-massa').val('');
+    $('#mensagem-baixar-massa').removeClass('text-danger text-success').text('');
+
+    valorBaixar();
+    $('#modalBaixarMassa').modal('show');
+}
+
+$(document).on('submit', '#form-baixar-massa', function (e) {
+    e.preventDefault();
+    $('#mensagem-baixar-massa').removeClass('text-danger text-success').text('Processando...');
+
+    $.ajax({
+        url: 'paginas/' + pag + "/baixar_multiplas.php",
+        type: 'POST',
+        data: $(this).serialize(),
+        success: function (mensagem) {
+            if (mensagem.trim() == "Baixado com Sucesso") {
+                $('#mensagem-baixar-massa').addClass('text-success').text(mensagem);
+                setTimeout(() => {
+                    $('#btn-fechar-baixar-massa').click();
+                    buscar();
+                    limparCampos();
+                }, 600);
+            } else {
+                $('#mensagem-baixar-massa').addClass('text-danger').text(mensagem);
+            }
+        },
+        error: function () {
+            $('#mensagem-baixar-massa').addClass('text-danger').text('Erro ao conectar com o servidor.');
+        }
+    });
+});
 
 // =============================================
 // MODAIS AUXILIARES
