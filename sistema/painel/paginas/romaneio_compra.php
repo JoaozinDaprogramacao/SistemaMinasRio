@@ -296,7 +296,7 @@ if (@$produtos == 'ocultar') {
 										<input type="number" id="taxa_adm_val_<?php echo $id ?>" name="info_<?php echo $id ?>" class="form-control" oninput="calcularTotalAbatimentos()" placeholder="0" style="padding: 0.375rem 0.75rem;">
 									<?php else: ?>
 										<label for="info_<?php echo $identificador ?>">INFO</label>
-										<select id="info_<?php echo $identificador ?>" name="info_<?php echo $id ?>" class="form-select form-control" onchange="calcularTotalAbatimentos()" style="padding-top: 2px; padding-bottom: 2px;">
+										<select id="info_<?php echo $identificador ?>" name="info_<?php echo $id ?>" class="form-select form-control" onchange="this.closest('.linha-abatimentos').dataset.tocado='1'; calcularTotalAbatimentos()" style="padding-top: 2px; padding-bottom: 2px;">
 											<option value="">Selecione</option>
 											<?php
 											foreach ($array_info as $item_info) {
@@ -310,7 +310,7 @@ if (@$produtos == 'ocultar') {
 
 								<div class="coluna_romaneio">
 									<label for="preco_unit_<?php echo $identificador ?>">PREÇO UNIT</label>
-									<select id="preco_unit_<?php echo $identificador ?>" name="preco_unit_<?php echo $id ?>" class="form-select form-control" onchange="calcularTotalAbatimentos()" style="padding-top: 2px; padding-bottom: 2px;">
+									<select id="preco_unit_<?php echo $identificador ?>" name="preco_unit_<?php echo $id ?>" class="form-select form-control" onchange="this.closest('.linha-abatimentos').dataset.tocado='1'; calcularTotalAbatimentos()" style="padding-top: 2px; padding-bottom: 2px;">
 										<option value="">Selecione</option>
 										<?php
 										foreach ($array_precos as $item_preco) {

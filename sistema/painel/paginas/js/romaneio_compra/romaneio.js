@@ -160,12 +160,29 @@ function calcularTotalAbatimentos() {
                 valorCalculadoCents = Math.round((pUnit * totals.kg) * 100);
             } else if (infoVal === 'cx' || infoVal === 'caixa' || infoVal === 'cxs') {
                 valorCalculadoCents = Math.round((pUnit * totals.caixas) * 100);
-            } else {
-                if (precoRaw.includes('%')) {
-                    valorCalculadoCents = Math.round(totals.bruto * pUnit); // <--- Nova linha
-                } else {
+            } else if (infoVal === '1' || infoVal === 'unidade') {
+                // Modo "Unidade": valor fixo escolhido no preço unitário, aplicado uma
+                // única vez (não multiplica por caixas/kg). Confirmado batendo em 244/255
+                // romaneios existentes com esse "info".
+                //
+                // A taxa "Unidade" muda de valor ao longo do tempo (ex: era 55,31 em
+                // jan/2026, hoje é 57,90), mas o dropdown só oferece a taxa ATUAL. Cargas
+                // antigas guardam a taxa vigente na época em "desc_ima"/etc — não pode
+                // recalcular sozinho ao abrir a edição, senão a carga antiga "pula" pra
+                // taxa de hoje. Só recalcula se o usuário mexer manualmente nessa linha
+                // (marcado via data-tocado pelos próprios selects de info/preço unitário).
+                if (linha.dataset.tocado === '1') {
                     valorCalculadoCents = Math.round(pUnit * 100);
+                } else {
+                    valorCalculadoCents = Math.round(parseBrasil(campoResultado.value) * 100);
                 }
+            } else if (precoRaw.includes('%')) {
+                valorCalculadoCents = Math.round(totals.bruto * pUnit); // <--- Nova linha
+            } else {
+                // "info" verdadeiramente desconhecido (nem kg/cx/unidade nem %):
+                // preserva o valor já carregado/salvo em vez de arriscar gravar um
+                // número sem fórmula definida por cima.
+                valorCalculadoCents = Math.round(parseBrasil(campoResultado.value) * 100);
             }
         }
 
