@@ -100,7 +100,11 @@ function calculaTotais() {
             totalKgSoma += (q * t);
         });
 
-        let descontoCents = 0;
+        // Desconto à vista e total geral são mantidos SEM arredondar aqui (podem ter
+        // fração de centavo, ex: 63,975). O PHP (salvar.php) só arredonda uma vez, no
+        // final, ao gravar total_liquido. Arredondar cedo demais aqui (como antes)
+        // podia fechar 1 centavo diferente do valor realmente salvo.
+        let descontoCentsExato = 0;
         if (temDesconto) {
             const dPerc = parseFloat(descAvistaField.value.replace(',', '.')) || 0;
             if (dPerc <= 0) {
@@ -108,23 +112,26 @@ function calculaTotais() {
                 totalGeralField.classList.add("danger");
             } else {
                 totalGeralField.classList.remove("danger");
-                descontoCents = Math.round((totalBrutoCents * dPerc) / 100);
+                descontoCentsExato = (totalBrutoCents * dPerc) / 100;
             }
         } else {
             totalGeralField.classList.remove("danger");
         }
 
-        let totalGeralCents = totalBrutoCents - descontoCents;
+        let totalGeralCentsExato = totalBrutoCents - descontoCentsExato;
 
         totalCaixaField.innerHTML = Math.round(totalCaixaSoma) + " CXS";
         totalKgField.innerHTML = totalKgSoma.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
         totalBrutoField.innerHTML = "R$ " + (totalBrutoCents / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
-        totalDescField.innerHTML = "R$ " + (descontoCents / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+        totalDescField.innerHTML = "R$ " + (Math.round(descontoCentsExato) / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
 
         if (!totalGeralField.classList.contains("danger")) {
-            const finalStr = (totalGeralCents / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+            const finalStr = (Math.round(totalGeralCentsExato) / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
             totalGeralField.innerHTML = finalStr;
             inputHidden.value = finalStr;
+            // Guarda a precisão completa (com fração de centavo) para o cálculo final
+            // em updateLiquidPayable() não perder o meio-centavo arredondando cedo demais.
+            inputHidden.dataset.centsExato = totalGeralCentsExato;
         }
     } catch (e) { }
     calcularTotalAbatimentos();
@@ -250,11 +257,17 @@ function calcularDescontosDiversos() {
 }
 
 function updateLiquidPayable() {
-    const liquidBaseCents = Math.round(parseBrasil(document.getElementById('valor_liquido').value) * 100);
+    const liquidField = document.getElementById('valor_liquido');
+    // Usa a precisão completa (com fração de centavo) guardada por calculaTotais(),
+    // em vez de reler o texto já arredondado do campo — evita perder o meio-centavo
+    // e fechar 1 centavo diferente do valor que o PHP realmente grava.
+    const liquidBaseCents = liquidField.dataset.centsExato !== undefined
+        ? parseFloat(liquidField.dataset.centsExato)
+        : Math.round(parseBrasil(liquidField.value) * 100);
     const comissaoCents = Math.round(parseBrasil(document.getElementById('total_comissao').textContent) * 100);
     const descontosCents = Math.round(parseBrasil(document.getElementById('total_descontos_diversos').textContent) * 100);
 
-    const finalLiquidoCents = liquidBaseCents - comissaoCents + descontosCents;
+    const finalLiquidoCents = Math.round(liquidBaseCents - comissaoCents + descontosCents);
 
     document.getElementById('total_liquido_pagar').textContent = (finalLiquidoCents / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
 }
