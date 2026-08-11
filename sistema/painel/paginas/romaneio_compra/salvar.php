@@ -94,7 +94,12 @@ try {
     if (empty($plano_pgto) || $plano_pgto == '0') $erros[] = "Selecione um plano de pagamento";
 
     $total_bruto = array_reduce($valor_1, function ($c, $v) { return $c + limparMoeda($v); }, 0);
-    $total_bruto_desc = $total_bruto * (1 - ($desc_avista / 100));
+    // O desconto à vista é arredondado para centavos antes de sair do bruto — é o valor que o
+    // romaneio imprime na linha do desconto, e é assim que a planilha do papel calcula. Deixar
+    // a fração de meio centavo correr até o fim (ex: 3% de 38.254,50 = 1.147,635) fechava 1
+    // centavo acima do papel. romaneio.js e o PDF fazem o mesmo arredondamento.
+    $valor_desc_avista = round(($total_bruto * $desc_avista) / 100, 2);
+    $total_bruto_desc = $total_bruto - $valor_desc_avista;
     $soma_outros_descontos_fixos = $desc_funrural + $desc_ima + $desc_abanorte + $desc_taxaadm;
     $total_liquido = $total_bruto_desc - $soma_outros_descontos_fixos;
 

@@ -100,11 +100,16 @@ function calculaTotais() {
             totalKgSoma += (q * t);
         });
 
-        // Desconto à vista e total geral são mantidos SEM arredondar aqui (podem ter
-        // fração de centavo, ex: 63,975). O PHP (salvar.php) só arredonda uma vez, no
-        // final, ao gravar total_liquido. Arredondar cedo demais aqui (como antes)
-        // podia fechar 1 centavo diferente do valor realmente salvo.
-        let descontoCentsExato = 0;
+        // O desconto à vista é arredondado para centavos ANTES de sair do bruto, e é esse
+        // mesmo valor que aparece na linha "DESCONTO RECEBIMENTO - À VISTA". É a conta que a
+        // planilha do romaneio faz no papel: 3% de 38.254,50 dá 1.147,635, vira 1.147,64, e o
+        // líquido é 38.254,50 - 1.147,64 = 37.106,86.
+        //
+        // Carregar a fração de meio centavo até o fim (como se fazia antes) dava 37.106,87 e
+        // fazia o romaneio impresso não fechar com os próprios números que ele mostra — quem
+        // conferisse na calculadora achava 1 centavo de diferença. salvar.php e o PDF fazem o
+        // mesmo arredondamento, então tela, impresso e banco batem.
+        let descontoCents = 0;
         if (temDesconto) {
             const dPerc = parseFloat(descAvistaField.value.replace(',', '.')) || 0;
             if (dPerc <= 0) {
@@ -112,26 +117,26 @@ function calculaTotais() {
                 totalGeralField.classList.add("danger");
             } else {
                 totalGeralField.classList.remove("danger");
-                descontoCentsExato = (totalBrutoCents * dPerc) / 100;
+                descontoCents = Math.round((totalBrutoCents * dPerc) / 100);
             }
         } else {
             totalGeralField.classList.remove("danger");
         }
 
-        let totalGeralCentsExato = totalBrutoCents - descontoCentsExato;
+        let totalGeralCents = totalBrutoCents - descontoCents;
 
         totalCaixaField.innerHTML = Math.round(totalCaixaSoma) + " CXS";
         totalKgField.innerHTML = totalKgSoma.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
         totalBrutoField.innerHTML = "R$ " + (totalBrutoCents / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
-        totalDescField.innerHTML = "R$ " + (Math.round(descontoCentsExato) / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+        totalDescField.innerHTML = "R$ " + (descontoCents / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
 
         if (!totalGeralField.classList.contains("danger")) {
-            const finalStr = (Math.round(totalGeralCentsExato) / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+            const finalStr = (totalGeralCents / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
             totalGeralField.innerHTML = finalStr;
             inputHidden.value = finalStr;
-            // Guarda a precisão completa (com fração de centavo) para o cálculo final
-            // em updateLiquidPayable() não perder o meio-centavo arredondando cedo demais.
-            inputHidden.dataset.centsExato = totalGeralCentsExato;
+            // Guarda os centavos inteiros para updateLiquidPayable() não precisar reler o
+            // texto já formatado do campo.
+            inputHidden.dataset.centavos = totalGeralCents;
         }
     } catch (e) { }
     calcularTotalAbatimentos();
@@ -258,11 +263,10 @@ function calcularDescontosDiversos() {
 
 function updateLiquidPayable() {
     const liquidField = document.getElementById('valor_liquido');
-    // Usa a precisão completa (com fração de centavo) guardada por calculaTotais(),
-    // em vez de reler o texto já arredondado do campo — evita perder o meio-centavo
-    // e fechar 1 centavo diferente do valor que o PHP realmente grava.
-    const liquidBaseCents = liquidField.dataset.centsExato !== undefined
-        ? parseFloat(liquidField.dataset.centsExato)
+    // Usa os centavos inteiros guardados por calculaTotais() em vez de reler o texto já
+    // formatado do campo.
+    const liquidBaseCents = liquidField.dataset.centavos !== undefined
+        ? parseInt(liquidField.dataset.centavos, 10)
         : Math.round(parseBrasil(liquidField.value) * 100);
     const comissaoCents = Math.round(parseBrasil(document.getElementById('total_comissao').textContent) * 100);
     const descontosCents = Math.round(parseBrasil(document.getElementById('total_descontos_diversos').textContent) * 100);
