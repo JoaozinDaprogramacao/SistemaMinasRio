@@ -6,9 +6,11 @@ $id_usuario = $_SESSION['id'];
 
 $ids = $_POST['ids'] ?? '';
 $ids = rtrim($ids, '-');
-$lista_ids = array_filter(explode('-', $ids), function ($v) {
+// array_unique: o mesmo id pode aparecer repetido quando a listagem é recarregada
+// com a seleção anterior ainda no campo oculto.
+$lista_ids = array_unique(array_filter(explode('-', $ids), function ($v) {
     return $v !== '' && (int) $v > 0;
-});
+}));
 
 $data_pgto       = $_POST['data_baixar'] ?? date('Y-m-d');
 $forma_pgto      = $_POST['forma_baixar'] ?? '';
@@ -43,7 +45,7 @@ try {
         $id = (int) $id;
 
         $conta = $pdo->query("SELECT * FROM $tabela WHERE id = '$id'")->fetch(PDO::FETCH_ASSOC);
-        if (!$conta || $conta['pago'] === 'Sim') continue;
+        if (!$conta || ($conta['pago'] ?: 'Não') === 'Sim') continue;
 
         $subtotal_titulo = ($conta['pago'] === 'Parcial')
             ? (float) $conta['valor_restante']

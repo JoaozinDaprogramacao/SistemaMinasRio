@@ -208,7 +208,7 @@ HTML;
 <tr>
     <td align="center">
         <div class="custom-checkbox custom-control">
-            <input type="checkbox" class="custom-control-input" id="seletor-{$id}" onchange="selecionar('{$id}')">
+            <input type="checkbox" class="custom-control-input" id="seletor-{$id}" data-pago="{$pago}" onchange="selecionar('{$id}')">
             <label for="seletor-{$id}" class="custom-control-label mt-1 text-dark"></label>
         </div>
     </td>

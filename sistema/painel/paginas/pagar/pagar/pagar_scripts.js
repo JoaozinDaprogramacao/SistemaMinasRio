@@ -129,6 +129,11 @@ function listar(p1, p2, p3, p4, p5, p6, p7, p8) {
         dataType: "html",
         success: function (result) {
             $("#listar").html(result);
+            // A tabela é redesenhada com todos os checkboxes desmarcados, então a
+            // seleção anterior precisa ser descartada junto — senão o modal de baixa
+            // em massa soma títulos que nem estão mais na tela.
+            gravarIds([]);
+            $('#selecionar-todos').prop('checked', false);
         }
     });
 }
@@ -142,20 +147,33 @@ function tipoData(tipo) {
 // SELEÇÃO MÚLTIPLA
 // =============================================
 
-function selecionar(id) {
-    var ids = $('#ids').val();
-    if ($('#seletor-' + id).is(":checked")) {
-        $('#ids').val(ids + id + '-');
+// O campo oculto #ids guarda a seleção no formato "1-2-3-".
+// Estas duas funções são o único ponto que lê/escreve esse formato.
+function lerIds() {
+    return ($('#ids').val() || "").split("-").filter(v => v !== "");
+}
+
+function gravarIds(lista) {
+    // Set: impede que o mesmo título entre duas vezes e seja somado em dobro
+    var unicos = [...new Set(lista)];
+    $('#ids').val(unicos.length ? unicos.join("-") + "-" : "");
+    if (unicos.length) {
+        $('#btn-deletar, #btn-baixar').show();
     } else {
-        $('#ids').val(ids.replace(id + '-', ''));
+        $('#btn-deletar, #btn-baixar').hide();
+    }
+}
+
+function selecionar(id) {
+    id = String(id);
+    var lista = lerIds();
+    if ($('#seletor-' + id).is(":checked")) {
+        lista.push(id);
+    } else {
+        lista = lista.filter(v => v !== id);
         $('#selecionar-todos').prop('checked', false);
     }
-    var ids_final = $('#ids').val();
-    if (ids_final == "") {
-        $('#btn-deletar, #btn-baixar').hide();
-    } else {
-        $('#btn-deletar, #btn-baixar').show();
-    }
+    gravarIds(lista);
 }
 
 function selecionarTodos(master) {
@@ -166,20 +184,21 @@ function selecionarTodos(master) {
         linhas = $('#tabela tbody tr');
     }
 
-    var ids = "";
+    var lista = [];
     $(linhas).find('input[type="checkbox"][id^="seletor-"]').each(function () {
+        // Títulos já pagos não entram na seleção: não podem ser baixados e
+        // inflavam a quantidade exibida no modal de baixa em massa.
+        if (master.checked && $(this).data('pago') === 'Sim') {
+            this.checked = false;
+            return;
+        }
         this.checked = master.checked;
         if (master.checked) {
-            ids += this.id.replace('seletor-', '') + '-';
+            lista.push(this.id.replace('seletor-', ''));
         }
     });
 
-    $('#ids').val(ids);
-    if (ids == "") {
-        $('#btn-deletar, #btn-baixar').hide();
-    } else {
-        $('#btn-deletar, #btn-baixar').show();
-    }
+    gravarIds(lista);
 }
 
 function deletarSel() {
@@ -193,21 +212,33 @@ function deletarSel() {
 
 function valorBaixar() {
     var ids = $('#ids').val();
+
+    // Zera antes de consultar para não deixar na tela o valor da seleção anterior
+    $("#total_contas").html('...');
+    $('#qtd_contas_massa').text('...');
+
     $.ajax({
         url: 'paginas/' + pag + "/valor_baixar.php",
         method: 'POST',
         data: { ids },
-        dataType: "html",
-        success: function (result) { $("#total_contas").html('R$ ' + result); }
+        dataType: "json",
+        success: function (result) {
+            // Quantidade e valor vêm da mesma contagem do servidor (só os títulos
+            // realmente baixáveis), então não têm como divergir entre si.
+            $("#total_contas").html('R$ ' + result.total);
+            $('#qtd_contas_massa').text(result.qtd);
+        },
+        error: function () {
+            $("#total_contas").html('R$ 0,00');
+            $('#qtd_contas_massa').text('0');
+        }
     });
 }
 
 function abrirModalBaixaMassa() {
     var ids = $('#ids').val();
-    var qtd = ids.split("-").filter(v => v !== "").length;
 
     $('#ids-baixar-massa').val(ids);
-    $('#qtd_contas_massa').text(qtd);
     $('#data-baixar-massa').val(new Date().toISOString().slice(0, 10));
     $('#forma-baixar-massa').prop('selectedIndex', 0);
     $('#banco-baixar-massa').prop('selectedIndex', 0);
