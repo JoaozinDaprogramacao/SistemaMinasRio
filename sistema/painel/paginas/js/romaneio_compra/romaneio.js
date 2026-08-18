@@ -142,6 +142,26 @@ function calculaTotais() {
     calcularTotalAbatimentos();
 }
 
+// Aplica um percentual sobre uma base em reais e devolve centavos inteiros.
+//
+// Não dá pra fazer Math.round(base * pUnit): taxa como 1,63 não existe exata em binário
+// (o double mais próximo é 1.6299999999999998934...), então 4750 * 1.63 dá
+// 7742.4999999999990905 e o Math.round joga PRA BAIXO. Foi assim que o romaneio 1583
+// fechou o FUNRURAL em 77,42 sendo que 4.750,00 x 1,63% = 77,425 e o papel arredonda pra
+// 77,43. E é loteria: 2650 * 1.63 dá 4319.5 redondo e sobe certinho — mesma taxa, dois
+// comportamentos. Só o 1583 caiu no lado errado em 1.139 romaneios.
+//
+// Fazendo a conta inteira em centavos x pontos-base o empate em meio centavo sempre sobe,
+// que é a regra do desconto à vista e do papel.
+function percentualEmCentavos(base, pUnit) {
+    const baseCentavos = Math.round(base * 100);
+    const pontosBase = Math.round(pUnit * 100); // 1,63% -> 163
+    const numerador = baseCentavos * pontosBase; // em décimos de milésimo de centavo
+    const inteiro = Math.floor(numerador / 10000);
+    const resto = numerador - inteiro * 10000;
+    return resto * 2 >= 10000 ? inteiro + 1 : inteiro;
+}
+
 function calcularTotalAbatimentos() {
     const totals = getTotals();
     let somaAbatimentosCents = 0;
@@ -166,7 +186,7 @@ function calcularTotalAbatimentos() {
             valorCalculadoCents = Math.round((taxaInput * pUnit) * 100);
         } else if (desc === 'FUNRURAL') {
             let base = infoVal.includes('bruto') ? totals.bruto : totals.liquido;
-            valorCalculadoCents = Math.round(base * pUnit); // <--- Nova linha
+            valorCalculadoCents = percentualEmCentavos(base, pUnit);
         } else {
             if (infoVal === 'kg') {
                 valorCalculadoCents = Math.round((pUnit * totals.kg) * 100);
@@ -189,7 +209,7 @@ function calcularTotalAbatimentos() {
                     valorCalculadoCents = Math.round(parseBrasil(campoResultado.value) * 100);
                 }
             } else if (precoRaw.includes('%')) {
-                valorCalculadoCents = Math.round(totals.bruto * pUnit); // <--- Nova linha
+                valorCalculadoCents = percentualEmCentavos(totals.bruto, pUnit);
             } else {
                 // "info" verdadeiramente desconhecido (nem kg/cx/unidade nem %):
                 // preserva o valor já carregado/salvo em vez de arriscar gravar um
