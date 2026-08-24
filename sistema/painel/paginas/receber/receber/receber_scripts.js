@@ -314,6 +314,19 @@ function excluir(id) {
 
 $(document).on('submit', '#form-baixar', function (e) {
     e.preventDefault();
+
+    // Desconto acima do valor a receber: segura o primeiro envio e só deixa passar
+    // no clique seguinte, com o alerta vermelho à vista.
+    const est = estadoDesconto();
+    if (est.excedente > 0 && descontoConfirmado !== est.assinatura) {
+        descontoConfirmado = est.assinatura;
+        avisarDesconto();
+        $('#mensagem-baixar').removeClass('text-success').addClass('text-danger')
+            .text('Confira o desconto acima e clique em Confirmar novamente para prosseguir.');
+        document.getElementById('alerta-desconto').scrollIntoView({ block: 'center', behavior: 'smooth' });
+        return;
+    }
+
     $('#mensagem-baixar').removeClass('text-danger text-success').text('Processando...');
 
     var formData = new FormData(this);
@@ -450,14 +463,68 @@ function getFloatValue(elementId) {
     return parseFloat(valorStr) || 0;
 }
 
-function totalizar() {
-    let valorOriginal = getFloatValue('valor-original-baixar');
-    let multa = getFloatValue('valor-multa');
-    let juros = getFloatValue('valor-juros');
-    let acrescimo = getFloatValue('valor-acrescimo');
+// Assinatura da última combinação valor/desconto que o usuário confirmou apesar do
+// alerta. Se ele mexer em qualquer campo depois, a assinatura muda e o aviso volta
+// a exigir confirmação — uma confirmação nunca vale para outro valor.
+let descontoConfirmado = null;
+
+function moeda(v) {
+    return "R$ " + v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+// Situação do desconto em relação ao que há para receber no título.
+function estadoDesconto() {
+    let bruto = getFloatValue('valor-original-baixar')
+        + getFloatValue('valor-multa')
+        + getFloatValue('valor-juros')
+        + getFloatValue('valor-acrescimo');
     let desconto = getFloatValue('valor-desconto');
 
-    let subtotalLiquido = (valorOriginal + multa + juros + acrescimo) - desconto;
+    // Arredonda antes de comparar, senão dízima de centavo faz o alerta aparecer à toa
+    bruto = Math.round(bruto * 100) / 100;
+    desconto = Math.round(desconto * 100) / 100;
+
+    return {
+        bruto: bruto,
+        desconto: desconto,
+        excedente: Math.round((desconto - bruto) * 100) / 100,
+        assinatura: bruto + '|' + desconto
+    };
+}
+
+function avisarDesconto() {
+    const box = document.getElementById('alerta-desconto');
+    if (!box) return;
+
+    const est = estadoDesconto();
+
+    if (est.excedente > 0) {
+        // Desconto maior que o total: a empresa estaria pagando para receber.
+        const aguardando = (descontoConfirmado !== est.assinatura);
+        box.className = 'alert alert-danger py-2 px-3 mb-3';
+        box.innerHTML =
+            '<div class="fw-bold mb-1"><i class="fa fa-exclamation-triangle me-1"></i>Desconto maior que o valor a receber</div>' +
+            '<div class="small">O desconto de <b>' + moeda(est.desconto) + '</b> supera em <b>' + moeda(est.excedente) +
+            '</b> o total do título (' + moeda(est.bruto) + '). Confirmando assim, o título é baixado zerado e a diferença vira prejuízo.</div>' +
+            (aguardando ? '<div class="small fw-bold mt-1">Clique em Confirmar novamente para baixar mesmo assim.</div>' : '');
+    } else if (est.desconto > 0 && est.bruto > 0 && est.excedente === 0) {
+        // Desconto exatamente igual ao total: legítimo (perdão da dívida), mas avisa.
+        box.className = 'alert alert-warning py-2 px-3 mb-3';
+        box.innerHTML =
+            '<div class="small"><i class="fa fa-exclamation-circle me-1"></i>O desconto de <b>' + moeda(est.desconto) +
+            '</b> zera o título — nada será recebido.</div>';
+        descontoConfirmado = null;
+    } else {
+        box.className = 'd-none mb-3';
+        box.innerHTML = '';
+        descontoConfirmado = null;
+    }
+}
+
+function totalizar() {
+    const est = estadoDesconto();
+
+    let subtotalLiquido = est.bruto - est.desconto;
 
     if (subtotalLiquido < 0) subtotalLiquido = 0;
 
@@ -466,6 +533,7 @@ function totalizar() {
         subtotalInput.value = subtotalLiquido.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     }
 
+    avisarDesconto();
     totalizarPagamentos();
 }
 
@@ -600,6 +668,9 @@ function limparModalBaixar() {
     $('#lbl-total-recebido').text('R$ 0,00');
     $('#mensagem-baixar').text('');
     $('#obs-baixar').val('');
+
+    descontoConfirmado = null;
+    $('#alerta-desconto').attr('class', 'd-none mb-3').empty();
 
     $('#linha-container-pagamento').empty();
     addNewPagamentoLine();

@@ -286,6 +286,9 @@ document.addEventListener('DOMContentLoaded', function() {
                         </div>
                     </div>
 
+                    <!-- Preenchido por avisarDesconto(): alerta quando o desconto zera ou supera o valor do título -->
+                    <div id="alerta-desconto" class="d-none mb-3"></div>
+
                     <div class="row g-0 mb-4 p-3 rounded border align-items-center shadow-sm" style="background-color: #f8f9fa;">
                         <div class="col-md-4 text-center px-2">
                             <label class="small text-primary fw-bold text-uppercase mb-1">Subtotal Líquido</label>
