@@ -315,14 +315,14 @@ function excluir(id) {
 $(document).on('submit', '#form-baixar', function (e) {
     e.preventDefault();
 
-    // Desconto acima do valor a receber: segura o primeiro envio e só deixa passar
-    // no clique seguinte, com o alerta vermelho à vista.
-    const est = estadoDesconto();
-    if (est.excedente > 0 && descontoConfirmado !== est.assinatura) {
-        descontoConfirmado = est.assinatura;
-        avisarDesconto();
+
+    // Valor impossível não passa. O botão já fica desabilitado por avisarAjustes();
+    // isto cobre Enter no campo e submit disparado por script.
+    const est = estadoAjustes();
+    if (est.impossivel) {
+        avisarAjustes();
         $('#mensagem-baixar').removeClass('text-success').addClass('text-danger')
-            .text('Confira o desconto acima e clique em Confirmar novamente para prosseguir.');
+            .text('Corrija o valor destacado acima para concluir a baixa.');
         document.getElementById('alerta-desconto').scrollIntoView({ block: 'center', behavior: 'smooth' });
         return;
     }
@@ -463,68 +463,135 @@ function getFloatValue(elementId) {
     return parseFloat(valorStr) || 0;
 }
 
-// Assinatura da última combinação valor/desconto que o usuário confirmou apesar do
-// alerta. Se ele mexer em qualquer campo depois, a assinatura muda e o aviso volta
-// a exigir confirmação — uma confirmação nunca vale para outro valor.
-let descontoConfirmado = null;
+// =============================================
+// AJUSTES DA BAIXA — multa, juros, acréscimo e desconto
+// Regra pedida pelo cliente: todo ajuste é comunicado ao usuário, em qualquer
+// valor, e valor impossível não passa — o Confirmar sai do ar até ser corrigido.
+// =============================================
 
 function moeda(v) {
     return "R$ " + v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
-// Situação do desconto em relação ao que há para receber no título.
-function estadoDesconto() {
-    let bruto = getFloatValue('valor-original-baixar')
-        + getFloatValue('valor-multa')
-        + getFloatValue('valor-juros')
-        + getFloatValue('valor-acrescimo');
-    let desconto = getFloatValue('valor-desconto');
+// Arredonda para centavo antes de comparar, senão dízima dispara alerta à toa
+function centavos(v) {
+    return Math.round(v * 100) / 100;
+}
 
-    // Arredonda antes de comparar, senão dízima de centavo faz o alerta aparecer à toa
-    bruto = Math.round(bruto * 100) / 100;
-    desconto = Math.round(desconto * 100) / 100;
+// Situação dos ajustes em relação ao que há para receber no título.
+function estadoAjustes() {
+    const original  = centavos(getFloatValue('valor-original-baixar'));
+    const multa     = centavos(getFloatValue('valor-multa'));
+    const juros     = centavos(getFloatValue('valor-juros'));
+    const acrescimo = centavos(getFloatValue('valor-acrescimo'));
+    const desconto  = centavos(getFloatValue('valor-desconto'));
+
+    const acrescimos = centavos(multa + juros + acrescimo);
+    const bruto      = centavos(original + acrescimos);
+    const excedente  = centavos(desconto - bruto);
+
+    // Campo negativo é erro de digitação: acréscimo que subtrai e desconto que
+    // soma não existem — o sinal já está no rótulo de cada campo.
+    const negativos = [];
+    if (multa     < 0) negativos.push('multa');
+    if (juros     < 0) negativos.push('juros');
+    if (acrescimo < 0) negativos.push('acréscimo');
+    if (desconto  < 0) negativos.push('desconto');
 
     return {
-        bruto: bruto,
+        original: original,
+        multa: multa,
+        juros: juros,
+        acrescimo: acrescimo,
         desconto: desconto,
-        excedente: Math.round((desconto - bruto) * 100) / 100,
-        assinatura: bruto + '|' + desconto
+        acrescimos: acrescimos,
+        bruto: bruto,
+        liquido: centavos(bruto - desconto),
+        excedente: excedente,
+        negativos: negativos,
+        // Impossível: nenhuma baixa real corresponde a isso — campo negativo, ou
+        // desconto maior do que a dívida inteira.
+        impossivel: (negativos.length > 0 || excedente > 0),
+        temAjuste: (acrescimos !== 0 || desconto !== 0)
     };
 }
 
-function avisarDesconto() {
+// "Título R$ 1.000,00 + juros R$ 5,00 − desconto R$ 100,00 = R$ 905,00"
+function resumoAjustes(est) {
+    let txt = 'Título ' + moeda(est.original);
+    if (est.multa     !== 0) txt += ' + multa ' + moeda(est.multa);
+    if (est.juros     !== 0) txt += ' + juros ' + moeda(est.juros);
+    if (est.acrescimo !== 0) txt += ' + acréscimo ' + moeda(est.acrescimo);
+    if (est.desconto  !== 0) txt += ' − desconto ' + moeda(est.desconto);
+    return txt + ' = <b>' + moeda(est.liquido < 0 ? 0 : est.liquido) + '</b>';
+}
+
+function mancheteAjustes(est) {
+    const partes = [];
+    if (est.acrescimos > 0) partes.push('acréscimo de <b>' + moeda(est.acrescimos) + '</b>');
+    if (est.desconto   > 0) partes.push('desconto de <b>' + moeda(est.desconto) + '</b>');
+    return partes.join(' e ');
+}
+
+function travarConfirmar(travado, motivo) {
+    const btn = document.getElementById('btn-confirmar-baixar');
+    if (!btn) return;
+    btn.disabled = travado;
+    btn.title = travado ? motivo : '';
+}
+
+function avisarAjustes() {
     const box = document.getElementById('alerta-desconto');
     if (!box) return;
 
-    const est = estadoDesconto();
+    const est = estadoAjustes();
 
-    if (est.excedente > 0) {
-        // Desconto maior que o total: a empresa estaria pagando para receber.
-        const aguardando = (descontoConfirmado !== est.assinatura);
+    if (est.impossivel) {
+        let motivo;
+        if (est.negativos.length > 0) {
+            motivo = 'O campo de ' + est.negativos.join(', ') + ' está negativo. Informe apenas valores ' +
+                     'positivos: multa, juros e acréscimo somam, o desconto subtrai.';
+        } else {
+            motivo = 'O desconto de <b>' + moeda(est.desconto) + '</b> supera em <b>' + moeda(est.excedente) +
+                     '</b> tudo o que há para receber no título (' + moeda(est.bruto) + '). ' +
+                     'No máximo o desconto pode zerar o título.';
+        }
         box.className = 'alert alert-danger py-2 px-3 mb-3';
         box.innerHTML =
-            '<div class="fw-bold mb-1"><i class="fa fa-exclamation-triangle me-1"></i>Desconto maior que o valor a receber</div>' +
-            '<div class="small">O desconto de <b>' + moeda(est.desconto) + '</b> supera em <b>' + moeda(est.excedente) +
-            '</b> o total do título (' + moeda(est.bruto) + '). Confirmando assim, o título é baixado zerado e a diferença vira prejuízo.</div>' +
-            (aguardando ? '<div class="small fw-bold mt-1">Clique em Confirmar novamente para baixar mesmo assim.</div>' : '');
-    } else if (est.desconto > 0 && est.bruto > 0 && est.excedente === 0) {
-        // Desconto exatamente igual ao total: legítimo (perdão da dívida), mas avisa.
+            '<div class="fw-bold mb-1"><i class="fa fa-ban me-1"></i>Valor impossível — baixa bloqueada</div>' +
+            '<div class="small">' + motivo + '</div>';
+        travarConfirmar(true, 'Corrija o valor destacado no alerta para concluir a baixa');
+        return;
+    }
+
+    travarConfirmar(false, '');
+
+    if (est.desconto > 0 && est.bruto > 0 && est.excedente === 0) {
+        // Desconto igual ao total: legítimo (dívida perdoada), mas nunca silencioso.
         box.className = 'alert alert-warning py-2 px-3 mb-3';
         box.innerHTML =
-            '<div class="small"><i class="fa fa-exclamation-circle me-1"></i>O desconto de <b>' + moeda(est.desconto) +
-            '</b> zera o título — nada será recebido.</div>';
-        descontoConfirmado = null;
-    } else {
-        box.className = 'd-none mb-3';
-        box.innerHTML = '';
-        descontoConfirmado = null;
+            '<div class="fw-bold mb-1"><i class="fa fa-exclamation-triangle me-1"></i>O desconto zera o título</div>' +
+            '<div class="small">' + resumoAjustes(est) + ' — nada será recebido.</div>';
+        return;
     }
+
+    if (est.temAjuste) {
+        // Qualquer acréscimo ou desconto, em qualquer valor, aparece aqui.
+        box.className = 'alert alert-info py-2 px-3 mb-3';
+        box.innerHTML =
+            '<div class="fw-bold mb-1"><i class="fa fa-info-circle me-1"></i>Baixa com ' + mancheteAjustes(est) + '</div>' +
+            '<div class="small">' + resumoAjustes(est) + '</div>';
+        return;
+    }
+
+    box.className = 'd-none mb-3';
+    box.innerHTML = '';
 }
 
 function totalizar() {
-    const est = estadoDesconto();
+    const est = estadoAjustes();
 
-    let subtotalLiquido = est.bruto - est.desconto;
+    let subtotalLiquido = est.liquido;
 
     if (subtotalLiquido < 0) subtotalLiquido = 0;
 
@@ -533,7 +600,7 @@ function totalizar() {
         subtotalInput.value = subtotalLiquido.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     }
 
-    avisarDesconto();
+    avisarAjustes();
     totalizarPagamentos();
 }
 
@@ -606,7 +673,9 @@ function mascaraMoedaInput(input) {
 document.addEventListener('input', function (e) {
     if (e.target.classList.contains('input-zeravel') || e.target.classList.contains('valor_pagamento')) {
         mascaraMoedaInput(e.target);
-        totalizarPagamentos();
+        // totalizar() e não totalizarPagamentos(): colar com o mouse dispara só o
+        // evento input (sem keyup), e o alerta de ajustes precisa repintar também.
+        totalizar();
     }
 }, false);
 
@@ -669,8 +738,8 @@ function limparModalBaixar() {
     $('#mensagem-baixar').text('');
     $('#obs-baixar').val('');
 
-    descontoConfirmado = null;
     $('#alerta-desconto').attr('class', 'd-none mb-3').empty();
+    $('#btn-confirmar-baixar').prop('disabled', false).attr('title', '');
 
     $('#linha-container-pagamento').empty();
     addNewPagamentoLine();

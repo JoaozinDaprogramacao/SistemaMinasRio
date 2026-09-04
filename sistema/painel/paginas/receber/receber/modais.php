@@ -286,7 +286,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         </div>
                     </div>
 
-                    <!-- Preenchido por avisarDesconto(): alerta quando o desconto zera ou supera o valor do título -->
+                    <!-- Preenchido por avisarAjustes(): comunica todo acréscimo/desconto e bloqueia valor impossível -->
                     <div id="alerta-desconto" class="d-none mb-3"></div>
 
                     <div class="row g-0 mb-4 p-3 rounded border align-items-center shadow-sm" style="background-color: #f8f9fa;">
@@ -372,7 +372,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
 
                 <div class="modal-footer bg-light border-0">
-                    <button type="submit" class="btn btn-success px-5 fw-bold shadow-sm">Confirmar Baixa</button>
+                    <button type="submit" id="btn-confirmar-baixar" class="btn btn-success px-5 fw-bold shadow-sm">Confirmar Baixa</button>
                 </div>
             </form>
         </div>

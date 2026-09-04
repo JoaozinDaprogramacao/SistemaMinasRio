@@ -89,6 +89,26 @@ $saida_antiga = $conta['forma_pgto'];
 $arquivo     = $conta['arquivo'];
 $referencia  = $conta['referencia'];
 
+// Espelha no servidor o bloqueio do modal: valor impossível não vira baixa.
+// A trava do JavaScript é conforto de digitação; quem posta direto no endpoint,
+// ou com o script quebrado, esbarra aqui — antes de qualquer estorno ou UPDATE.
+$ajustes_negativos = [];
+if ((float)$multa     < 0) $ajustes_negativos[] = 'multa';
+if ((float)$juros     < 0) $ajustes_negativos[] = 'juros';
+if ((float)$acrescimo < 0) $ajustes_negativos[] = 'acréscimo';
+if ((float)$desconto  < 0) $ajustes_negativos[] = 'desconto';
+if (count($ajustes_negativos) > 0) {
+    echo 'Valor impossível: ' . implode(', ', $ajustes_negativos) . ' não pode ser negativo.';
+    exit();
+}
+
+$bruto_titulo = round((float)$valor_antigo + (float)$multa + (float)$juros + (float)$acrescimo, 2);
+if (round((float)$desconto, 2) > $bruto_titulo) {
+    echo 'Valor impossível: o desconto (R$ ' . number_format((float)$desconto, 2, ',', '.')
+       . ') supera o total do título (R$ ' . number_format($bruto_titulo, 2, ',', '.') . ').';
+    exit();
+}
+
 // Caixa do operador
 $query1 = $pdo->query("SELECT * FROM caixas WHERE operador = '$id_usuario' AND data_fechamento IS NULL ORDER BY id DESC LIMIT 1");
 $res1 = $query1->fetchAll(PDO::FETCH_ASSOC);

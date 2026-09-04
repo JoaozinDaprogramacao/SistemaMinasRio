@@ -34,6 +34,28 @@ $multa = ($multa == "") ? 0 : $multa;
 $juros = ($juros == "") ? 0 : $juros;
 $desconto = ($desconto == "") ? 0 : $desconto;
 
+// Espelha no servidor o bloqueio do modal: valor impossível não vira baixa.
+// A trava do JavaScript é conforto de digitação; quem posta direto no endpoint,
+// ou com o script quebrado, esbarra aqui — antes do DELETE dos pagamentos antigos.
+$ajustes_negativos = [];
+if ((float)$multa     < 0) $ajustes_negativos[] = 'multa';
+if ((float)$juros     < 0) $ajustes_negativos[] = 'juros';
+if ((float)$acrescimo < 0) $ajustes_negativos[] = 'acréscimo';
+if ((float)$desconto  < 0) $ajustes_negativos[] = 'desconto';
+if (count($ajustes_negativos) > 0) {
+    echo 'Valor impossível: ' . implode(', ', $ajustes_negativos) . ' não pode ser negativo.';
+    exit();
+}
+
+$titulo_atual  = $pdo->query("SELECT valor FROM $tabela WHERE id = '$id'")->fetch(PDO::FETCH_ASSOC);
+$valor_titulo  = $titulo_atual ? (float)$titulo_atual['valor'] : 0;
+$bruto_titulo  = round($valor_titulo + (float)$multa + (float)$juros + (float)$acrescimo, 2);
+if (round((float)$desconto, 2) > $bruto_titulo) {
+    echo 'Valor impossível: o desconto (R$ ' . number_format((float)$desconto, 2, ',', '.')
+       . ') supera o total do título (R$ ' . number_format($bruto_titulo, 2, ',', '.') . ').';
+    exit();
+}
+
 // Captura as múltiplas linhas
 $valores_pgto = $_POST['valor_baixar'] ?? [];
 $datas_pgto = $_POST['data_baixar'] ?? [];
