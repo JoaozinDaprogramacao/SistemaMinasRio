@@ -1,6 +1,14 @@
 <?php
 $tabela = 'pagar';
 require_once("../../../conexao.php");
+
+// Converte "1.234,56" (formato BR) ou "2.60" (vindo do banco) em número
+function valor_br($v) {
+    $v = trim((string) $v);
+    if ($v === '') return '';
+    if (preg_match('/^-?\d+\.\d{1,2}$/', $v)) return $v;
+    return str_replace(',', '.', str_replace('.', '', $v));
+}
 @session_start();
 $id_usuario = $_SESSION['id'];
 
@@ -9,19 +17,19 @@ $obs_baixar = $_POST['obs-baixar'] ?? "";
 if (trim($obs_baixar) == "") $obs_baixar = "Baixa de Título";
 
 $acrescimo = $_POST['valor-acrescimo'] ?? 0;
-$acrescimo = str_replace(',', '.', str_replace('.', '', $acrescimo));
+$acrescimo = valor_br($acrescimo);
 
 $multa = $_POST['valor-multa'] ?? 0;
-$multa = str_replace(',', '.', str_replace('.', '', $multa));
+$multa = valor_br($multa);
 
 $desconto = $_POST['valor-desconto'] ?? 0;
-$desconto = str_replace(',', '.', str_replace('.', '', $desconto));
+$desconto = valor_br($desconto);
 
 $juros = $_POST['valor-juros'] ?? 0;
-$juros = str_replace(',', '.', str_replace('.', '', $juros));
+$juros = valor_br($juros);
 
 $subtotal = $_POST['subtotal'] ?? 0;
-$subtotal = str_replace(',', '.', str_replace('.', '', $subtotal));
+$subtotal = valor_br($subtotal);
 
 $acrescimo = ($acrescimo == "") ? 0 : $acrescimo;
 $multa     = ($multa == "")     ? 0 : $multa;
@@ -39,7 +47,7 @@ $total_pago = 0;
 $pagamentos_validos = [];
 
 for ($i = 0; $i < count($valores_pgto); $i++) {
-    $v = str_replace(',', '.', str_replace('.', '', $valores_pgto[$i]));
+    $v = valor_br($valores_pgto[$i]);
     if ($v > 0) {
         $total_pago += $v;
         $pagamentos_validos[] = [

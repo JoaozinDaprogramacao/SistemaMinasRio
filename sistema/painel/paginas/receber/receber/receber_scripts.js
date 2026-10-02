@@ -469,6 +469,12 @@ function getFloatValue(elementId) {
 // valor, e valor impossível não passa — o Confirmar sai do ar até ser corrigido.
 // =============================================
 
+// Valor do banco ("2.60") para o campo no formato BR ("2,60")
+function formatarBR(v) {
+    const n = parseFloat(v) || 0;
+    return n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
 function moeda(v) {
     return "R$ " + v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
@@ -794,10 +800,10 @@ function baixar(id, descricao, valor, vencimento, cliente, romaneio, forma_padra
                     addNewPagamentoLine();
                 }
 
-                $('#valor-multa').val(dados.multa);
-                $('#valor-juros').val(dados.juros);
-                $('#valor-acrescimo').val(dados.acrescimo);
-                $('#valor-desconto').val(dados.desconto);
+                $('#valor-multa').val(formatarBR(dados.multa));
+                $('#valor-juros').val(formatarBR(dados.juros));
+                $('#valor-acrescimo').val(formatarBR(dados.acrescimo));
+                $('#valor-desconto').val(formatarBR(dados.desconto));
                 $('#obs-baixar').val(dados.obs);
 
                 totalizar();
