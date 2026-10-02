@@ -204,6 +204,11 @@ HTML;
         $tumb_arquivo = (in_array(strtolower($ext), ['jpg', 'jpeg', 'png', 'gif'])) ? $arquivo : ($ext ? strtolower($ext) . '.png' : 'sem-foto.png');
         $classe_venc = (strtotime($vencimento) < strtotime($data_hoje) && $pago != 'Sim') ? 'text-danger' : '';
 
+        $acao_pdf = '';
+        if ($referencia == 'romaneio_compra' && $id_romaneio > 0) {
+            $acao_pdf = "<big><a href='#' onclick=\"imprimir('{$id_romaneio}')\" title='Imprimir Romaneio'><i class='fa fa-file-pdf-o text-info'></i></a></big>";
+        }
+
         // Lançamento de romaneio: editar/excluir só pelo próprio romaneio
         $acoes_edicao = '';
         if ($id_romaneio <= 0) {
@@ -244,6 +249,7 @@ HTML;
             <i class="fa fa-check-square text-success"></i>
         </a>
     </big>
+{$acao_pdf}
 {$acoes_edicao}
     </td>
 </tr>
@@ -268,6 +274,10 @@ HTML;
 ?>
 
 <script>
+    function imprimir(id) {
+        window.open('rel/gerar_pdf_romaneio_compra.php?id=' + id, '_blank');
+    }
+
     $(document).ready(function () {
         if ($.fn.DataTable.isDataTable('#tabela')) {
             $('#tabela').DataTable().destroy();
