@@ -420,7 +420,6 @@ if (@count($res1) > 0) {
 								<ul class="slide-menu">
 									<li class="<?php echo @$produtos ?>"><a class="slide-item" href="romaneio_venda"> Romaneio de Vendas</a></li>
 									<li class="<?php echo @$produtos ?>"><a class="slide-item" href="romaneio_compra"> Romaneio de Compra</a></li>
-									<li class="<?php echo @$produtos ?>"><a class="slide-item" href="romaneio_baldeio"> Romaneio de Baldeio</a></li>
 								</ul>
 
 							</li>
