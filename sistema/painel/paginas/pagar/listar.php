@@ -204,6 +204,24 @@ HTML;
         $tumb_arquivo = (in_array(strtolower($ext), ['jpg', 'jpeg', 'png', 'gif'])) ? $arquivo : ($ext ? strtolower($ext) . '.png' : 'sem-foto.png');
         $classe_venc = (strtotime($vencimento) < strtotime($data_hoje) && $pago != 'Sim') ? 'text-danger' : '';
 
+        // Lançamento de romaneio: editar/excluir só pelo próprio romaneio
+        $acoes_edicao = '';
+        if ($id_romaneio <= 0) {
+            $acoes_edicao = <<<HTML
+    <big>
+        <a href="#" onclick="editar('{$id}','{$descricao}','{$valor}','{$fornecedor_row}','{$funcionario_row}','{$vencimento}','{$data_pgto}','{$forma_pgto_row}','{$frequencia}','{$obs}','{$arquivo}','{$cat_id}')" title="Editar Conta">
+            <i class="fa fa-edit text-primary"></i>
+        </a>
+    </big>
+    <div style="display: inline-block;" class="dropdown">
+        <a href="#" data-bs-toggle="dropdown"><i class="fa fa-trash text-danger"></i></a>
+        <div class="dropdown-menu">
+            <div class="dropdown-item-text">Confirmar? <a href="#" onclick="excluir('{$id}')"><span class="text-danger">Sim</span></a></div>
+        </div>
+    </div>
+HTML;
+        }
+
         echo <<<HTML
 <tr>
     <td align="center">
@@ -226,17 +244,7 @@ HTML;
             <i class="fa fa-check-square text-success"></i>
         </a>
     </big>
-    <big>
-        <a href="#" onclick="editar('{$id}','{$descricao}','{$valor}','{$fornecedor_row}','{$funcionario_row}','{$vencimento}','{$data_pgto}','{$forma_pgto_row}','{$frequencia}','{$obs}','{$arquivo}','{$cat_id}')" title="Editar Conta">
-            <i class="fa fa-edit text-primary"></i>
-        </a>
-    </big>
-    <div style="display: inline-block;" class="dropdown">
-        <a href="#" data-bs-toggle="dropdown"><i class="fa fa-trash text-danger"></i></a>
-        <div class="dropdown-menu">
-            <div class="dropdown-item-text">Confirmar? <a href="#" onclick="excluir('{$id}')"><span class="text-danger">Sim</span></a></div>
-        </div>
-    </div>
+{$acoes_edicao}
     </td>
 </tr>
 HTML;
