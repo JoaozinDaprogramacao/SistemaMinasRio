@@ -28,7 +28,7 @@ error_log("[VENDAS] ETAPA 0 -> modo_edicao_venda=" . (isset($_SESSION['modo_edic
 if (!isset($_SESSION['modo_edicao_venda']) && isset($_SESSION['carrinho_em_modo_edicao'])) {
     $stmt_limpar = $pdo->prepare("DELETE FROM itens_venda WHERE id_venda = 0 AND funcionario = :id_funcionario");
     $stmt_limpar->execute([':id_funcionario' => $id_usuario_logado]);
-    unset($_SESSION['carrinho_em_modo_edicao']);
+    unset($_SESSION['carrinho_em_modo_edicao'], $_SESSION['id_venda_em_edicao']);
 }
 
 
@@ -97,6 +97,7 @@ if (isset($_SESSION['modo_edicao_venda']) && @$_SESSION['modo_edicao_venda'] ===
 
 		// "Etiquetamos" o carrinho
 		$_SESSION['carrinho_em_modo_edicao'] = true;
+		$_SESSION['id_venda_em_edicao'] = $id_venda_para_editar;
 		error_log("[VENDAS] ETAPA 2 - FIM. Carrinho etiquetado.");
 	} catch (Exception $e) {
 		$pdo->rollBack();
@@ -109,7 +110,7 @@ if (isset($_SESSION['modo_edicao_venda']) && @$_SESSION['modo_edicao_venda'] ===
 	$desconto_edicao    = $dados['desconto'];
 	$tipo_desconto_edicao = $dados['tipo_desconto'] == '%' ? '%' : 'reais';
 	$frete_edicao       = $dados['frete'];
-	$valor_pago_edicao  = $dados['valor_pago'];
+	$valor_pago_edicao  = number_format((float) $dados['valor_pago'], 2, ',', '.');
 	$forma_pgto_edicao  = $dados['forma_pagamento_id'];
 	$data_edicao        = date('Y-m-d', strtotime($dados['data_venda']));
 
@@ -269,7 +270,7 @@ if (isset($_SESSION['modo_edicao_venda']) && @$_SESSION['modo_edicao_venda'] ===
 				</div>
 				<div class="col-md-5 col-5">
 					<div class="form-group">
-						<input type="text" class="form-control" id="valor_pago" name="valor_pago" placeholder="Valor Pago" onkeyup="FormaPg()" value="<?php echo $valor_pago_edicao; ?>">
+						<input type="text" class="form-control" id="valor_pago" name="valor_pago" placeholder="Valor Pago" onkeyup="$(this).data('manual', 1); FormaPg()" value="<?php echo $valor_pago_edicao; ?>" <?php echo ($id_venda_edicao > 0) ? 'data-manual="1"' : ''; ?>>
 					</div>
 				</div>
 			</div>
@@ -296,7 +297,23 @@ if (isset($_SESSION['modo_edicao_venda']) && @$_SESSION['modo_edicao_venda'] ===
 				</div>
 			</div>
 
-			<div id="div_pgto2" class="mt-2">
+			<div id="div_pgto2" class="mt-2 p-2 border rounded bg-white">
+				<div class="small mb-1">Restante: <b>R$ <span id="total_restante">0,00</span></b></div>
+				<div class="row">
+					<div class="col-7">
+						<select class="form-select form-select-sm" name="forma_pgto2" id="forma_pgto2">
+							<option value="">Forma Pgto Restante</option>
+							<?php
+							foreach ($res_pgto as $pgto) {
+								echo "<option value='{$pgto['id']}'>{$pgto['nome']}</option>";
+							}
+							?>
+						</select>
+					</div>
+					<div class="col-5">
+						<input type="date" class="form-control form-control-sm" name="data_restante" id="data_restante" value="<?php echo date('Y-m-d', strtotime('+30 days')); ?>" title="Vencimento do restante">
+					</div>
+				</div>
 			</div>
 
 			<div class="d-grid gap-2 mt-3">
@@ -312,6 +329,7 @@ if (isset($_SESSION['modo_edicao_venda']) && @$_SESSION['modo_edicao_venda'] ===
 			<div id="mensagem" class="text-center mt-2 small"></div>
 			<input type="hidden" name="tipo_desconto" id="tipo_desconto" value="reais">
 			<input type="hidden" name="subtotal_venda" id="subtotal_venda">
+			<input type="hidden" id="total_venda">
 			<input type="hidden" name="ids_itens" id="ids_itens">
 			<input type="hidden" name="valor_restante" id="valor_restante">
 		</form>
@@ -642,134 +660,71 @@ if (isset($_SESSION['modo_edicao_venda']) && @$_SESSION['modo_edicao_venda'] ===
 
 <script type="text/javascript">
 	$("#form_venda").submit(function(event) {
-		// Previne o comportamento padrão do formulário
 		event.preventDefault();
 
-		// ========================================================== //
-		// ===== NOVA VALIDAÇÃO DE ITENS OBRIGATÓRIOS ADICIONADA ==== //
-		// ========================================================== //
 		// A variável global 'itens' é sempre atualizada pela função listarVendas()
 		if (itens == 0) {
-			alert('É obrigatório adicionar pelo menos um item para fechar a venda!');
-
-			// Exibe uma mensagem de erro na interface para o usuário
 			$('#mensagem').text('Adicione pelo menos um item para continuar.').addClass('text-danger');
-
-			// PARA a execução do script aqui, impedindo o envio do formulário.
 			return;
 		}
-		// ========================================================== //
-		// ==================== FIM DA VALIDAÇÃO ==================== //
-		// ========================================================== //
 
-		var valorFinalCliente = $('#cliente_input').val();
-		console.log('%c[DIAGNÓSTICO 3] Formulário enviado! O valor final no campo oculto #cliente_input é: "' + valorFinalCliente + '"', 'background: #dc3545; color: #fff; font-size: 16px;');
+		if ($("#cliente").val() == "") {
+			alert('Você precisa selecionar um cliente para essa venda!');
+			return;
+		}
 
-		// Oculta os botões e exibe o indicador de carregamento
 		$("#btn_venda").hide();
 		$("#btn_limpar").hide();
 		$("#img_loading").show();
-		// Limpa a mensagem de erro, caso houvesse uma da validação anterior
 		$('#mensagem').text('').removeClass('text-danger');
 
-		// Verifica se a data e o cliente são válidos
-		var data = $("#data2").val();
-		var cliente = $("#cliente").val();
-		var data_atual = "<?= $data_atual ?>";
+		var form = this;
+		// Espera os preços digitados chegarem ao banco antes de fechar
+		$(':focus').blur();
+		$.when.apply($, window.precosPendentes || []).always(function() {
+			window.precosPendentes = [];
+			enviarVenda(form);
+		});
+	});
 
-		if (data > data_atual && cliente == "") {
-			alert('Você precisa selecionar um cliente para essa venda!');
-			$("#img_loading").hide();
-			$("#btn_venda").show();
-			$("#btn_limpar").show(); // Adicionado para consistência
-			return;
-		}
-
-		// Cria um objeto FormData com os dados do formulário
-		var formData = new FormData(this);
-
-		// ========================================================== //
-		// ===== DEBUG 3: VERIFICAÇÃO FINAL DO VALOR NO FORM DATA ===== //
-		// ========================================================== //
-		var check_cliente = formData.get('cliente');
-		var check_cliente_input_val = $('#cliente_input').val();
-
-		console.log('%c[DEBUG 3.1 - SUBMIT] Valor do #cliente_input (via .val()): "' + check_cliente_input_val + '"', 'background: #dc3545; color: #fff; font-size: 16px;');
-		console.log('%c[DEBUG 3.2 - SUBMIT] Valor do campo "cliente" no FormData (que será enviado): "' + check_cliente + '"', 'background: #007bff; color: #fff; font-size: 16px;');
-		// ========================================================== //
-
-		// Envia a requisição AJAX
+	function enviarVenda(form) {
 		$.ajax({
 			url: 'paginas/' + pag + "/salvar.php",
 			type: 'POST',
-			data: formData,
+			data: new FormData(form),
 			cache: false,
 			contentType: false,
 			processData: false,
 
 			success: function(mensagem) {
-				// Processa a resposta do servidor
 				var msg = mensagem.split("-");
 
-				$('#mensagem').text('');
-				$('#mensagem').removeClass();
-
 				if (msg[0].trim() == "Salvo com Sucesso") {
-					// AÇÃO ADICIONADA: Chama o script para limpar a sessão de edição
-					$.post('paginas/' + pag + '/limpar_sessao_edicao.php');
-					$("#img_loading").hide();
-
-					// Limpa os campos do formulário
-					$('#desconto').val('');
-					$('#troco').val('');
-					$('#cliente').val('').change();
-					$('#cliente_input').val('');
-					$('#data').val('<?= $data_atual ?>');
-
-					// Atualiza as listas de vendas e produtos
-					// Assumindo que 'listar()' existe para atualizar a lista principal de vendas
-					// listar(); 
-					listarVendas();
-
-					// Verifica se a impressão automática está habilitada
-					var imp_auto = "<?= $impressao_automatica ?>";
-					if (imp_auto == 'Sim') {
-						console.log("aqui");
-						window.open('rel/comprovante_pdf.php?id=' + msg[1]);
+					var id_venda = msg[1].trim();
+					if ("<?= $impressao_automatica ?>" == 'Sim') {
+						window.open('rel/comprovante_pdf.php?venda=' + id_venda);
 					} else {
-						alert('Venda Efetuada!');
-						$('#div_pgto2').hide();
+						alert('Venda #' + id_venda + ' salva!');
 					}
+					// Recarrega para sair do modo edição e zerar o formulário
+					window.location = 'vendas';
 				} else {
-					// Exibe mensagem de erro
 					alert(msg[0]);
-					$("#btn_venda").show();
 					$("#img_loading").hide();
+					$("#btn_venda").show();
 					$("#btn_limpar").show();
 				}
-
-				// Restaura os botões (redundante, mas garante que apareçam)
-				$("#btn_venda").show();
-				$("#btn_limpar").show();
 			},
 
 			error: function(xhr, status, error) {
-				// Trata erros de requisição AJAX
 				$("#img_loading").hide();
 				$("#btn_venda").show();
 				$("#btn_limpar").show();
-
-				// Exibe detalhes do erro no console
-				console.error("Erro na requisição AJAX:");
-				console.error("Status: " + status);
-				console.error("Erro: " + error);
-				console.error("Resposta do servidor: " + xhr.responseText);
-
-				// Exibe uma mensagem de erro para o usuário
+				console.error("Erro na requisição AJAX:", status, error, xhr.responseText);
 				alert("Ocorreu um erro ao processar a requisição. Por favor, tente novamente.\nDetalhes: " + error);
 			}
 		});
-	});
+	}
 
 	function buscar() {
 		var busca = $('#txt_buscar').val();
@@ -846,16 +801,9 @@ if (isset($_SESSION['modo_edicao_venda']) && @$_SESSION['modo_edicao_venda'] ===
 	}
 
 	function limparVenda() {
-		$("#cliente").val('').change();
-		$("#quantidade").val('1');
-		$("#desconto").val('');
-		$("#troco").val('');
-		$("#frete").val('');
-		$("#data").val('<?= $data_atual ?>');
-		$("#cliente_input").val('');
-		$('#div_pgto2').hide();
-		listarVendas()
-
+		if (!confirm('Limpar todos os itens desta venda?')) {
+			return;
+		}
 		$("#btn_limpar").hide();
 		$.ajax({
 			url: 'paginas/' + pag + "/limpar_venda.php",
@@ -864,13 +812,10 @@ if (isset($_SESSION['modo_edicao_venda']) && @$_SESSION['modo_edicao_venda'] ===
 			dataType: "html",
 
 			success: function(result) {
-				// AÇÃO ADICIONADA: Chama o script para limpar a sessão de edição
-				$.post('paginas/' + pag + '/limpar_sessao_edicao.php');
-
-				listarVendas();
+				// Recarrega para zerar o formulário e sair de um eventual modo edição
+				window.location = 'vendas';
 			}
 		});
-
 	}
 </script>
 
@@ -983,30 +928,32 @@ if (isset($_SESSION['modo_edicao_venda']) && @$_SESSION['modo_edicao_venda'] ===
 
 
 
+	// Mesmo critério do venda_valor_br() no PHP: "1.234,56" e "1234.56" valem 1234.56
+	function valorBR(v) {
+		v = String(v || '').replace(/R\$|\s/g, '');
+		if (v.indexOf(',') >= 0 || /^-?\d{1,3}(\.\d{3})+$/.test(v)) {
+			v = v.replace(/\./g, '').replace(',', '.');
+		}
+		return parseFloat(v) || 0;
+	}
+
 	function FormaPg() {
-		var valor_pago = $('#valor_pago').val();
-		var subtotal_venda = $('#subtotal_venda').val();
+		var valor_pago = valorBR($('#valor_pago').val());
+		var total_venda = valorBR($('#total_venda').val());
+		var total_restante = Math.max(0, total_venda - valor_pago);
 
-		console.log("Valor pago: " + valor_pago);
-		console.log("Subtotal: " + subtotal_venda);
-
-		if (parseFloat(valor_pago) < parseFloat(subtotal_venda)) {
+		if (itensNaTela() > 0 && total_restante > 0.004) {
 			$('#div_pgto2').show();
 		} else {
 			$('#div_pgto2').hide();
 		}
 
-		if (valor_pago == "") {
-			valor_pago = 0;
-		}
+		$('#total_restante').text(total_restante.toFixed(2).replace('.', ','));
+		$('#valor_restante').val(total_restante.toFixed(2));
+	}
 
-		if (subtotal_venda == "") {
-			subtotal_venda = 0;
-		}
-
-		var total_restante = parseFloat(subtotal_venda) - parseFloat(valor_pago);
-		$('#total_restante').text(total_restante.toFixed(2));
-		$('#valor_restante').val(total_restante);
+	function itensNaTela() {
+		return (typeof itens === 'undefined') ? 0 : itens;
 	}
 </script>
 
@@ -1083,166 +1030,4 @@ if (isset($_SESSION['modo_edicao_venda']) && @$_SESSION['modo_edicao_venda'] ===
 			limpa_formulário_cep();
 		}
 	};
-</script>
-
-<?php
-// require_once("../../../conexao.php"); // Presumindo que já está conectado
-$tabela = 'itens_venda';
-// @session_start(); // Presumindo que a sessão já está iniciada
-$id_usuario = $_SESSION['id'];
-
-
-// --- Lógica de totais (sem alterações) ---
-$desconto = floatval(str_replace(',', '.', $_POST['desconto'] ?? '0'));
-$troco = floatval(str_replace(',', '.', $_POST['troco'] ?? '0'));
-$tipo_desconto = $_POST['tipo_desconto'] ?? '';
-$frete = floatval(str_replace(',', '.', $_POST['frete'] ?? '0'));
-$subtotal_itens = 0;
-$ids_itens = [];
-
-// Seleciona APENAS os itens do carrinho (id_venda = 0) do funcionário logado
-$query = $pdo->prepare("SELECT * FROM $tabela WHERE funcionario = :id_usuario AND id_venda = 0 ORDER BY id ASC");
-$query->execute([':id_usuario' => $id_usuario]);
-$res = $query->fetchAll(PDO::FETCH_ASSOC);
-$linhas = @count($res);
-
-if ($linhas > 0) {
-	foreach ($res as $item) {
-		$subtotal_itens += $item['total'];
-		$ids_itens[] = $item['id'];
-	}
-}
-$valor_desconto = ($tipo_desconto == '%') ? ($subtotal_itens * ($desconto / 100)) : $desconto;
-$total_final = $subtotal_itens - $valor_desconto + $frete;
-$total_troco = ($troco > 0 && $troco > $total_final) ? ($troco - $total_final) : 0;
-?>
-
-
-<?php
-$total_finalF = number_format($total_final, 2, ',', '.');
-$total_trocoF = number_format($total_troco, 2, ',', '.');
-?>
-<div class="rodape-venda">
-	<div class="rodape-linha">
-		<span>Itens:</span>
-		<span><?php echo $linhas; ?></span>
-	</div>
-	<div class="rodape-linha" style="font-size: 16px;">
-		<span>Total da Venda:</span>
-		<span>R$ <?php echo $total_finalF; ?></span>
-	</div>
-	<?php if ($total_troco > 0): ?>
-		<div class="rodape-linha text-primary" style="margin-top: 5px;">
-			<span>Troco:</span>
-			<span>R$ <?php echo $total_trocoF; ?></span>
-		</div>
-	<?php endif; ?>
-</div>
-
-<?php
-$ids_itens_json = json_encode(array_values($ids_itens));
-?>
-
-<script type="text/javascript">
-	// --- Lógica JavaScript (sem alterações) ---
-	var itens = <?= $linhas ?>;
-	var ids_materiais = <?= $ids_itens_json ?>;
-	$('#ids_itens').val(ids_materiais.join(','));
-	$('#subtotal_venda').val('<?= $total_final ?>');
-	if ($('#valor_pago').val() === '') {
-		// Inicializa o valor pago com o total, se estiver vazio
-		$('#valor_pago').val('<?= number_format($total_final, 2, ',', '.') ?>');
-	}
-	FormaPg();
-	if (itens > 0) {
-		$("#btn_limpar").show();
-		$("#btn_venda").show();
-	} else {
-		$("#btn_limpar").hide();
-		$("#btn_venda").hide();
-	}
-
-	function confirmarExclusao(id) {
-		if (confirm("Deseja realmente remover este item?")) {
-			excluirItem(id);
-		}
-	}
-
-	function excluirItem(id) {
-		$.ajax({
-			url: 'paginas/' + pag + "/excluir-item.php",
-			method: 'POST',
-			data: {
-				id
-			},
-			success: function(msg) {
-				(msg.trim() == "Excluído com Sucesso") ? listarVendas(): alert(msg);
-			}
-		});
-	}
-
-	function diminuir(id, quantidade) {
-		$.ajax({
-			url: 'paginas/' + pag + "/diminuir.php",
-			method: 'POST',
-			data: {
-				id,
-				quantidade
-			},
-			success: function(msg) {
-				(msg.trim() == "Excluído com Sucesso" || msg.trim() == "Atualizado com Sucesso") ? listarVendas(): alert(msg);
-			}
-		});
-	}
-
-	function aumentar(id, quantidade) {
-		$.ajax({
-			url: 'paginas/' + pag + "/aumentar.php",
-			method: 'POST',
-			data: {
-				id,
-				quantidade
-			},
-			success: function(msg) {
-				(msg.trim() == "Atualizado com Sucesso") ? listarVendas(): alert(msg);
-			}
-		});
-	}
-	$('.input-preco-produto').on('blur', function() {
-		var id = $(this).data('id');
-		var preco = $(this).val().replace(/\./g, '').replace(',', '.').replace('R$ ', '');
-		if (preco !== "" && !isNaN(preco)) {
-			$.ajax({
-				url: 'paginas/' + pag + "/atualizar-preco.php",
-				method: 'POST',
-				data: {
-					id: id,
-					preco: preco
-				},
-				success: function(res) {
-					if (res.trim() === "Atualizado com Sucesso") {
-						listarVendas();
-					}
-				}
-			});
-		}
-	});
-	// Funções de máscara de moeda (certifique-se de ter a função 'mascara_decimal' também)
-	function mascara(o, f) {
-		v_obj = o;
-		v_fun = f;
-		setTimeout("execmascara()", 1);
-	}
-
-	function execmascara() {
-		v_obj.value = v_fun(v_obj.value);
-	}
-
-	function moeda(v) {
-		v = v.replace(/\D/g, "");
-		v = v.replace(/(\d)(\d{2})$/, "$1,$2");
-		v = v.replace(/(?=(\d{3})+(\D))\B/g, ".");
-		return v;
-	}
-	// function mascara_decimal(id) { /* Implemente ou certifique-se que está em js/ajax.js */ }
 </script>

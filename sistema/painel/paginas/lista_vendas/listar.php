@@ -21,7 +21,7 @@ if($dataFinal == ""){
 
 
 //PEGAR O TOTAL DAS CONTAS A PAGAR PENDENTES
-$query = $pdo->query("SELECT * from $pagina where pago = 'Não' and referencia = 'Venda'");
+$query = $pdo->query("SELECT * from $pagina where pago = 'Não' and referencia = 'Venda' and COALESCE(residuo, '') <> 'Sim'");
 $res = $query->fetchAll(PDO::FETCH_ASSOC);
 $total_reg = @count($res);
 if($total_reg > 0){
@@ -37,21 +37,21 @@ $data_amanha = date('Y/m/d', strtotime("+1 days",strtotime($data_hoje)));
 
 
 if($vencidas == 'Vencidas'){
-	$query = $pdo->query("SELECT * from $pagina where vencimento < curDate() and pago = 'Não' and referencia = 'Venda' order by id desc ");
+	$query = $pdo->query("SELECT * from $pagina where vencimento < curDate() and pago = 'Não' and referencia = 'Venda' and COALESCE(residuo, '') <> 'Sim' order by id desc ");
 }
 
 else if($vencidas == 'Hoje'){
-	$query = $pdo->query("SELECT * from $pagina where vencimento = curDate() and pago = 'Não' and referencia = 'Venda' order by id desc ");
+	$query = $pdo->query("SELECT * from $pagina where vencimento = curDate() and pago = 'Não' and referencia = 'Venda' and COALESCE(residuo, '') <> 'Sim' order by id desc ");
 }
 
 else if($vencidas == 'Amanha'){
-	$query = $pdo->query("SELECT * from $pagina where vencimento = '$data_amanha' and pago = 'Não' and referencia = 'Venda' order by id desc ");
+	$query = $pdo->query("SELECT * from $pagina where vencimento = '$data_amanha' and pago = 'Não' and referencia = 'Venda' and COALESCE(residuo, '') <> 'Sim' order by id desc ");
 }
 else if($vencidas == 'Canceladas'){
 	$query = $pdo->query("SELECT * from $pagina where cancelada = 'Sim' and referencia = 'Venda' order by id desc ");
 }
 else{
-	$query = $pdo->query("SELECT * from $pagina WHERE vencimento >= '$dataInicial' and vencimento <= '$dataFinal' and pago LIKE '$status' and referencia = 'Venda' order by id desc ");
+	$query = $pdo->query("SELECT * from $pagina WHERE vencimento >= '$dataInicial' and vencimento <= '$dataFinal' and pago LIKE '$status' and referencia = 'Venda' and COALESCE(residuo, '') <> 'Sim' order by id desc ");
 }
 
 
@@ -157,7 +157,7 @@ $res2 = $query2->fetchAll(PDO::FETCH_ASSOC);
 if(@count($res2) > 0){
 	$nome_pessoa = $res2[0]['nome'];	
 	$tipo_pessoa = 'Cliente';
-	$tel_pessoa = $res2[0]['telefone'];
+	$tel_pessoa = $res2[0]['contato'];
 }
 
 
@@ -246,7 +246,7 @@ echo <<<HTML
 
 					<a class="btn btn-dark btn-sm" href="#" onclick="arquivo('{$id}', '{$descricao}')" title="Inserir / Ver Arquivos"><i class="fa fa-file-o"></i></a>
 
-					<a class="btn btn-primary btn-sm" href="rel/comprovante_pdf.php?id=?id={$id}&imprimir=Não" target="_blank" title="Ver Comprovante"><i class="fa fa-file-pdf-o"></i></a>
+					<a class="btn btn-primary btn-sm" href="rel/comprovante_pdf.php?id={$id}" target="_blank" title="Ver Comprovante"><i class="fa fa-file-pdf-o"></i></a>
 				</td>  
 			</tr> 
 HTML;
@@ -412,6 +412,7 @@ function baixar(id, valor, descricao, saida){
 
 	$('#modalBaixar').modal('show');
 	$('#mensagem-baixar').text('');
+	$('#btn-salvar-baixar').show();
 }
 
 

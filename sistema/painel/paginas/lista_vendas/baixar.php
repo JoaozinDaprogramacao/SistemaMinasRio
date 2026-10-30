@@ -1,109 +1,76 @@
-<?php 
+<?php
 $tabela = 'receber';
 require_once("../../../conexao.php");
+require_once("../vendas/funcoes_venda.php");
 @session_start();
 $id_usuario = $_SESSION['id'];
 
-$id = $_POST['id-baixar'];
-$data_atual = date('Y-m-d');
-	$dia = date('d');
-	$mes = date('m');
-	$ano = date('Y');
+$id = intval($_POST['id-baixar'] ?? 0);
+$valor = round(venda_valor_br($_POST['valor-baixar'] ?? ''), 2);      // principal quitado
+$subtotal = round(venda_valor_br($_POST['subtotal'] ?? ''), 2);       // efetivamente recebido
+$multa = venda_valor_br($_POST['valor-multa'] ?? '');
+$juros = venda_valor_br($_POST['valor-juros'] ?? '');
+$desconto = venda_valor_br($_POST['valor-desconto'] ?? '');
+$saida = intval($_POST['saida-baixar'] ?? 0);
+$data_baixar = $_POST['data-baixar'] ?? '';
+if (empty($data_baixar)) {
+	$data_baixar = date('Y-m-d');
+}
 
-$valor = $_POST['valor-baixar'];
-$valor = str_replace(',', '.', $valor);
+$query = $pdo->prepare("SELECT * FROM $tabela WHERE id = :id");
+$query->execute([':id' => $id]);
+$conta = $query->fetch(PDO::FETCH_ASSOC);
 
-$subtotal = $_POST['subtotal'];
-$subtotal = str_replace(',', '.', $subtotal);
-
-$saida = $_POST['saida-baixar'];
-$data_baixar = $_POST['data-baixar'];
-
-$query = $pdo->query("SELECT * FROM $tabela where id = '$id'");
-$res = $query->fetchAll(PDO::FETCH_ASSOC);
-
-$descricao = $res[0]['descricao'];
-$cliente = $res[0]['cliente'];
-$valor_antigo = $res[0]['valor'];
-$data_lanc = $res[0]['data_lanc'];
-$data_venc = $res[0]['vencimento'];
-$data_pgto = $res[0]['data_pgto'];
-$usuario_lanc = $res[0]['usuario_lanc'];
-$usuario_pgto = $res[0]['usuario_pgto'];
-$frequencia = $res[0]['frequencia'];
-$saida_antiga = $res[0]['forma_pgto'];
-$arquivo = $res[0]['arquivo'];
-$pago = $res[0]['pago'];
-
-
-if($valor > $valor_antigo){
-	echo 'O valor a ser pago não pode ser superior ao valor da conta! O valor da conta é de R$ '.$valor_antigo;
+if (!$conta) {
+	echo 'Conta não encontrada!';
+	exit();
+}
+if ($conta['pago'] == 'Sim' || $conta['cancelada'] == 'Sim') {
+	echo 'Esta conta já está paga ou cancelada!';
+	exit();
+}
+if ($valor <= 0 || $subtotal <= 0) {
+	echo 'O valor precisa ser maior que 0!';
+	exit();
+}
+if ($valor > $conta['valor']) {
+	echo 'O valor a ser pago não pode ser superior ao valor da conta! O valor da conta é de R$ ' . number_format($conta['valor'], 2, ',', '.');
 	exit();
 }
 
-if($valor <= 0){
-	echo 'O precisa ser maior que 0 ';
-	exit();
+$query = $pdo->prepare("SELECT id FROM caixas WHERE operador = :op AND data_fechamento IS NULL ORDER BY id DESC LIMIT 1");
+$query->execute([':op' => $id_usuario]);
+$id_caixa = $query->fetchColumn() ?: 0;
+
+$pdo->beginTransaction();
+try {
+	if (abs($valor - $conta['valor']) < 0.005) {
+		// Quitação total da conta
+		$pdo->prepare("UPDATE $tabela SET forma_pgto = :forma, usuario_pgto = :u, pago = 'Sim', valor = :sub, subtotal = :sub2,
+				multa = :multa, juros = :juros, desconto = :desc, data_pgto = :dt, caixa = :caixa, hora = curTime() WHERE id = :id")
+			->execute([':forma' => $saida, ':u' => $id_usuario, ':sub' => $subtotal, ':sub2' => $subtotal, ':multa' => $multa,
+				':juros' => $juros, ':desc' => $desconto, ':dt' => $data_baixar, ':caixa' => $id_caixa, ':id' => $id]);
+	} else {
+		// Pagamento parcial: o recebido vira um resíduo pago e a conta fica com o saldo
+		$pdo->prepare("INSERT INTO $tabela SET descricao = :descr, cliente = :cli, valor = :sub, subtotal = :sub2,
+				multa = :multa, juros = :juros, desconto = :desc, vencimento = :venc, data_lanc = curDate(), data_pgto = :dt,
+				forma_pgto = :forma, frequencia = 0, usuario_lanc = :u1, usuario_pgto = :u2, pago = 'Sim', residuo = 'Sim',
+				referencia = 'Venda', id_ref = :ref, caixa = :caixa, hora = curTime(), id_venda_real = :venda")
+			->execute([
+				':descr' => '(Resíduo) ' . $conta['descricao'], ':cli' => $conta['cliente'], ':sub' => $subtotal, ':sub2' => $subtotal,
+				':multa' => $multa, ':juros' => $juros, ':desc' => $desconto, ':venc' => $conta['vencimento'], ':dt' => $data_baixar,
+				':forma' => $saida, ':u1' => $id_usuario, ':u2' => $id_usuario, ':ref' => $id, ':caixa' => $id_caixa,
+				':venda' => $conta['id_venda_real'],
+			]);
+		$pdo->prepare("UPDATE $tabela SET valor = valor - :v WHERE id = :id")->execute([':v' => $valor, ':id' => $id]);
+	}
+
+	if ($conta['id_venda_real']) {
+		venda_recalcular_status($pdo, $conta['id_venda_real']);
+	}
+	$pdo->commit();
+	echo 'Baixado com Sucesso';
+} catch (Exception $e) {
+	$pdo->rollBack();
+	echo 'Erro ao baixar: ' . $e->getMessage();
 }
-
-
-
-if($valor == $valor_antigo){
-
-	$pdo->query("UPDATE $tabela set forma_pgto = '$saida', usuario_pgto = '$id_usuario', pago = 'Sim', valor = '$subtotal', data_pgto = '$data_baixar' where id = '$id'");
-
-	//CRIAR A PRÓXIMA CONTA A PAGAR
-	$dias_frequencia = $frequencia;
-
-	if($dias_frequencia == 30 || $dias_frequencia == 31){		
-		$nova_data_vencimento = date('Y/m/d', strtotime("+1 month",strtotime($data_venc)));
-
-	}else if($dias_frequencia == 90){
-		$nova_data_vencimento = date('Y/m/d', strtotime("+3 month",strtotime($data_venc)));
-
-	}else if($dias_frequencia == 180){ 
-		$nova_data_vencimento = date('Y/m/d', strtotime("+6 month",strtotime($data_venc)));
-
-	}else if($dias_frequencia == 360 || $dias_frequencia == 365){
-		$nova_data_vencimento = date('Y/m/d', strtotime("+1 year",strtotime($data_venc)));
-
-	}else{		
-		$nova_data_vencimento = date('Y/m/d', strtotime("+$dias_frequencia days",strtotime($data_venc))); 
-	}
-
-
-	if(@$dias_frequencia > 0){
-		$pdo->query("INSERT INTO $tabela set descricao = '$descricao', cliente = '$cliente', valor = '$valor_antigo', data_lanc = curDate(), vencimento = '$nova_data_vencimento', frequencia = '$frequencia', forma_pgto = '$saida_antiga', arquivo = '$arquivo', pago = 'Não'");
-				$id_ult_registro = $pdo->lastInsertId();				
-	}
-
-	
-
-}else{
-
-	$descricao = '(Resíduo) ' .$descricao;
-	//PEGAR RESIDUOS DA CONTA
-	$total_resid = 0;
-	$query = $pdo->query("SELECT * FROM valor_parcial WHERE id_conta = '$id' and tipo = 'Receber'");
-	$res = $query->fetchAll(PDO::FETCH_ASSOC);
-	if(@count($res) > 0){
-	
-		for($i=0; $i < @count($res); $i++){
-		foreach ($res[$i] as $key => $value){} 
-			$valor_resid = $res[$i]['valor'];
-			$total_resid += $valor_resid;
-		}
-	}
-
-	$valor_antigo = $valor_antigo - $subtotal;
-
-	$pdo->query("INSERT INTO valor_parcial set id_conta = '$id', tipo = 'Receber', valor = '$subtotal', data = curDate(), usuario = '$id_usuario'");
-
-	$pdo->query("UPDATE $tabela set forma_pgto = '$saida', usuario_pgto = '$id_usuario', valor = '$valor_antigo', data_pgto = curDate() where id = '$id'");
-
-}
-
-echo 'Baixado com Sucesso';
-
-?>
-

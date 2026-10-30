@@ -1,5 +1,9 @@
 <?php
 require_once("../../../conexao.php");
+require_once("funcoes_venda.php");
+
+@session_start();
+$id_usuario = $_SESSION['id'];
 
 if (!isset($_POST['id']) || !isset($_POST['preco'])) {
     echo "Erro: Dados incompletos.";
@@ -7,25 +11,15 @@ if (!isset($_POST['id']) || !isset($_POST['preco'])) {
 }
 
 $id = intval($_POST['id']);
-$preco = floatval($_POST['preco']);
+$preco = venda_valor_br($_POST['preco']);
 
 if ($id <= 0 || $preco < 0) {
     echo "Erro: Dados inválidos.";
     exit;
 }
 
-try {
-    $query = $pdo->prepare("UPDATE itens_venda SET valor = :preco, total = quantidade * :preco WHERE id = :id");
-    $query->bindParam(':preco', $preco);
-    $query->bindParam(':id', $id);
-    $query->execute();
+// Só itens do carrinho do próprio usuário: venda fechada se altera pela edição
+$query = $pdo->prepare("UPDATE itens_venda SET valor = :preco, total = quantidade * :preco2 WHERE id = :id AND funcionario = :f AND id_venda = 0");
+$query->execute([':preco' => $preco, ':preco2' => $preco, ':id' => $id, ':f' => $id_usuario]);
 
-    if ($query->rowCount() > 0) {
-        echo "Atualizado com Sucesso";
-    } else {
-        echo "Erro: Produto não encontrado ou preço não alterado.";
-    }
-} catch (PDOException $e) {
-    echo "Erro ao atualizar o preço: " . $e->getMessage();
-}
-?>
+echo "Atualizado com Sucesso";

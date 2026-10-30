@@ -192,7 +192,7 @@ if(@$lista_vendas == 'ocultar'){
 										foreach ($res[$i] as $key => $value){}
 
 											?>	
-										<option value="<?php echo $res[$i]['nome'] ?>"><?php echo $res[$i]['nome'] ?></option>
+										<option value="<?php echo $res[$i]['id'] ?>"><?php echo $res[$i]['nome'] ?></option>
 
 									<?php } ?>
 
@@ -495,7 +495,7 @@ if(@$lista_vendas == 'ocultar'){
 					success: function (mensagem) {
 						$('#mensagem-baixar').text('');
 						$('#mensagem-baixar').removeClass()
-						if (mensagem.trim() == "Baixado com Sucesso") { 
+						if (mensagem.trim() == "Baixado com Sucesso") {
 
 							$('#btn-fechar-baixar').click();
 							buscar();
@@ -504,7 +504,7 @@ if(@$lista_vendas == 'ocultar'){
 							$('#mensagem-baixar').text(mensagem)
 						}
 
-						$('#btn-salvar-baixar').hide();
+						$('#btn-salvar-baixar').show();
 
 					},
 
@@ -520,40 +520,20 @@ if(@$lista_vendas == 'ocultar'){
 
 		<script type="text/javascript">
 
+			// "1.234,56" e "1234.56" valem 1234.56 (mesmo critério do venda_valor_br no PHP)
+			function valorBR(v) {
+				v = String(v || '').replace(/R\$|\s/g, '');
+				if (v.indexOf(',') >= 0 || /^-?\d{1,3}(\.\d{3})+$/.test(v)) {
+					v = v.replace(/\./g, '').replace(',', '.');
+				}
+				return parseFloat(v) || 0;
+			}
+
 			function totalizar(){
-				valor = $('#valor-baixar').val();
-				desconto = $('#valor-desconto').val();
-				juros = $('#valor-juros').val();
-				multa = $('#valor-multa').val();
+				var subtotal = valorBR($('#valor-baixar').val()) + valorBR($('#valor-juros').val())
+					+ valorBR($('#valor-multa').val()) - valorBR($('#valor-desconto').val());
 
-				valor = valor.replace(",", ".");
-				desconto = desconto.replace(",", ".");
-				juros = juros.replace(",", ".");
-				multa = multa.replace(",", ".");
-
-				if(valor == ""){
-				valor = 0;
-			}
-
-			if(desconto == ""){
-				desconto = 0;
-			}
-
-			if(juros == ""){
-				juros = 0;
-			}
-
-			if(multa == ""){
-				multa = 0;
-			}
-
-				subtotal = parseFloat(valor) + parseFloat(juros) + parseFloat(multa) - parseFloat(desconto);
-
-
-				console.log(subtotal)
-
-				$('#subtotal').val(subtotal);
-
+				$('#subtotal').val(subtotal.toFixed(2));
 			}
 		</script>
 

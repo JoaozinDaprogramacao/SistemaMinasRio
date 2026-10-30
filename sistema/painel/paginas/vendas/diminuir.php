@@ -1,37 +1,25 @@
-<?php 
-$tabela = 'itens_venda';
+<?php
 require_once("../../../conexao.php");
 
-$id = $_POST['id'];
-$quantidade = $_POST['quantidade'];
+@session_start();
+$id_usuario = $_SESSION['id'];
+$id = intval($_POST['id'] ?? 0);
 
-$query = $pdo->query("SELECT * from $tabela where id = '$id'");
-$res = $query->fetchAll(PDO::FETCH_ASSOC);
-$id_material = $res[0]['material'];
-$valor = $res[0]['valor'];
-
-$query = $pdo->query("SELECT * from materiais where id = '$id_material'");
-$res = $query->fetchAll(PDO::FETCH_ASSOC);
-$estoque = $res[0]['estoque'];
-$tem_estoque = $res[0]['tem_estoque'];
-$vendas = $res[0]['vendas'];
-
-$nova_quant = $quantidade - 1;
-$novo_total = $valor * $nova_quant;
-
-if($quantidade == 1){
-	$pdo->query("DELETE FROM $tabela WHERE id = '$id' ");
-}else{
-	$pdo->query("UPDATE $tabela SET quantidade = '$nova_quant', total = '$novo_total' WHERE id = '$id' ");
+$query = $pdo->prepare("SELECT * FROM itens_venda WHERE id = :id AND funcionario = :f AND id_venda = 0");
+$query->execute([':id' => $id, ':f' => $id_usuario]);
+$item = $query->fetch(PDO::FETCH_ASSOC);
+if (!$item) {
+	echo 'Item não encontrado no carrinho!';
+	exit();
 }
 
-echo "Excluído com Sucesso";
+$nova_quant = $item['quantidade'] - 1;
 
-if($tem_estoque == 'Sim'){
-	$novo_estoque = $estoque + 1;
-	$vendas = $vendas - 1;
-	//adicionar os produtos na tabela produtos
-	$pdo->query("UPDATE materiais SET estoque = '$novo_estoque', vendas = '$vendas' WHERE id = '$id_material'");
+if ($nova_quant <= 0) {
+	$pdo->prepare("DELETE FROM itens_venda WHERE id = :id")->execute([':id' => $id]);
+	echo 'Excluído com Sucesso';
+} else {
+	$pdo->prepare("UPDATE itens_venda SET quantidade = :q, total = valor * :q2 WHERE id = :id")
+		->execute([':q' => $nova_quant, ':q2' => $nova_quant, ':id' => $id]);
+	echo 'Atualizado com Sucesso';
 }
-
-?>

@@ -1,11 +1,12 @@
-<?php 
-$tabela = 'materials';
-$tabela_detalhes = 'detalhes_materiais';
+<?php
 require_once("../../../conexao.php");
+require_once("../vendas/funcoes_venda.php");
 
-$id = $_POST['id'];
+@session_start();
+$id_usuario = @$_SESSION['id'];
+$nivel = @$_SESSION['nivel'];
 
-$pdo->query("DELETE FROM $tabela WHERE id = '$id' ");
-$pdo->query("DELETE from $tabela_detalhes where material_id = '$id'");
-echo 'Excluído com Sucesso';
-?>
+// "Excluir" uma venda é cancelá-la: o histórico fica, estoque e financeiro são desfeitos
+$erro = venda_cancelar($pdo, intval($_POST['id'] ?? 0), $id_usuario, $nivel);
+
+echo ($erro == '') ? 'Excluído com Sucesso' : $erro;

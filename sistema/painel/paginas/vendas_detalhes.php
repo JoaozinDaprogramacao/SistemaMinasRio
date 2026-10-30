@@ -175,77 +175,6 @@ if ($linhas > 0) {
     </div>
 </div>
 
-<div class="modal fade" id="modalPagamento" tabindex="-1" role="dialog" aria-hidden="true">
-	<div class="modal-dialog" role="document">
-		<div class="modal-content">
-			<div class="modal-header bg-primary text-white">
-				<h4 class="modal-title">Adicionar Pagamento à Venda <span id="id_venda_pagamento"></span></h4>
-				<button id="btn-fechar-pagamento" aria-label="Close" class="btn-close" data-bs-dismiss="modal" type="button"><span class="text-white" aria-hidden="true">&times;</span></button>
-			</div>
-			<div class="modal-body">
-				<form id="form-pagamento">
-					<div class="row">
-						<div class="col-md-6">
-							<label>Valor a Pagar</label>
-							<input type="text" class="form-control" id="valor_pagamento" name="valor_pagamento" placeholder="R$ 0,00" required>
-						</div>
-						<div class="col-md-6">
-							<label>Forma de Pgto</label>
-							<select class="form-select" name="forma_pgto" required>
-								<option value="">Selecione</option>
-								<?php
-								$query_pgto = $pdo->query("SELECT * from formas_pgto order by nome asc");
-								$res_pgto = $query_pgto->fetchAll(PDO::FETCH_ASSOC);
-								foreach($res_pgto as $pgto) {
-									echo "<option value='{$pgto['id']}'>{$pgto['nome']}</option>";
-								}
-								?>
-							</select>
-						</div>
-					</div>
-					<div class="row mt-2">
-						<div class="col-md-12">
-							<label>Observação (Opcional)</label>
-							<input type="text" class="form-control" name="obs" placeholder="Ex: Pagamento da segunda parcela">
-						</div>
-					</div>
-					<input type="hidden" id="id_pagamento" name="id_venda">
-					<input type="hidden" id="valor_restante_pagamento" name="valor_restante">
-					<div class="modal-footer">
-						<button type="submit" class="btn btn-primary">Salvar Pagamento</button>
-					</div>
-				</form>
-				<br>
-				<small><div id="mensagem-pagamento" align="center"></div></small>
-			</div>
-		</div>
-	</div>
-</div>
-
-<div class="modal fade" id="modalEditar" tabindex="-1" role="dialog" aria-hidden="true">
-	<div class="modal-dialog modal-lg" role="document">
-		<div class="modal-content">
-			<div class="modal-header bg-primary text-white">
-				<h4 class="modal-title">Editar Venda <span id="id_venda_editar"></span></h4>
-				<button id="btn-fechar-editar" aria-label="Close" class="btn-close" data-bs-dismiss="modal" type="button"><span class="text-white" aria-hidden="true">&times;</span></button>
-			</div>
-			<div class="modal-body">
-				<form id="form-editar">
-					<div class="alert alert-info">A funcionalidade de edição de vendas e seus itens pode ser desenvolvida aqui, seguindo o padrão de formulário.</div>
-					
-					<input type="hidden" id="id_editar" name="id">
-					
-					<div class="modal-footer">
-						<button type="submit" class="btn btn-primary">Salvar Alterações</button>
-					</div>
-				</form>
-				<br>
-				<small><div id="mensagem-editar" align="center"></div></small>
-			</div>
-		</div>
-	</div>
-</div>
-
 <style>
 	/* ESTILOS COPIADOS DO SEU ARQUIVO DE REFERÊNCIA PARA MANTER O PADRÃO */
 	.radio { display: flex !important; align-items: center; justify-content: center; padding: 10px; gap: 15px; }
@@ -296,57 +225,64 @@ if ($linhas > 0) {
 </script>
 
 <script type="text/javascript">
-	// SUBMISSÃO DO FORMULÁRIO DE PAGAMENTO
-	$("#form-pagamento").submit(function(event) {
-		event.preventDefault();
-		var formData = new FormData(this);
-
-		$('#mensagem-pagamento').text('Salvando...');
-
-		$.ajax({
-			url: 'paginas/' + pag + "/pagamento.php",
-			type: 'POST',
-			data: formData,
-			success: function(mensagem) {
-				$('#mensagem-pagamento').text('');
-				if (mensagem.trim() == "Salvo com Sucesso") {
-					$('#btn-fechar-pagamento').click();
-					listar(); // Atualiza a lista principal
+	// Cancelar = desfazer estoque e financeiro da venda (ver vendas/funcoes_venda.php)
+	function cancelarVenda(id) {
+		Swal.fire({
+			title: 'Cancelar a venda #' + id + '?',
+			text: 'O estoque volta, as contas em aberto são apagadas e o que já foi recebido vira devolução.',
+			icon: 'warning',
+			showCancelButton: true,
+			confirmButtonText: 'Sim, cancelar',
+			cancelButtonText: 'Voltar'
+		}).then((r) => {
+			if (!r.isConfirmed) return;
+			$.post('paginas/' + pag + '/excluir.php', { id: id }, function(mensagem) {
+				if (mensagem.trim() == 'Excluído com Sucesso') {
+					Swal.fire('Cancelada!', 'Venda #' + id + ' cancelada.', 'success');
+					listar($('#cliente_filtro').val());
 				} else {
-					$('#mensagem-pagamento').addClass('text-danger');
-					$('#mensagem-pagamento').text(mensagem);
+					Swal.fire('Erro!', mensagem, 'error');
 				}
-			},
-			cache: false,
-			contentType: false,
-			processData: false,
+			});
 		});
-	});
+	}
 
-	// SUBMISSÃO DO FORMULÁRIO DE EDIÇÃO (EXEMPLO)
-	$("#form-editar").submit(function(event) {
-		event.preventDefault();
-		var formData = new FormData(this);
+	function selecionar(id) {
+		var ids = $('#ids').val().split(',').filter(Boolean);
+		if ($('#seletor-' + id).is(':checked')) {
+			if (ids.indexOf(String(id)) < 0) ids.push(String(id));
+		} else {
+			ids = ids.filter(i => i != id);
+		}
+		$('#ids').val(ids.join(','));
+		ids.length > 0 ? $('#btn-deletar').show() : $('#btn-deletar').hide();
+	}
 
-		$('#mensagem-editar').text('Salvando...');
-
-		$.ajax({
-			url: 'paginas/' + pag + "/editar.php",
-			type: 'POST',
-			data: formData,
-			success: function(mensagem) {
-				$('#mensagem-editar').text('');
-				if (mensagem.trim() == "Salvo com Sucesso") {
-					$('#btn-fechar-editar').click();
-					listar();
-				} else {
-					$('#mensagem-editar').addClass('text-danger');
-					$('#mensagem-editar').text(mensagem);
-				}
-			},
-			cache: false,
-			contentType: false,
-			processData: false,
+	function marcarTodos() {
+		var marcar = $('#selec-todos').is(':checked');
+		$('.chk:not(.d-none)').each(function() {
+			$(this).prop('checked', marcar);
+			selecionar(this.id.replace('seletor-', ''));
 		});
-	});
+	}
+
+	function deletarSel() {
+		var ids = $('#ids').val().split(',').filter(Boolean);
+		var erros = [];
+		var proximo = function() {
+			if (ids.length == 0) {
+				$('#ids').val('');
+				$('#btn-deletar').hide();
+				listar($('#cliente_filtro').val());
+				if (erros.length > 0) Swal.fire('Atenção', erros.join('<br>'), 'warning');
+				return;
+			}
+			var id = ids.shift();
+			$.post('paginas/' + pag + '/excluir.php', { id: id }, function(mensagem) {
+				if (mensagem.trim() != 'Excluído com Sucesso') erros.push('Venda #' + id + ': ' + mensagem);
+				proximo();
+			});
+		};
+		proximo();
+	}
 </script>
