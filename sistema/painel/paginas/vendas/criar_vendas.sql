@@ -2,6 +2,7 @@
 -- Execute este script no banco 'sistemaminasrio' UMA VEZ
 -- para habilitar a aba Vendas (diversos), Vendas Detalhes e
 -- a Lista de Vendas. Pode ser executado de novo sem efeito.
+-- Funciona em MySQL 8 e MariaDB.
 -- ============================================================
 
 -- 1. Cabeçalho da venda (o carrinho fica em itens_venda)
@@ -25,24 +26,35 @@ CREATE TABLE IF NOT EXISTS `vendas` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- 2. Liga itens, contas a receber, comissões e movimentação de material à venda
-ALTER TABLE `itens_venda`
-  ADD COLUMN IF NOT EXISTS `id_venda_real` INT(11) DEFAULT NULL,
-  ADD INDEX IF NOT EXISTS `idx_id_venda_real` (`id_venda_real`);
+-- (MySQL não tem ADD COLUMN IF NOT EXISTS: consulta o information_schema antes)
+SET @s = IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'itens_venda' AND COLUMN_NAME = 'id_venda_real') = 0,
+  'ALTER TABLE `itens_venda` ADD COLUMN `id_venda_real` INT(11) DEFAULT NULL', 'SELECT 1');
+PREPARE st FROM @s; EXECUTE st; DEALLOCATE PREPARE st;
 
-ALTER TABLE `receber`
-  ADD COLUMN IF NOT EXISTS `id_venda_real` INT(11) DEFAULT NULL,
-  ADD INDEX IF NOT EXISTS `idx_id_venda_real` (`id_venda_real`);
+SET @s = IF((SELECT COUNT(*) FROM information_schema.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'itens_venda' AND INDEX_NAME = 'idx_id_venda_real') = 0,
+  'ALTER TABLE `itens_venda` ADD INDEX `idx_id_venda_real` (`id_venda_real`)', 'SELECT 1');
+PREPARE st FROM @s; EXECUTE st; DEALLOCATE PREPARE st;
 
-ALTER TABLE `pagar`
-  ADD COLUMN IF NOT EXISTS `id_venda_real` INT(11) DEFAULT NULL;
+SET @s = IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'receber' AND COLUMN_NAME = 'id_venda_real') = 0,
+  'ALTER TABLE `receber` ADD COLUMN `id_venda_real` INT(11) DEFAULT NULL', 'SELECT 1');
+PREPARE st FROM @s; EXECUTE st; DEALLOCATE PREPARE st;
 
-ALTER TABLE `detalhes_materiais`
-  ADD COLUMN IF NOT EXISTS `id_venda_real` INT(11) DEFAULT NULL;
+SET @s = IF((SELECT COUNT(*) FROM information_schema.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'receber' AND INDEX_NAME = 'idx_id_venda_real') = 0,
+  'ALTER TABLE `receber` ADD INDEX `idx_id_venda_real` (`id_venda_real`)', 'SELECT 1');
+PREPARE st FROM @s; EXECUTE st; DEALLOCATE PREPARE st;
+
+SET @s = IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'pagar' AND COLUMN_NAME = 'id_venda_real') = 0,
+  'ALTER TABLE `pagar` ADD COLUMN `id_venda_real` INT(11) DEFAULT NULL', 'SELECT 1');
+PREPARE st FROM @s; EXECUTE st; DEALLOCATE PREPARE st;
+
+SET @s = IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'detalhes_materiais' AND COLUMN_NAME = 'id_venda_real') = 0,
+  'ALTER TABLE `detalhes_materiais` ADD COLUMN `id_venda_real` INT(11) DEFAULT NULL', 'SELECT 1');
+PREPARE st FROM @s; EXECUTE st; DEALLOCATE PREPARE st;
 
 -- 3. Preço unitário era DECIMAL(5,2): qualquer item a partir de R$ 1.000 derrubava a venda
 ALTER TABLE `detalhes_materiais`
   MODIFY `preco_unidade` DECIMAL(10,2) DEFAULT NULL,
-  MODIFY `valor_venda`   DECIMAL(10,2) DEFAULT NULL;
+  MODIFY `valor_venda`   DECIMAL(10,2) DEFAULT 0.00;
 
 ALTER TABLE `itens_venda`
   MODIFY `valor` DECIMAL(10,2) DEFAULT 0.00,
