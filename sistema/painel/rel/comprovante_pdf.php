@@ -21,6 +21,14 @@ $impressao_automatica = @$impressao_automatica ?? 'Não';
 // Coleta e sanitiza o ID da URL, garantindo que seja um inteiro
 $id = filter_input(INPUT_GET, 'id', FILTER_SANITIZE_NUMBER_INT);
 
+// ?venda= (aba Vendas): o comprovante parte do primeiro lançamento da venda em receber
+$id_venda_param = filter_input(INPUT_GET, 'venda', FILTER_SANITIZE_NUMBER_INT);
+if ($id_venda_param) {
+    $stmt = $pdo->prepare("SELECT id FROM receber WHERE id_venda_real = :v ORDER BY id LIMIT 1");
+    $stmt->execute([':v' => $id_venda_param]);
+    $id = $stmt->fetchColumn();
+}
+
 // Verifica se o ID é válido
 if (!$id) {
     if (!headers_sent()) {
@@ -137,6 +145,42 @@ if ($res_cli) {
 
 // LÓGICA DE REFERÊNCIA (MANTIDA)
 $id_principal = ($id_ref != "" && $referencia == 'Venda') ? $id_ref : $id_receber;
+
+// Lançamento de uma venda da aba Vendas: totais, status e itens vêm da venda,
+// e o rodapé lista todos os lançamentos dela (entrada, restante, parcelas)
+$id_venda_real = $dados['id_venda_real'] ?? null;
+$pagamentos_venda = [];
+$status_venda = '';
+if ($id_venda_real) {
+    $stmt = $pdo->prepare("SELECT v.*, u.nome as nome_vendedor FROM vendas v LEFT JOIN usuarios u ON u.id = v.vendedor_id WHERE v.id = :id");
+    $stmt->execute([':id' => $id_venda_real]);
+    $venda = $stmt->fetch(PDO::FETCH_ASSOC);
+    if ($venda) {
+        $id_principal = $id_venda_real;
+        $desconto = $venda['desconto'];
+        $tipo_desconto = $venda['tipo_desconto'];
+        $frete = $venda['frete'];
+        $valor = $venda['valor_total'];
+        $valor_restante = 0;
+        $total_troco = 0;
+        $troco = 0;
+        $data_lancF = date('d/m/Y', strtotime($venda['data_venda']));
+        $nome_usu_lanc = $venda['nome_vendedor'] ?? $nome_usu_lanc;
+        $status_venda = $venda['status_pagamento'];
+        $cancelada = ($status_venda == 'Cancelada') ? 'Sim' : '';
+        $pago = ($status_venda == 'Pago') ? 'Sim' : 'Não';
+        $valorF = number_format((float) $valor, 2, ',', '.');
+        $freteF = number_format((float) $frete, 2, ',', '.');
+        $descontoFP = number_format((float) $desconto, 0, ',', '.');
+
+        $stmt = $pdo->prepare("SELECT r.*, f.nome as nome_forma FROM receber r LEFT JOIN formas_pgto f ON f.id = r.forma_pgto
+            WHERE r.id_venda_real = :id AND COALESCE(r.cancelada, '') <> 'Sim' ORDER BY r.vencimento, r.id");
+        $stmt->execute([':id' => $id_venda_real]);
+        $pagamentos_venda = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    } else {
+        $id_venda_real = null;
+    }
+}
 
 
 // BUSCA NOME DA FORMA DE PAGAMENTO (SAÍDA)
@@ -272,6 +316,8 @@ if ($res_rest) {
                 <?php
                 if ($cancelada == 'Sim') {
                     echo 'CANCELADA';
+                } elseif ($status_venda != '') {
+                    echo $status_venda;
                 } else {
                     echo 'Pago: ' . $pago;
                 }
@@ -302,7 +348,8 @@ if ($res_rest) {
 
             <?php
             // 6. BUSCA ITENS DA VENDA - SEGURANÇA: Prepared Statement
-            $stmt_itens = $pdo->prepare("SELECT * FROM itens_venda WHERE id_venda = :id_venda ORDER BY id ASC");
+            $coluna_venda = $id_venda_real ? 'id_venda_real' : 'id_venda';
+            $stmt_itens = $pdo->prepare("SELECT * FROM itens_venda WHERE $coluna_venda = :id_venda ORDER BY id ASC");
             $stmt_itens->bindValue(':id_venda', $id_principal, PDO::PARAM_INT);
             $stmt_itens->execute();
             $dados_itens = $stmt_itens->fetchAll(PDO::FETCH_ASSOC);
@@ -426,7 +473,17 @@ if ($res_rest) {
             <td style="width: 40%; text-align: right; padding-top: 5px;"><?php echo $nome_usu_lanc ?></td>
         </tr>
 
-        <?php if (floatval($valor_restante) > 0) { ?>
+        <?php if ($id_venda_real) { ?>
+            <?php foreach ($pagamentos_venda as $pg) { ?>
+                <tr>
+                    <td><?php echo htmlspecialchars($pg['descricao']) ?> (R$ <?php echo number_format($pg['valor'], 2, ',', '.') ?>):</td>
+                    <td style="text-align: right;">
+                        <?php echo htmlspecialchars($pg['nome_forma'] ?? '') ?>
+                        <?php echo ($pg['pago'] == 'Sim') ? 'Pago' : 'Vence ' . $format_date($pg['vencimento']) ?>
+                    </td>
+                </tr>
+            <?php } ?>
+        <?php } elseif (floatval($valor_restante) > 0) { ?>
             <tr>
                 <td>Pagamento Inicial (R$ <?php echo $valorF ?>):</td>
                 <td style="text-align: right;"> <?php echo $saida ?> <?php echo $data_venc_1F ?></td>

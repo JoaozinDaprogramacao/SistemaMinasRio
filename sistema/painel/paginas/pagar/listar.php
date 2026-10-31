@@ -65,16 +65,19 @@ $base_from  = " FROM $tabela t $join_categoria ";
 $base_where = " WHERE t.$tipo_data >= '$dataInicial' AND t.$tipo_data <= '$dataFinal'
                 $sql_usuario_lanc $sql_fornecedor $sql_pgto $sql_funcionario $sql_categoria ";
 
+// Normaliza pago vazio/NULL como 'Não' (registros antigos ficaram sem o valor padrão preenchido)
+$pago_norm = "COALESCE(NULLIF(t.pago, ''), 'Não')";
+
 // Totais para os cards (query única)
 $res_totais = $pdo->query("SELECT
     SUM(CASE
-        WHEN t.vencimento < curDate() AND t.pago = 'Não' THEN t.valor
-        WHEN t.vencimento < curDate() AND t.pago = 'Parcial' THEN COALESCE(t.valor_restante, t.valor)
+        WHEN t.vencimento < curDate() AND $pago_norm = 'Não' THEN t.valor
+        WHEN t.vencimento < curDate() AND $pago_norm = 'Parcial' THEN COALESCE(t.valor_restante, t.valor)
         ELSE 0 END) as vencidas,
-    SUM(CASE WHEN t.pago = 'Sim' THEN t.subtotal ELSE 0 END) as pagas,
+    SUM(CASE WHEN $pago_norm = 'Sim' THEN t.subtotal ELSE 0 END) as pagas,
     SUM(CASE
-        WHEN t.vencimento >= curDate() AND t.pago = 'Não' THEN t.valor
-        WHEN t.vencimento >= curDate() AND t.pago = 'Parcial' THEN COALESCE(t.valor_restante, t.valor)
+        WHEN t.vencimento >= curDate() AND $pago_norm = 'Não' THEN t.valor
+        WHEN t.vencimento >= curDate() AND $pago_norm = 'Parcial' THEN COALESCE(t.valor_restante, t.valor)
         ELSE 0 END) as a_vencer,
     SUM(t.valor) as total_bruto,
     SUM(COALESCE(t.desconto, 0)) as desc_total,
@@ -93,19 +96,19 @@ $total_liquidoF = number_format($total_liquido, 2, ',', '.');
 
 // Ordenação inteligente: vencidas/parcial vencida primeiro, depois a vencer, depois pagas
 $ordem = "ORDER BY CASE
-            WHEN t.pago IN ('Não','Parcial') AND t.vencimento < curDate() THEN 1
-            WHEN t.pago IN ('Não','Parcial') AND t.vencimento >= curDate() THEN 2
+            WHEN $pago_norm IN ('Não','Parcial') AND t.vencimento < curDate() THEN 1
+            WHEN $pago_norm IN ('Não','Parcial') AND t.vencimento >= curDate() THEN 2
             ELSE 3 END ASC, t.vencimento ASC";
 
 $where_filtro = "";
 if ($filtro == 'Vencidas') {
-    $where_filtro = " AND t.vencimento < curDate() AND t.pago IN ('Não','Parcial')";
+    $where_filtro = " AND t.vencimento < curDate() AND $pago_norm IN ('Não','Parcial')";
     $ordem = "ORDER BY t.vencimento ASC";
 } else if ($filtro == 'Pagas') {
-    $where_filtro = " AND t.pago = 'Sim'";
+    $where_filtro = " AND $pago_norm = 'Sim'";
     $ordem = "ORDER BY t.data_pgto DESC";
 } else if ($filtro == 'AVencer') {
-    $where_filtro = " AND t.vencimento >= curDate() AND t.pago IN ('Não','Parcial')";
+    $where_filtro = " AND t.vencimento >= curDate() AND $pago_norm IN ('Não','Parcial')";
 }
 
 $query = $pdo->query("SELECT t.* $sel_categoria $base_from $base_where $where_filtro $ordem");
@@ -121,7 +124,12 @@ if ($linhas > 0) {
     <table class="table table-bordered text-nowrap border-bottom dt-responsive" id="tabela">
     <thead>
         <tr>
-            <th align="center" width="5%" class="text-center">Selecionar</th>
+            <th align="center" width="5%" class="text-center">
+                <div class="custom-checkbox custom-control">
+                    <input type="checkbox" class="custom-control-input" id="selecionar-todos" onchange="selecionarTodos(this)" title="Selecionar todos (respeitando os filtros)">
+                    <label for="selecionar-todos" class="custom-control-label mt-1 text-dark"></label>
+                </div>
+            </th>
             <th class="esc">Data Lançamento</th>
             <th>Descrição</th>
             <th class="esc">Categoria</th>
@@ -196,11 +204,34 @@ HTML;
         $tumb_arquivo = (in_array(strtolower($ext), ['jpg', 'jpeg', 'png', 'gif'])) ? $arquivo : ($ext ? strtolower($ext) . '.png' : 'sem-foto.png');
         $classe_venc = (strtotime($vencimento) < strtotime($data_hoje) && $pago != 'Sim') ? 'text-danger' : '';
 
+        $acao_pdf = '';
+        if ($referencia == 'romaneio_compra' && $id_romaneio > 0) {
+            $acao_pdf = "<big><a href='#' onclick=\"imprimir('{$id_romaneio}')\" title='Imprimir Romaneio'><i class='fa fa-file-pdf-o text-info'></i></a></big>";
+        }
+
+        // Lançamento de romaneio: editar/excluir só pelo próprio romaneio
+        $acoes_edicao = '';
+        if ($id_romaneio <= 0) {
+            $acoes_edicao = <<<HTML
+    <big>
+        <a href="#" onclick="editar('{$id}','{$descricao}','{$valor}','{$fornecedor_row}','{$funcionario_row}','{$vencimento}','{$data_pgto}','{$forma_pgto_row}','{$frequencia}','{$obs}','{$arquivo}','{$cat_id}')" title="Editar Conta">
+            <i class="fa fa-edit text-primary"></i>
+        </a>
+    </big>
+    <div style="display: inline-block;" class="dropdown">
+        <a href="#" data-bs-toggle="dropdown"><i class="fa fa-trash text-danger"></i></a>
+        <div class="dropdown-menu">
+            <div class="dropdown-item-text">Confirmar? <a href="#" onclick="excluir('{$id}')"><span class="text-danger">Sim</span></a></div>
+        </div>
+    </div>
+HTML;
+        }
+
         echo <<<HTML
 <tr>
     <td align="center">
         <div class="custom-checkbox custom-control">
-            <input type="checkbox" class="custom-control-input" id="seletor-{$id}" onchange="selecionar('{$id}')">
+            <input type="checkbox" class="custom-control-input" id="seletor-{$id}" data-pago="{$pago}" onchange="selecionar('{$id}')">
             <label for="seletor-{$id}" class="custom-control-label mt-1 text-dark"></label>
         </div>
     </td>
@@ -218,17 +249,8 @@ HTML;
             <i class="fa fa-check-square text-success"></i>
         </a>
     </big>
-    <big>
-        <a href="#" onclick="editar('{$id}','{$descricao}','{$valor}','{$fornecedor_row}','{$funcionario_row}','{$vencimento}','{$data_pgto}','{$forma_pgto_row}','{$frequencia}','{$obs}','{$arquivo}','{$cat_id}')" title="Editar Conta">
-            <i class="fa fa-edit text-primary"></i>
-        </a>
-    </big>
-    <div style="display: inline-block;" class="dropdown">
-        <a href="#" data-bs-toggle="dropdown"><i class="fa fa-trash text-danger"></i></a>
-        <div class="dropdown-menu">
-            <div class="dropdown-item-text">Confirmar? <a href="#" onclick="excluir('{$id}')"><span class="text-danger">Sim</span></a></div>
-        </div>
-    </div>
+{$acao_pdf}
+{$acoes_edicao}
     </td>
 </tr>
 HTML;
@@ -252,6 +274,10 @@ HTML;
 ?>
 
 <script>
+    function imprimir(id) {
+        window.open('rel/gerar_pdf_romaneio_compra.php?id=' + id, '_blank');
+    }
+
     $(document).ready(function () {
         if ($.fn.DataTable.isDataTable('#tabela')) {
             $('#tabela').DataTable().destroy();

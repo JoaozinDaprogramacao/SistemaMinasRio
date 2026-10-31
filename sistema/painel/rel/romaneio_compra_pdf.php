@@ -42,7 +42,9 @@ $descontos = json_decode($romaneio['descontos_diversos'] ?? '[]', true) ?: [];
 // --- CÁLCULOS ---
 $total_bruto = array_sum(array_column($produtos, 'valor'));
 $percentual_desconto = floatval($romaneio['desc_avista'] ?? 0);
-$valor_desconto_calculado = ($total_bruto * $percentual_desconto) / 100;
+// Arredonda o desconto para centavos antes de subtrair, igual a salvar.php e romaneio.js —
+// assim as três linhas impressas (bruto, desconto, líquido) fecham entre si na calculadora.
+$valor_desconto_calculado = round(($total_bruto * $percentual_desconto) / 100, 2);
 $total_liquido_parcial = $total_bruto - $valor_desconto_calculado;
 
 

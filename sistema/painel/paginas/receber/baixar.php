@@ -1,6 +1,14 @@
 <?php
 $tabela = 'receber';
 require_once("../../../conexao.php");
+
+// Converte "1.234,56" (formato BR) ou "2.60" (vindo do banco) em número
+function valor_br($v) {
+    $v = trim((string) $v);
+    if ($v === '') return '';
+    if (preg_match('/^-?\d+\.\d{1,2}$/', $v)) return $v;
+    return str_replace(',', '.', str_replace('.', '', $v));
+}
 @session_start();
 $id_usuario = $_SESSION['id'];
 
@@ -15,24 +23,46 @@ ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
 $acrescimo = $_POST['valor-acrescimo'] ?? 0;
-$acrescimo = str_replace(',', '.', str_replace('.', '', $acrescimo));
+$acrescimo = valor_br($acrescimo);
 
 $multa = $_POST['valor-multa'] ?? 0;
-$multa = str_replace(',', '.', str_replace('.', '', $multa));
+$multa = valor_br($multa);
 
 $desconto = $_POST['valor-desconto'] ?? 0;
-$desconto = str_replace(',', '.', str_replace('.', '', $desconto));
+$desconto = valor_br($desconto);
 
 $juros = $_POST['valor-juros'] ?? 0;
-$juros = str_replace(',', '.', str_replace('.', '', $juros));
+$juros = valor_br($juros);
 
 $subtotal = $_POST['subtotal'] ?? 0;
-$subtotal = str_replace(',', '.', str_replace('.', '', $subtotal));
+$subtotal = valor_br($subtotal);
 
 $acrescimo = ($acrescimo == "") ? 0 : $acrescimo;
 $multa = ($multa == "") ? 0 : $multa;
 $juros = ($juros == "") ? 0 : $juros;
 $desconto = ($desconto == "") ? 0 : $desconto;
+
+// Espelha no servidor o bloqueio do modal: valor impossível não vira baixa.
+// A trava do JavaScript é conforto de digitação; quem posta direto no endpoint,
+// ou com o script quebrado, esbarra aqui — antes do DELETE dos pagamentos antigos.
+$ajustes_negativos = [];
+if ((float)$multa     < 0) $ajustes_negativos[] = 'multa';
+if ((float)$juros     < 0) $ajustes_negativos[] = 'juros';
+if ((float)$acrescimo < 0) $ajustes_negativos[] = 'acréscimo';
+if ((float)$desconto  < 0) $ajustes_negativos[] = 'desconto';
+if (count($ajustes_negativos) > 0) {
+    echo 'Valor impossível: ' . implode(', ', $ajustes_negativos) . ' não pode ser negativo.';
+    exit();
+}
+
+$titulo_atual  = $pdo->query("SELECT valor FROM $tabela WHERE id = '$id'")->fetch(PDO::FETCH_ASSOC);
+$valor_titulo  = $titulo_atual ? (float)$titulo_atual['valor'] : 0;
+$bruto_titulo  = round($valor_titulo + (float)$multa + (float)$juros + (float)$acrescimo, 2);
+if (round((float)$desconto, 2) > $bruto_titulo) {
+    echo 'Valor impossível: o desconto (R$ ' . number_format((float)$desconto, 2, ',', '.')
+       . ') supera o total do título (R$ ' . number_format($bruto_titulo, 2, ',', '.') . ').';
+    exit();
+}
 
 // Captura as múltiplas linhas
 $valores_pgto = $_POST['valor_baixar'] ?? [];
@@ -46,7 +76,7 @@ $pagamentos_validos = [];
 
 // Calcula o total recebido nesta requisição
 for ($i = 0; $i < count($valores_pgto); $i++) {
-    $v = str_replace(',', '.', str_replace('.', '', $valores_pgto[$i]));
+    $v = valor_br($valores_pgto[$i]);
     if ($v > 0) {
         $total_recebido += $v;
         $pagamentos_validos[] = [

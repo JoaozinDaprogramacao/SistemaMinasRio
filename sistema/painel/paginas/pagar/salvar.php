@@ -19,6 +19,16 @@ $banco = $_POST['banco'] ?? 0;
 $descricao_banco = $_POST['descricao_banco'] ?? 0;
 $categoria_pagar = !empty($_POST['categoria_pagar']) ? (int)$_POST['categoria_pagar'] : 'NULL';
 
+// Lançamento gerado por romaneio só pode ser alterado pelo próprio romaneio
+if($id != ""){
+	$query = $pdo->prepare("SELECT id_romaneio FROM $tabela WHERE id = :id");
+	$query->execute([':id' => $id]);
+	if((int) $query->fetchColumn() > 0){
+		echo 'Este lançamento veio de um romaneio. Edite pelo romaneio.';
+		exit();
+	}
+}
+
 $valor = str_replace(',', '.', $valor);
 $valorF = @number_format($valor, 2, ',', '.');
 

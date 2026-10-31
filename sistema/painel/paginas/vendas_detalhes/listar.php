@@ -51,8 +51,7 @@ require_once("../../../conexao.php");
 
                 $('#listar-itens').html(result.tabela_itens);
 
-                // Ajusta o link do botão de imprimir para usar o ID do comprovante correto
-                $('#btn_imprimir').attr('href', 'rel/comprovante_pdf.php?id=' + result.id_comprovante);
+                $('#btn_imprimir').attr('href', 'rel/comprovante_pdf.php?venda=' + result.id);
 
                 // Abre o modal
                 var myModal = new bootstrap.Modal(document.getElementById('modalDetalhes'));
@@ -166,6 +165,7 @@ require_once("../../../conexao.php");
                             <option value="Pago">Pago</option>
                             <option value="Parcialmente Pago">Parcialmente Pago</option>
                             <option value="Aguardando Pagamento">Aguardando Pagamento</option>
+                            <option value="Cancelada">Cancelada</option>
                         </select>
                     </div>
 

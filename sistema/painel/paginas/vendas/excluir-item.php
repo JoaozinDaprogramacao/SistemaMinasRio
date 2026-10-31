@@ -1,32 +1,16 @@
-<?php 
-$tabela = 'itens_venda';
+<?php
 require_once("../../../conexao.php");
 
-$id = $_POST['id'];
+@session_start();
+$id_usuario = $_SESSION['id'];
+$id = intval($_POST['id'] ?? 0);
 
-$query = $pdo->query("SELECT * from $tabela where id = '$id'");
-$res = $query->fetchAll(PDO::FETCH_ASSOC);
-$id_material = $res[0]['material'];
-$quantidade = $res[0]['quantidade'];
+// O estoque só é abatido ao fechar a venda, então remover do carrinho não devolve nada
+$query = $pdo->prepare("DELETE FROM itens_venda WHERE id = :id AND funcionario = :f AND id_venda = 0");
+$query->execute([':id' => $id, ':f' => $id_usuario]);
 
-
-
-$query = $pdo->query("SELECT * from materiais where id = '$id_material'");
-$res = $query->fetchAll(PDO::FETCH_ASSOC);
-$estoque = $res[0]['estoque'];
-$tem_estoque = $res[0]['tem_estoque'];
-$vendas = $res[0]['vendas'];
-
-$pdo->query("DELETE FROM $tabela WHERE id = '$id' ");
-echo "Excluído com Sucesso";
-
-if($tem_estoque == 'Sim'){
-	$novo_estoque = $estoque + $quantidade;
-
-	$vendas = $vendas - $quantidade;
-	
-	
-	//adicionar os produtos na tabela produtos
-	$pdo->query("UPDATE materiais SET estoque = '$novo_estoque', vendas = '$vendas' WHERE id = '$id_material'"); 
+if ($query->rowCount() > 0) {
+	echo "Excluído com Sucesso";
+} else {
+	echo "Item não encontrado no carrinho!";
 }
-?>

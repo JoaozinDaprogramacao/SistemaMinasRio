@@ -129,6 +129,11 @@ function listar(p1, p2, p3, p4, p5, p6, p7, p8) {
         dataType: "html",
         success: function (result) {
             $("#listar").html(result);
+            // A tabela é redesenhada com todos os checkboxes desmarcados, então a
+            // seleção anterior precisa ser descartada junto — senão o modal de baixa
+            // em massa soma títulos que nem estão mais na tela.
+            gravarIds([]);
+            $('#selecionar-todos').prop('checked', false);
         }
     });
 }
@@ -142,19 +147,58 @@ function tipoData(tipo) {
 // SELEÇÃO MÚLTIPLA
 // =============================================
 
-function selecionar(id) {
-    var ids = $('#ids').val();
-    if ($('#seletor-' + id).is(":checked")) {
-        $('#ids').val(ids + id + '-');
-    } else {
-        $('#ids').val(ids.replace(id + '-', ''));
-    }
-    var ids_final = $('#ids').val();
-    if (ids_final == "") {
-        $('#btn-deletar, #btn-baixar').hide();
-    } else {
+// O campo oculto #ids guarda a seleção no formato "1-2-3-".
+// Estas duas funções são o único ponto que lê/escreve esse formato.
+function lerIds() {
+    return ($('#ids').val() || "").split("-").filter(v => v !== "");
+}
+
+function gravarIds(lista) {
+    // Set: impede que o mesmo título entre duas vezes e seja somado em dobro
+    var unicos = [...new Set(lista)];
+    $('#ids').val(unicos.length ? unicos.join("-") + "-" : "");
+    if (unicos.length) {
         $('#btn-deletar, #btn-baixar').show();
+    } else {
+        $('#btn-deletar, #btn-baixar').hide();
     }
+}
+
+function selecionar(id) {
+    id = String(id);
+    var lista = lerIds();
+    if ($('#seletor-' + id).is(":checked")) {
+        lista.push(id);
+    } else {
+        lista = lista.filter(v => v !== id);
+        $('#selecionar-todos').prop('checked', false);
+    }
+    gravarIds(lista);
+}
+
+function selecionarTodos(master) {
+    var linhas;
+    if ($.fn.DataTable.isDataTable('#tabela')) {
+        linhas = $('#tabela').DataTable().rows({ search: 'applied' }).nodes();
+    } else {
+        linhas = $('#tabela tbody tr');
+    }
+
+    var lista = [];
+    $(linhas).find('input[type="checkbox"][id^="seletor-"]').each(function () {
+        // Títulos já pagos não entram na seleção: não podem ser baixados e
+        // inflavam a quantidade exibida no modal de baixa em massa.
+        if (master.checked && $(this).data('pago') === 'Sim') {
+            this.checked = false;
+            return;
+        }
+        this.checked = master.checked;
+        if (master.checked) {
+            lista.push(this.id.replace('seletor-', ''));
+        }
+    });
+
+    gravarIds(lista);
 }
 
 function deletarSel() {
@@ -166,31 +210,71 @@ function deletarSel() {
     setTimeout(() => { buscar(); limparCampos(); }, 1000);
 }
 
-function deletarSelBaixar() {
-    var ids = $('#ids').val();
-    var id = ids.split("-");
-    for (var i = 0; i < id.length - 1; i++) {
-        var novo_id = id[i];
-        $.ajax({
-            url: 'paginas/' + pag + "/baixar_multiplas.php",
-            method: 'POST',
-            data: { novo_id },
-            dataType: "html"
-        });
-    }
-    setTimeout(() => { buscar(); limparCampos(); }, 1000);
-}
-
 function valorBaixar() {
     var ids = $('#ids').val();
+
+    // Zera antes de consultar para não deixar na tela o valor da seleção anterior
+    $("#total_contas").html('...');
+    $('#qtd_contas_massa').text('...');
+
     $.ajax({
         url: 'paginas/' + pag + "/valor_baixar.php",
         method: 'POST',
         data: { ids },
-        dataType: "html",
-        success: function (result) { $("#total_contas").html(result); }
+        dataType: "json",
+        success: function (result) {
+            // Quantidade e valor vêm da mesma contagem do servidor (só os títulos
+            // realmente baixáveis), então não têm como divergir entre si.
+            $("#total_contas").html('R$ ' + result.total);
+            $('#qtd_contas_massa').text(result.qtd);
+        },
+        error: function () {
+            $("#total_contas").html('R$ 0,00');
+            $('#qtd_contas_massa').text('0');
+        }
     });
 }
+
+function abrirModalBaixaMassa() {
+    var ids = $('#ids').val();
+
+    $('#ids-baixar-massa').val(ids);
+    $('#data-baixar-massa').val(new Date().toISOString().slice(0, 10));
+    $('#forma-baixar-massa').prop('selectedIndex', 0);
+    $('#banco-baixar-massa').prop('selectedIndex', 0);
+    $('#operacao-baixar-massa').val('');
+    $('#obs-baixar-massa').val('');
+    $('#mensagem-baixar-massa').removeClass('text-danger text-success').text('');
+
+    valorBaixar();
+    $('#modalBaixarMassa').modal('show');
+}
+
+$(document).on('submit', '#form-baixar-massa', function (e) {
+    e.preventDefault();
+    $('#mensagem-baixar-massa').removeClass('text-danger text-success').text('Processando...');
+
+    $.ajax({
+        url: 'paginas/' + pag + "/baixar_multiplas.php",
+        type: 'POST',
+        data: $(this).serialize(),
+        success: function (mensagem) {
+            if (mensagem.trim() == "Baixado com Sucesso") {
+                $('#mensagem-baixar-massa').addClass('text-success').text(mensagem);
+                setTimeout(() => {
+                    $('#btn-fechar-baixar-massa').click();
+                    buscar();
+                    limparCampos();
+                }, 600);
+            } else {
+                $('#mensagem-baixar-massa').addClass('text-danger').text(mensagem);
+            }
+        },
+        error: function () {
+            $('#mensagem-baixar-massa').addClass('text-danger').text('Erro ao conectar com o servidor.');
+        }
+    });
+});
 
 // =============================================
 // MODAIS AUXILIARES
@@ -422,20 +506,148 @@ function getFloatValue(elementId) {
     return parseFloat(val.replace(/\./g, '').replace(',', '.')) || 0;
 }
 
-function totalizar() {
-    let valorOriginal = getFloatValue('valor-original-baixar');
-    let multa     = getFloatValue('valor-multa');
-    let juros     = getFloatValue('valor-juros');
-    let acrescimo = getFloatValue('valor-acrescimo');
-    let desconto  = getFloatValue('valor-desconto');
+// =============================================
+// AJUSTES DA BAIXA — multa, juros, acréscimo e desconto
+// Regra pedida pelo cliente: todo ajuste é comunicado ao usuário, em qualquer
+// valor, e valor impossível não passa — o Confirmar sai do ar até ser corrigido.
+// =============================================
 
-    let subtotalLiquido = (valorOriginal + multa + juros + acrescimo) - desconto;
+// Valor do banco ("2.60") para o campo no formato BR ("2,60")
+function formatarBR(v) {
+    const n = parseFloat(v) || 0;
+    return n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function moeda(v) {
+    return "R$ " + v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+// Arredonda para centavo antes de comparar, senão dízima dispara alerta à toa
+function centavos(v) {
+    return Math.round(v * 100) / 100;
+}
+
+// Situação dos ajustes em relação ao que há para pagar no título.
+function estadoAjustes() {
+    const original  = centavos(getFloatValue('valor-original-baixar'));
+    const multa     = centavos(getFloatValue('valor-multa'));
+    const juros     = centavos(getFloatValue('valor-juros'));
+    const acrescimo = centavos(getFloatValue('valor-acrescimo'));
+    const desconto  = centavos(getFloatValue('valor-desconto'));
+
+    const acrescimos = centavos(multa + juros + acrescimo);
+    const bruto      = centavos(original + acrescimos);
+    const excedente  = centavos(desconto - bruto);
+
+    // Campo negativo é erro de digitação: acréscimo que subtrai e desconto que
+    // soma não existem — o sinal já está no rótulo de cada campo.
+    const negativos = [];
+    if (multa     < 0) negativos.push('multa');
+    if (juros     < 0) negativos.push('juros');
+    if (acrescimo < 0) negativos.push('acréscimo');
+    if (desconto  < 0) negativos.push('desconto');
+
+    return {
+        original: original,
+        multa: multa,
+        juros: juros,
+        acrescimo: acrescimo,
+        desconto: desconto,
+        acrescimos: acrescimos,
+        bruto: bruto,
+        liquido: centavos(bruto - desconto),
+        excedente: excedente,
+        negativos: negativos,
+        // Impossível: nenhuma baixa real corresponde a isso — campo negativo, ou
+        // desconto maior do que a dívida inteira.
+        impossivel: (negativos.length > 0 || excedente > 0),
+        temAjuste: (acrescimos !== 0 || desconto !== 0)
+    };
+}
+
+// "Título R$ 1.000,00 + juros R$ 5,00 − desconto R$ 100,00 = R$ 905,00"
+function resumoAjustes(est) {
+    let txt = 'Título ' + moeda(est.original);
+    if (est.multa     !== 0) txt += ' + multa ' + moeda(est.multa);
+    if (est.juros     !== 0) txt += ' + juros ' + moeda(est.juros);
+    if (est.acrescimo !== 0) txt += ' + acréscimo ' + moeda(est.acrescimo);
+    if (est.desconto  !== 0) txt += ' − desconto ' + moeda(est.desconto);
+    return txt + ' = <b>' + moeda(est.liquido < 0 ? 0 : est.liquido) + '</b>';
+}
+
+function mancheteAjustes(est) {
+    const partes = [];
+    if (est.acrescimos > 0) partes.push('acréscimo de <b>' + moeda(est.acrescimos) + '</b>');
+    if (est.desconto   > 0) partes.push('desconto de <b>' + moeda(est.desconto) + '</b>');
+    return partes.join(' e ');
+}
+
+function travarConfirmar(travado, motivo) {
+    const btn = document.getElementById('btn-confirmar-baixar');
+    if (!btn) return;
+    btn.disabled = travado;
+    btn.title = travado ? motivo : '';
+}
+
+function avisarAjustes() {
+    const box = document.getElementById('alerta-desconto');
+    if (!box) return;
+
+    const est = estadoAjustes();
+
+    if (est.impossivel) {
+        let motivo;
+        if (est.negativos.length > 0) {
+            motivo = 'O campo de ' + est.negativos.join(', ') + ' está negativo. Informe apenas valores ' +
+                     'positivos: multa, juros e acréscimo somam, o desconto subtrai.';
+        } else {
+            motivo = 'O desconto de <b>' + moeda(est.desconto) + '</b> supera em <b>' + moeda(est.excedente) +
+                     '</b> tudo o que há para pagar no título (' + moeda(est.bruto) + '). ' +
+                     'No máximo o desconto pode zerar o título.';
+        }
+        box.className = 'alert alert-danger py-2 px-3 mb-3';
+        box.innerHTML =
+            '<div class="fw-bold mb-1"><i class="fa fa-ban me-1"></i>Valor impossível — baixa bloqueada</div>' +
+            '<div class="small">' + motivo + '</div>';
+        travarConfirmar(true, 'Corrija o valor destacado no alerta para concluir a baixa');
+        return;
+    }
+
+    travarConfirmar(false, '');
+
+    if (est.desconto > 0 && est.bruto > 0 && est.excedente === 0) {
+        // Desconto igual ao total: legítimo (dívida perdoada), mas nunca silencioso.
+        box.className = 'alert alert-warning py-2 px-3 mb-3';
+        box.innerHTML =
+            '<div class="fw-bold mb-1"><i class="fa fa-exclamation-triangle me-1"></i>O desconto zera o título</div>' +
+            '<div class="small">' + resumoAjustes(est) + ' — nada será pago.</div>';
+        return;
+    }
+
+    if (est.temAjuste) {
+        // Qualquer acréscimo ou desconto, em qualquer valor, aparece aqui.
+        box.className = 'alert alert-info py-2 px-3 mb-3';
+        box.innerHTML =
+            '<div class="fw-bold mb-1"><i class="fa fa-info-circle me-1"></i>Baixa com ' + mancheteAjustes(est) + '</div>' +
+            '<div class="small">' + resumoAjustes(est) + '</div>';
+        return;
+    }
+
+    box.className = 'd-none mb-3';
+    box.innerHTML = '';
+}
+
+function totalizar() {
+    const est = estadoAjustes();
+
+    let subtotalLiquido = est.liquido;
     if (subtotalLiquido < 0) subtotalLiquido = 0;
 
     let subtotalInput = document.getElementById('subtotal');
     if (subtotalInput) {
         subtotalInput.value = subtotalLiquido.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     }
+    avisarAjustes();
     totalizarPagamentos();
 }
 
@@ -494,7 +706,9 @@ function mascaraMoedaInput(input) {
 document.addEventListener('input', function (e) {
     if (e.target.classList.contains('input-zeravel') || e.target.classList.contains('valor_pagamento')) {
         mascaraMoedaInput(e.target);
-        totalizarPagamentos();
+        // totalizar() e não totalizarPagamentos(): colar com o mouse dispara só o
+        // evento input (sem keyup), e o alerta de ajustes precisa repintar também.
+        totalizar();
     }
 }, false);
 
@@ -554,6 +768,10 @@ function limparModalBaixar() {
     $('#obs-baixar').val('');
     $('#secao-romaneio-baixar').hide();
     $('#secao-conta-baixar').hide();
+
+    $('#alerta-desconto').attr('class', 'd-none mb-3').empty();
+    $('#btn-confirmar-baixar').prop('disabled', false).attr('title', '');
+
     $('#linha-container-pagamento').empty();
     addNewPagamentoLine();
 }
@@ -619,10 +837,10 @@ function baixar(id, descricao, valor, vencimento, pessoa, forma_padrao, status_p
                     addNewPagamentoLine();
                 }
 
-                $('#valor-multa').val(dados.multa);
-                $('#valor-juros').val(dados.juros);
-                $('#valor-acrescimo').val(dados.acrescimo);
-                $('#valor-desconto').val(dados.desconto);
+                $('#valor-multa').val(formatarBR(dados.multa));
+                $('#valor-juros').val(formatarBR(dados.juros));
+                $('#valor-acrescimo').val(formatarBR(dados.acrescimo));
+                $('#valor-desconto').val(formatarBR(dados.desconto));
                 $('#obs-baixar').val(dados.obs);
 
                 totalizar();
@@ -651,6 +869,19 @@ function baixar(id, descricao, valor, vencimento, pessoa, forma_padrao, status_p
 
 $(document).on('submit', '#form-baixar', function (e) {
     e.preventDefault();
+
+
+    // Valor impossível não passa. O botão já fica desabilitado por avisarAjustes();
+    // isto cobre Enter no campo e submit disparado por script.
+    const est = estadoAjustes();
+    if (est.impossivel) {
+        avisarAjustes();
+        $('#mensagem-baixar').removeClass('text-success').addClass('text-danger')
+            .text('Corrija o valor destacado acima para concluir a baixa.');
+        document.getElementById('alerta-desconto').scrollIntoView({ block: 'center', behavior: 'smooth' });
+        return;
+    }
+
     $('#mensagem-baixar').removeClass('text-danger text-success').text('Processando...');
 
     var formData = new FormData(this);

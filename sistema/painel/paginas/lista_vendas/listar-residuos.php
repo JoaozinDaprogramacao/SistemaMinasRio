@@ -1,16 +1,16 @@
-<?php 
+<?php
 $tabela = 'receber';
 require_once("../../../conexao.php");
 
 
-$id = $_POST['id'];
+$id = intval($_POST['id'] ?? 0);
 
 echo <<<HTML
 <table id="example_res" class="table table-striped table-light table-hover my-4">
 <thead>
 <tr>
 <th>Valor</th>
-<th>Data</th>								
+<th>Data</th>
 <th>Usuário</th>
 </tr>
 </thead>
@@ -18,37 +18,28 @@ echo <<<HTML
 HTML;
 
 
-$query = $pdo->query("SELECT * from valor_parcial where id_conta = '$id' and tipo = 'Receber' order by id desc ");
+// Pagamentos parciais são lançados como resíduos pagos ligados à conta (ver baixar.php)
+$query = $pdo->prepare("SELECT r.*, u.nome as nome_usuario FROM $tabela r
+	LEFT JOIN usuarios u ON u.id = r.usuario_pgto
+	WHERE r.id_ref = :id AND r.residuo = 'Sim' ORDER BY r.id DESC");
+$query->execute([':id' => $id]);
 $res = $query->fetchAll(PDO::FETCH_ASSOC);
-for($i=0; $i < @count($res); $i++){
-	foreach ($res[$i] as $key => $value){} 
-
-		$valor = $res[$i]['valor'];
-		$data = $res[$i]['data'];
-		$usuario = $res[$i]['usuario'];
-
-		$query2 = $pdo->query("SELECT * from usuarios where id = '$usuario'");
-		$res2 = $query2->fetchAll(PDO::FETCH_ASSOC);
-		$nome_usuario = $res2[0]['nome'];
-
-		$data = implode('/', array_reverse(@explode('-', $data)));
-
-		$valor = number_format($valor, 2, ',', '.');
-
-	
+foreach ($res as $residuo) {
+		$valor = number_format($residuo['valor'], 2, ',', '.');
+		$data = implode('/', array_reverse(@explode('-', $residuo['data_pgto'])));
+		$nome_usuario = $residuo['nome_usuario'] ?? 'Sem Usuário';
 
 echo <<<HTML
 	<tr>
-	<td>R$ {$valor}</td>		
-	<td>{$data}</td>							
-	<td>{$nome_usuario}</td>	
+	<td>R$ {$valor}</td>
+	<td>{$data}</td>
+	<td>{$nome_usuario}</td>
 	</tr>
 HTML;
-} 
+}
 echo <<<HTML
 </tbody>
 </table>
 HTML;
 
 ?>
-

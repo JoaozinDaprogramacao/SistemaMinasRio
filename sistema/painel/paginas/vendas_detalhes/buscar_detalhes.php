@@ -16,9 +16,9 @@ if (empty($id_venda)) {
 
 // 1. BUSCAR DADOS PRINCIPAIS DA VENDA E NOMES RELACIONADOS
 $query_venda = $pdo->prepare("SELECT v.*, c.nome as nome_cliente, u.nome as nome_vendedor 
-                             FROM vendas v 
-                             JOIN clientes c ON v.cliente_id = c.id 
-                             JOIN usuarios u ON v.vendedor_id = u.id 
+                             FROM vendas v
+                             LEFT JOIN clientes c ON v.cliente_id = c.id
+                             LEFT JOIN usuarios u ON v.vendedor_id = u.id
                              WHERE v.id = :id_venda");
 $query_venda->execute([':id_venda' => $id_venda]);
 $res_venda = $query_venda->fetchAll(PDO::FETCH_ASSOC);
@@ -36,6 +36,7 @@ $status = $venda['status_pagamento'];
 $classe_status = 'text-warning'; // Padrão
 if($status == 'Pago'){ $classe_status = 'text-success'; }
 elseif ($status == 'Parcialmente Pago'){ $classe_status = 'text-primary'; }
+elseif ($status == 'Cancelada'){ $classe_status = 'text-muted'; }
 
 // Formata o desconto para mostrar o tipo (R$ ou %)
 $desconto_val = $venda['desconto'];
@@ -75,19 +76,38 @@ foreach ($res_itens as $item) {
 $tabela_itens .= '</tbody></table>';
 
 
-// 5. BUSCAR O ID DO COMPROVANTE NA TABELA 'receber' PARA MANTER COMPATIBILIDADE
-$query_rec = $pdo->prepare("SELECT id_venda FROM itens_venda WHERE id_venda_real = :id_venda LIMIT 1");
+// 5. LANÇAMENTOS EM CONTAS A RECEBER DA VENDA (entrada, restante, parcelas, resíduos)
+$query_rec = $pdo->prepare("SELECT r.*, f.nome as nome_forma FROM receber r
+                            LEFT JOIN formas_pgto f ON f.id = r.forma_pgto
+                            WHERE r.id_venda_real = :id_venda ORDER BY r.vencimento, r.id");
 $query_rec->execute([':id_venda' => $id_venda]);
-$res_rec = $query_rec->fetch(PDO::FETCH_ASSOC);
-// O id do comprovante é o id da tabela 'receber', que está na coluna 'id_venda' da tabela 'itens_venda'
-$id_comprovante = $res_rec['id_venda'] ?? $id_venda; 
+$res_rec = $query_rec->fetchAll(PDO::FETCH_ASSOC);
+
+$tabela_itens .= '<h6 class="px-2 mt-3">Contas a Receber</h6>
+                  <table class="table table-sm mb-0">
+                    <thead><tr><th>Descrição</th><th>Forma</th><th>Vencimento</th><th class="text-end">Valor</th><th class="text-center">Pago</th></tr></thead>
+                    <tbody>';
+foreach ($res_rec as $rec) {
+    $situacao = ($rec['cancelada'] == 'Sim') ? 'Cancelada' : $rec['pago'];
+    $tabela_itens .= '<tr>';
+    $tabela_itens .= '<td>' . htmlspecialchars($rec['descricao']) . '</td>';
+    $tabela_itens .= '<td>' . htmlspecialchars($rec['nome_forma'] ?? '-') . '</td>';
+    $tabela_itens .= '<td>' . date('d/m/Y', strtotime($rec['vencimento'])) . '</td>';
+    $tabela_itens .= '<td class="text-end">R$ ' . number_format($rec['valor'], 2, ',', '.') . '</td>';
+    $tabela_itens .= '<td class="text-center">' . $situacao . '</td>';
+    $tabela_itens .= '</tr>';
+}
+if (count($res_rec) == 0) {
+    $tabela_itens .= '<tr><td colspan="5" class="text-center text-muted">Nenhum lançamento.</td></tr>';
+}
+$tabela_itens .= '</tbody></table>';
 
 
 // 6. MONTAR O ARRAY DE RESPOSTA JSON
 $output = [
     'id' => $venda['id'],
-    'cliente' => htmlspecialchars($venda['nome_cliente']),
-    'vendedor' => htmlspecialchars($venda['nome_vendedor']),
+    'cliente' => htmlspecialchars($venda['nome_cliente'] ?? 'Cliente excluído'),
+    'vendedor' => htmlspecialchars($venda['nome_vendedor'] ?? 'Usuário excluído'),
     'data' => date('d/m/Y H:i', strtotime($venda['data_venda'])),
     'status' => $status,
     'classe_status' => $classe_status,
@@ -97,8 +117,7 @@ $output = [
     'total' => 'R$ ' . number_format($venda['valor_total'], 2, ',', '.'),
     'pago' => 'R$ ' . number_format($venda['valor_pago'], 2, ',', '.'),
     'restante' => 'R$ ' . number_format($venda['valor_restante'], 2, ',', '.'),
-    'tabela_itens' => $tabela_itens,
-    'id_comprovante' => $id_comprovante
+    'tabela_itens' => $tabela_itens
 ];
 
 // Envia a resposta final em formato JSON

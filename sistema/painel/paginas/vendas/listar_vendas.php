@@ -1,14 +1,15 @@
 <?php
 $tabela = 'itens_venda';
 require_once("../../../conexao.php");
+require_once("funcoes_venda.php");
 @session_start();
 $id_usuario = $_SESSION['id'];
 
-// --- Lógica de totais (sem alterações) ---
-$desconto = floatval(str_replace(',', '.', $_POST['desconto'] ?? '0'));
-$troco = floatval(str_replace(',', '.', $_POST['troco'] ?? '0'));
+// Mesmo cálculo do salvar.php: a tela só exibe
+$desconto = venda_valor_br($_POST['desconto'] ?? '');
+$troco = venda_valor_br($_POST['troco'] ?? '');
 $tipo_desconto = $_POST['tipo_desconto'] ?? '';
-$frete = floatval(str_replace(',', '.', $_POST['frete'] ?? '0'));
+$frete = venda_valor_br($_POST['frete'] ?? '');
 $subtotal_itens = 0;
 $ids_itens = [];
 
@@ -23,8 +24,9 @@ if ($linhas > 0) {
         $ids_itens[] = $item['id'];
     }
 }
-$valor_desconto = ($tipo_desconto == '%') ? ($subtotal_itens * ($desconto / 100)) : $desconto;
-$total_final = $subtotal_itens - $valor_desconto + $frete;
+$subtotal_itens = round($subtotal_itens, 2);
+$valor_desconto = ($tipo_desconto == '%') ? round($subtotal_itens * $desconto / 100, 2) : $desconto;
+$total_final = round($subtotal_itens - $valor_desconto + $frete, 2);
 $total_troco = ($troco > 0 && $troco > $total_final) ? ($troco - $total_final) : 0;
 ?>
 
@@ -122,16 +124,31 @@ if ($linhas > 0) {
 </div>
 
 <?php
+$subtotal_itensF = number_format($subtotal_itens, 2, ',', '.');
+$valor_descontoF = number_format($valor_desconto, 2, ',', '.');
+$freteF = number_format($frete, 2, ',', '.');
 $total_finalF = number_format($total_final, 2, ',', '.');
 $total_trocoF = number_format($total_troco, 2, ',', '.');
 ?>
 <div class="rodape-venda">
     <div class="rodape-linha">
-        <span>Itens:</span>
-        <span><?php echo $linhas; ?></span>
+        <span>Itens (<?php echo $linhas; ?>):</span>
+        <span>R$ <?php echo $subtotal_itensF; ?></span>
     </div>
+    <?php if ($valor_desconto > 0): ?>
+    <div class="rodape-linha text-danger">
+        <span>Desconto<?php echo ($tipo_desconto == '%') ? ' (' . $desconto . '%)' : ''; ?>:</span>
+        <span>- R$ <?php echo $valor_descontoF; ?></span>
+    </div>
+    <?php endif; ?>
+    <?php if ($frete > 0): ?>
+    <div class="rodape-linha">
+        <span>Frete:</span>
+        <span>+ R$ <?php echo $freteF; ?></span>
+    </div>
+    <?php endif; ?>
     <div class="rodape-linha" style="font-size: 16px;">
-        <span>Subtotal:</span>
+        <span>Total da Venda:</span>
         <span>R$ <?php echo $total_finalF; ?></span>
     </div>
     <?php if ($troco > 0): ?>
@@ -147,13 +164,14 @@ $ids_itens_json = json_encode(array_values($ids_itens));
 ?>
 
 <script type="text/javascript">
-    // --- Lógica JavaScript (sem alterações) ---
     var itens = <?= $linhas ?>;
     var ids_materiais = <?= $ids_itens_json ?>;
     $('#ids_itens').val(ids_materiais.join(','));
-    $('#subtotal_venda').val('<?= $total_final ?>');
-    if ($('#valor_pago').val() === '') {
-        $('#valor_pago').val('<?= number_format($total_final, 2, ',', '.') ?>');
+    $('#subtotal_venda').val('<?= $subtotal_itens ?>');
+    $('#total_venda').val('<?= $total_final ?>');
+    // Acompanha o total até o operador digitar outro valor pago
+    if ($('#valor_pago').data('manual') != 1 || $('#valor_pago').val() === '') {
+        $('#valor_pago').val('<?= $total_finalF ?>');
     }
     FormaPg();
     if (itens > 0) {
@@ -190,10 +208,12 @@ $ids_itens_json = json_encode(array_values($ids_itens));
         var id = $(this).data('id');
         var preco = $(this).val().replace(/\./g, '').replace(',', '.').replace('R$ ', '');
         if (preco !== "" && !isNaN(preco)) {
-            $.ajax({
+            // O "Fechar Venda" espera estas requisições antes de enviar
+            window.precosPendentes = window.precosPendentes || [];
+            window.precosPendentes.push($.ajax({
                 url: 'paginas/' + pag + "/atualizar-preco.php", method: 'POST', data: { id: id, preco: preco },
                 success: function(res) { if (res.trim() === "Atualizado com Sucesso") { listarVendas(); } }
-            });
+            }));
         }
     });
     function mascara(o,f){ v_obj=o; v_fun=f; setTimeout("execmascara()",1); }

@@ -195,13 +195,19 @@ HTML;
             echo " <big><a href='#' onclick=\"imprimir('{$id_ref}')\" title='Imprimir Romaneio'><i class='fa fa-file-pdf-o text-info'></i></a></big>";
         }
 
-        echo <<<HTML
+        // Lançamento de romaneio: excluir só pelo próprio romaneio
+        if (($res[$i]['id_romaneio'] ?? 0) <= 0) {
+            echo <<<HTML
         <div style="display: inline-block;" class="dropdown">
             <a href="#" data-bs-toggle="dropdown"><i class="fa fa-trash text-danger"></i></a>
             <div class="dropdown-menu">
                 <div class="dropdown-item-text">Confirmar? <a href="#" onclick="excluir('{$id}')"><span class="text-danger">Sim</span></a></div>
             </div>
         </div>
+HTML;
+        }
+
+        echo <<<HTML
     </td>
 </tr>
 HTML;

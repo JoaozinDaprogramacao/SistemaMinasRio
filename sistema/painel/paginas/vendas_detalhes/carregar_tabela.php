@@ -4,7 +4,7 @@ require_once("../../../conexao.php");
 
 // Receber todos os filtros via POST, adaptados para o contexto de vendas
 $filtros = [
-    'p1' => $_POST['cliente'] ?? '', // Filtro principal vindo das abas de navegação (se houver)
+    'p1' => $_POST['p1'] ?? '', // Abas de cliente: listar() do ajax.js envia p1
     'data_inicio' => $_POST['data_inicio'] ?? '',
     'data_fim' => $_POST['data_fim'] ?? '',
     'status_pagamento' => $_POST['status_pagamento'] ?? '',
@@ -17,9 +17,9 @@ $filtros = [
 
 // Construção segura da query base com JOINS para buscar nomes
 $query = "SELECT v.*, c.nome as nome_cliente, u.nome as nome_vendedor 
-          FROM vendas v 
-          JOIN clientes c ON v.cliente_id = c.id 
-          JOIN usuarios u ON v.vendedor_id = u.id";
+          FROM vendas v
+          LEFT JOIN clientes c ON v.cliente_id = c.id
+          LEFT JOIN usuarios u ON v.vendedor_id = u.id";
 
 $where = [];
 $params = [];
@@ -121,19 +121,25 @@ HTML;
             $classe_status = 'text-success'; // Verde para "Pago"
         } elseif ($status == 'Parcialmente Pago') {
             $classe_status = 'text-primary'; // Azul para "Parcialmente"
+        } elseif ($status == 'Cancelada') {
+            $classe_status = 'text-muted text-decoration-line-through';
         }
 
         // Define a cor do valor restante
         $classe_restante = $item['valor_restante'] > 0 ? 'text-danger' : 'text-muted';
 
+        $nome_cliente = htmlspecialchars($item['nome_cliente'] ?? 'Cliente excluído');
+        $nome_vendedor = htmlspecialchars($item['nome_vendedor'] ?? 'Usuário excluído');
+        $ocultar_acoes = ($status == 'Cancelada') ? 'd-none' : '';
+
         echo <<<HTML
         <tr>
             <td class="text-center">
-                <input type="checkbox" id="seletor-{$id}" class="form-check-input chk" onchange="selecionar('{$id}')">
+                <input type="checkbox" id="seletor-{$id}" class="form-check-input chk {$ocultar_acoes}" onchange="selecionar('{$id}')">
             </td>
             <td>{$id}</td>
-            <td>{$item['nome_cliente']}</td>
-            <td>{$item['nome_vendedor']}</td>
+            <td>{$nome_cliente}</td>
+            <td>{$nome_vendedor}</td>
             <td>{$data_formatada}</td>
             <td>R$ {$valor_total}</td>
             <td><span class="fw-bold {$classe_status}">{$status}</span></td>
@@ -143,8 +149,16 @@ HTML;
                     <i class="fa fa-eye"></i>
                 </button>
 
-                                <button class="btn btn-info btn-sm" onclick="editarVenda({$id})" title="Editar Venda">
+                <button class="btn btn-info btn-sm {$ocultar_acoes}" onclick="editarVenda({$id})" title="Editar Venda">
                     <i class="fa fa-edit"></i>
+                </button>
+
+                <a class="btn btn-dark btn-sm" href="rel/comprovante_pdf.php?venda={$id}" target="_blank" title="Comprovante">
+                    <i class="fa fa-file-pdf-o"></i>
+                </a>
+
+                <button class="btn btn-danger btn-sm {$ocultar_acoes}" onclick="cancelarVenda({$id})" title="Cancelar Venda">
+                    <i class="fa fa-ban"></i>
                 </button>
             </td>
         </tr>
@@ -163,11 +177,10 @@ HTML;
 
 <script type="text/javascript">
 function editarVenda(id_venda) {
-    // Mostra um feedback para o usuário
     Swal.fire({
-        title: 'Aguarde!',
-        text: 'Preparando venda para edição...',
-        icon: 'info',
+        title: "Aguarde!",
+        text: "Preparando venda para edição...",
+        icon: "info",
         showConfirmButton: false,
         allowOutsideClick: false,
         didOpen: () => {
@@ -175,41 +188,20 @@ function editarVenda(id_venda) {
         }
     });
 
-    // --- PASSO 1: Carregar os dados principais da venda (cliente, data, etc.) ---
+    // Marca a venda na sessão; a aba Vendas copia os itens para o carrinho ao abrir
     $.ajax({
-        url: 'paginas/vendas_detalhes/editar.php', 
-        method: 'POST',
+        url: "paginas/vendas_detalhes/editar.php",
+        method: "POST",
         data: { id: id_venda },
-        success: function(response1) {
-            if (response1.trim() !== 'sucesso') {
-                Swal.fire('Erro!', 'Não foi possível carregar os dados da venda: ' + response1, 'error');
+        success: function(resposta) {
+            if (resposta.trim() !== "sucesso") {
+                Swal.fire("Erro!", "Não foi possível carregar a venda: " + resposta, "error");
                 return;
             }
-
-            // --- PASSO 2: Se o Passo 1 deu certo, copia os itens da venda ---
-            $.ajax({
-                url: 'paginas/vendas_detalhes/preparar_edicao.php',
-                method: 'POST',
-                data: { id: id_venda },
-                success: function(response2) {
-                    if (response2.trim() !== 'sucesso') {
-                         Swal.fire('Erro!', 'Não foi possível copiar os itens da venda: ' + response2, 'error');
-                         return;
-                    }
-
-                    // --- SUCESSO! ---
-                    // ** CORREÇÃO AQUI **
-                    // Redireciona para a URL correta, como estava na sua função original
-                    window.location = 'vendas';
-
-                },
-                error: function() {
-                     Swal.fire('Erro de Conexão', 'Não foi possível copiar os itens da venda.', 'error');
-                }
-            });
+            window.location = "vendas";
         },
         error: function() {
-            Swal.fire('Erro de Conexão', 'Não foi possível carregar os dados da venda.', 'error');
+            Swal.fire("Erro de Conexão", "Não foi possível carregar os dados da venda.", "error");
         }
     });
 }

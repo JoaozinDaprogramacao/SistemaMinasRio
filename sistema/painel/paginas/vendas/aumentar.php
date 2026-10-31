@@ -1,38 +1,33 @@
-<?php 
-$tabela = 'itens_venda';
+<?php
 require_once("../../../conexao.php");
+require_once("funcoes_venda.php");
 
-$id = $_POST['id'];
-$quantidade = $_POST['quantidade'];
+@session_start();
+$id_usuario = $_SESSION['id'];
+$id = intval($_POST['id'] ?? 0);
 
-$query = $pdo->query("SELECT * from $tabela where id = '$id'");
-$res = $query->fetchAll(PDO::FETCH_ASSOC);
-$id_material = $res[0]['material'];
-$valor = $res[0]['valor'];
-
-$query = $pdo->query("SELECT * from materiais where id = '$id_material'");
-$res = $query->fetchAll(PDO::FETCH_ASSOC);
-$estoque = $res[0]['estoque'];
-$tem_estoque = $res[0]['tem_estoque'];
-$vendas = $res[0]['vendas'];
-
-$nova_quant = $quantidade + 1;
-$novo_total = $valor * $nova_quant;
-
-if($estoque <= 0 and $tem_estoque == 'Sim'){
-	echo 'A quantidade vendida não pode ser maior do que a quantidade em estoque!';
+$query = $pdo->prepare("SELECT iv.*, m.nome, m.tem_estoque, m.estoque FROM itens_venda iv
+	JOIN materiais m ON m.id = iv.material
+	WHERE iv.id = :id AND iv.funcionario = :f AND iv.id_venda = 0");
+$query->execute([':id' => $id, ':f' => $id_usuario]);
+$item = $query->fetch(PDO::FETCH_ASSOC);
+if (!$item) {
+	echo 'Item não encontrado no carrinho!';
 	exit();
 }
 
-$pdo->query("UPDATE $tabela SET quantidade = '$nova_quant', total = '$novo_total' WHERE id = '$id' ");
+$nova_quant = $item['quantidade'] + 1;
 
+// O estoque só é abatido ao fechar a venda; aqui apenas avisa
+if ($item['tem_estoque'] == 'Sim') {
+	$disponivel = $item['estoque'] + venda_qtd_em_edicao($pdo, @$_SESSION['id_venda_em_edicao'], $item['material']);
+	if ($nova_quant > $disponivel) {
+		echo 'A quantidade vendida não pode ser maior do que o estoque! Disponível de ' . $item['nome'] . ': ' . $disponivel;
+		exit();
+	}
+}
+
+$pdo->prepare("UPDATE itens_venda SET quantidade = :q, total = valor * :q2 WHERE id = :id")
+	->execute([':q' => $nova_quant, ':q2' => $nova_quant, ':id' => $id]);
 
 echo 'Atualizado com Sucesso';
-
-if($tem_estoque == 'Sim'){
-	$novo_estoque = $estoque - 1;
-	$vendas = $vendas + 1;
-	//adicionar os produtos na tabela produtos
-	$pdo->query("UPDATE materiais SET estoque = '$novo_estoque', vendas = '$vendas' WHERE id = '$id_material'");
-}
-?>

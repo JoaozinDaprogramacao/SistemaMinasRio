@@ -100,6 +100,15 @@ function calculaTotais() {
             totalKgSoma += (q * t);
         });
 
+        // O desconto à vista é arredondado para centavos ANTES de sair do bruto, e é esse
+        // mesmo valor que aparece na linha "DESCONTO RECEBIMENTO - À VISTA". É a conta que a
+        // planilha do romaneio faz no papel: 3% de 38.254,50 dá 1.147,635, vira 1.147,64, e o
+        // líquido é 38.254,50 - 1.147,64 = 37.106,86.
+        //
+        // Carregar a fração de meio centavo até o fim (como se fazia antes) dava 37.106,87 e
+        // fazia o romaneio impresso não fechar com os próprios números que ele mostra — quem
+        // conferisse na calculadora achava 1 centavo de diferença. salvar.php e o PDF fazem o
+        // mesmo arredondamento, então tela, impresso e banco batem.
         let descontoCents = 0;
         if (temDesconto) {
             const dPerc = parseFloat(descAvistaField.value.replace(',', '.')) || 0;
@@ -125,9 +134,32 @@ function calculaTotais() {
             const finalStr = (totalGeralCents / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
             totalGeralField.innerHTML = finalStr;
             inputHidden.value = finalStr;
+            // Guarda os centavos inteiros para updateLiquidPayable() não precisar reler o
+            // texto já formatado do campo.
+            inputHidden.dataset.centavos = totalGeralCents;
         }
     } catch (e) { }
     calcularTotalAbatimentos();
+}
+
+// Aplica um percentual sobre uma base em reais e devolve centavos inteiros.
+//
+// Não dá pra fazer Math.round(base * pUnit): taxa como 1,63 não existe exata em binário
+// (o double mais próximo é 1.6299999999999998934...), então 4750 * 1.63 dá
+// 7742.4999999999990905 e o Math.round joga PRA BAIXO. Foi assim que o romaneio 1583
+// fechou o FUNRURAL em 77,42 sendo que 4.750,00 x 1,63% = 77,425 e o papel arredonda pra
+// 77,43. E é loteria: 2650 * 1.63 dá 4319.5 redondo e sobe certinho — mesma taxa, dois
+// comportamentos. Só o 1583 caiu no lado errado em 1.139 romaneios.
+//
+// Fazendo a conta inteira em centavos x pontos-base o empate em meio centavo sempre sobe,
+// que é a regra do desconto à vista e do papel.
+function percentualEmCentavos(base, pUnit) {
+    const baseCentavos = Math.round(base * 100);
+    const pontosBase = Math.round(pUnit * 100); // 1,63% -> 163
+    const numerador = baseCentavos * pontosBase; // em décimos de milésimo de centavo
+    const inteiro = Math.floor(numerador / 10000);
+    const resto = numerador - inteiro * 10000;
+    return resto * 2 >= 10000 ? inteiro + 1 : inteiro;
 }
 
 function calcularTotalAbatimentos() {
@@ -154,18 +186,35 @@ function calcularTotalAbatimentos() {
             valorCalculadoCents = Math.round((taxaInput * pUnit) * 100);
         } else if (desc === 'FUNRURAL') {
             let base = infoVal.includes('bruto') ? totals.bruto : totals.liquido;
-            valorCalculadoCents = Math.round(base * pUnit); // <--- Nova linha
+            valorCalculadoCents = percentualEmCentavos(base, pUnit);
         } else {
             if (infoVal === 'kg') {
                 valorCalculadoCents = Math.round((pUnit * totals.kg) * 100);
             } else if (infoVal === 'cx' || infoVal === 'caixa' || infoVal === 'cxs') {
                 valorCalculadoCents = Math.round((pUnit * totals.caixas) * 100);
-            } else {
-                if (precoRaw.includes('%')) {
-                    valorCalculadoCents = Math.round(totals.bruto * pUnit); // <--- Nova linha
-                } else {
+            } else if (infoVal === '1' || infoVal === 'unidade') {
+                // Modo "Unidade": valor fixo escolhido no preço unitário, aplicado uma
+                // única vez (não multiplica por caixas/kg). Confirmado batendo em 244/255
+                // romaneios existentes com esse "info".
+                //
+                // A taxa "Unidade" muda de valor ao longo do tempo (ex: era 55,31 em
+                // jan/2026, hoje é 57,90), mas o dropdown só oferece a taxa ATUAL. Cargas
+                // antigas guardam a taxa vigente na época em "desc_ima"/etc — não pode
+                // recalcular sozinho ao abrir a edição, senão a carga antiga "pula" pra
+                // taxa de hoje. Só recalcula se o usuário mexer manualmente nessa linha
+                // (marcado via data-tocado pelos próprios selects de info/preço unitário).
+                if (linha.dataset.tocado === '1') {
                     valorCalculadoCents = Math.round(pUnit * 100);
+                } else {
+                    valorCalculadoCents = Math.round(parseBrasil(campoResultado.value) * 100);
                 }
+            } else if (precoRaw.includes('%')) {
+                valorCalculadoCents = percentualEmCentavos(totals.bruto, pUnit);
+            } else {
+                // "info" verdadeiramente desconhecido (nem kg/cx/unidade nem %):
+                // preserva o valor já carregado/salvo em vez de arriscar gravar um
+                // número sem fórmula definida por cima.
+                valorCalculadoCents = Math.round(parseBrasil(campoResultado.value) * 100);
             }
         }
 
@@ -233,11 +282,16 @@ function calcularDescontosDiversos() {
 }
 
 function updateLiquidPayable() {
-    const liquidBaseCents = Math.round(parseBrasil(document.getElementById('valor_liquido').value) * 100);
+    const liquidField = document.getElementById('valor_liquido');
+    // Usa os centavos inteiros guardados por calculaTotais() em vez de reler o texto já
+    // formatado do campo.
+    const liquidBaseCents = liquidField.dataset.centavos !== undefined
+        ? parseInt(liquidField.dataset.centavos, 10)
+        : Math.round(parseBrasil(liquidField.value) * 100);
     const comissaoCents = Math.round(parseBrasil(document.getElementById('total_comissao').textContent) * 100);
     const descontosCents = Math.round(parseBrasil(document.getElementById('total_descontos_diversos').textContent) * 100);
 
-    const finalLiquidoCents = liquidBaseCents - comissaoCents + descontosCents;
+    const finalLiquidoCents = Math.round(liquidBaseCents - comissaoCents + descontosCents);
 
     document.getElementById('total_liquido_pagar').textContent = (finalLiquidoCents / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
 }
