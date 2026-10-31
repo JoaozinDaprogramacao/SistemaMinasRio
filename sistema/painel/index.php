@@ -454,7 +454,7 @@ if (@count($res1) > 0) {
 									<span class="side-menu__label" style="margin-left: 15px">Materials</span><i class="angle fe fe-chevron-right"></i></a>
 								<ul class="slide-menu">
 
-									<li class="<?php echo @$materiais ?>"><a class="slide-item" href="materiais"> Materials</a></li>
+									<li class="<?php echo @$materiais ?>"><a class="slide-item" href="materiais"> Materiais</a></li>
 
 									<li class="<?php echo @$detalhes_materiais ?> "><a class="slide-item" href="detalhes_materiais"> Detalhes Materiais</a></li>
 

@@ -1,100 +1,70 @@
 <?php
 $tabela = 'detalhes_materiais';
 require_once("../../../conexao.php");
+require_once("../../verificar.php");
 
 // Receber todos os filtros via POST
 $filtros = [
-    'p1' => $_POST['p1'] ?? '',
     'data_inicio' => $_POST['data_inicio'] ?? '',
     'data_fim' => $_POST['data_fim'] ?? '',
     'tipo_movimento' => $_POST['tipo_movimento'] ?? '',
-    'descricao_filtro' => $_POST['descricao_filtro'] ?? '',
     'valor_min' => $_POST['valor_min'] ?? '',
     'valor_max' => $_POST['valor_max'] ?? '',
     'quantidade_min' => $_POST['quantidade_min'] ?? '',
     'quantidade_max' => $_POST['quantidade_max'] ?? '',
     'material' => $_POST['material'] ?? '',
-    'fornecedor' => $_POST['fornecedor'] ?? '',
-    'responsavel' => $_POST['responsavel'] ?? '',
-    'notas_filtro' => $_POST['notas_filtro'] ?? '',
     'ordenacao' => $_POST['ordenacao'] ?? ''
 ];
 
 // Construção segura da query com prepared statements
-$query = "SELECT * FROM $tabela";
+$query = "SELECT d.*, m.nome AS nome_material, c.nome AS nome_cliente
+          FROM $tabela d
+          LEFT JOIN materiais m ON m.id = d.material_id
+          LEFT JOIN clientes c ON c.id = d.descricao";
 $where = [];
 $params = [];
 
-// Filtro de Categoria (Material)
-if (!empty($filtros['p1'])) {
-    $where[] = "material_id = :material_id";
-    $params[':material_id'] = $filtros['p1'];
-}
-
 // Filtros de Data
-if (!empty($filtros['data_inicio']) && !empty($filtros['data_fim'])) {
-    $where[] = "data BETWEEN :data_inicio AND :data_fim";
+if (!empty($filtros['data_inicio'])) {
+    $where[] = "d.data >= :data_inicio";
     $params[':data_inicio'] = $filtros['data_inicio'] . ' 00:00:00';
+}
+if (!empty($filtros['data_fim'])) {
+    $where[] = "d.data <= :data_fim";
     $params[':data_fim'] = $filtros['data_fim'] . ' 23:59:59';
 }
 
 // Tipo de Movimento
-if (!empty($filtros['tipo_movimento'])) {
-    if ($filtros['tipo_movimento'] == 'compra') {
-        $where[] = "compra > 0";
-    } else {
-        $where[] = "venda > 0";
-    }
+if ($filtros['tipo_movimento'] == 'compra') {
+    $where[] = "d.compra > 0";
+} elseif ($filtros['tipo_movimento'] == 'venda') {
+    $where[] = "d.venda > 0";
 }
 
-// Filtros de Texto
-if (!empty($filtros['descricao_filtro'])) {
-    $where[] = "descricao LIKE :descricao";
-    $params[':descricao'] = '%' . $filtros['descricao_filtro'] . '%';
+// Valor e quantidade movimentados (compra ou venda)
+if ($filtros['valor_min'] !== '') {
+    $where[] = "(d.valor_compra >= :valor_min OR d.valor_venda >= :valor_min2)";
+    $params[':valor_min'] = $params[':valor_min2'] = (float) $filtros['valor_min'];
+}
+if ($filtros['valor_max'] !== '') {
+    $where[] = "GREATEST(d.valor_compra, d.valor_venda) <= :valor_max";
+    $params[':valor_max'] = (float) $filtros['valor_max'];
+}
+if ($filtros['quantidade_min'] !== '') {
+    $where[] = "(d.compra + d.venda) >= :quantidade_min";
+    $params[':quantidade_min'] = (int) $filtros['quantidade_min'];
+}
+if ($filtros['quantidade_max'] !== '') {
+    $where[] = "(d.compra + d.venda) <= :quantidade_max";
+    $params[':quantidade_max'] = (int) $filtros['quantidade_max'];
 }
 
-if (!empty($filtros['notas_filtro'])) {
-    $where[] = "notas LIKE :notas";
-    $params[':notas'] = '%' . $filtros['notas_filtro'] . '%';
-}
-
-// Filtros Numéricos para Compra e Venda
-if (!empty($filtros['valor_min'])) {
-    $where[] = "(valor_compra >= :valor_min OR valor_venda >= :valor_min)";
-    $params[':valor_min'] = (float)$filtros['valor_min'];
-}
-
-if (!empty($filtros['valor_max'])) {
-    $where[] = "(valor_compra <= :valor_max OR valor_venda <= :valor_max)";
-    $params[':valor_max'] = (float)$filtros['valor_max'];
-}
-if (!empty($filtros['quantidade_min'])) {
-    $where[] = "entrada_estoque >= :quantidade_min";
-    $params[':quantidade_min'] = (int)$filtros['quantidade_min'];
-}
-
-if (!empty($filtros['quantidade_max'])) {
-    $where[] = "entrada_estoque <= :quantidade_max";
-    $params[':quantidade_max'] = (int)$filtros['quantidade_max'];
-}
-
-// Filtros Relacionais
+// Material (filtro e abas da tela)
 if (!empty($filtros['material'])) {
-    $where[] = "material_id = :material";
-    $params[':material'] = $filtros['material'];
+    $where[] = "d.material_id = :material";
+    $params[':material'] = (int) $filtros['material'];
 }
 
-if (!empty($filtros['fornecedor'])) {
-    $where[] = "fornecedor_id = :fornecedor";
-    $params[':fornecedor'] = $filtros['fornecedor'];
-}
-
-if (!empty($filtros['responsavel'])) {
-    $where[] = "usuario_id = :responsavel";
-    $params[':responsavel'] = $filtros['responsavel'];
-}
-
-// Montar a query final
 if (!empty($where)) {
     $query .= " WHERE " . implode(' AND ', $where);
 }
@@ -102,134 +72,68 @@ if (!empty($where)) {
 // Ordenação
 switch ($filtros['ordenacao']) {
     case 'data_asc':
-        $query .= " ORDER BY data ASC";
-        break;
-    case 'data_desc':
-        $query .= " ORDER BY data DESC";
+        $query .= " ORDER BY d.data ASC, d.id ASC";
         break;
     case 'valor_asc':
-        $query .= " ORDER BY valor_compra ASC";
+        $query .= " ORDER BY GREATEST(d.valor_compra, d.valor_venda) ASC";
         break;
     case 'valor_desc':
-        $query .= " ORDER BY valor_compra DESC";
+        $query .= " ORDER BY GREATEST(d.valor_compra, d.valor_venda) DESC";
         break;
     default:
-        $query .= " ORDER BY id DESC";
+        $query .= " ORDER BY d.data DESC, d.id DESC";
 }
 
-// Executar a consulta
 $stmt = $pdo->prepare($query);
-foreach ($params as $key => $value) {
-    $stmt->bindValue($key, $value);
-}
-
-// Executar a consulta
-$stmt = $pdo->prepare($query);
-foreach ($params as $key => $value) {
-    $stmt->bindValue($key, $value);
-}
-$stmt->execute();
-
-// ================================================
-// FUNÇÃO PARA VISUALIZAR A QUERY COMPLETA (DEBUG)
-// ================================================
-function debugQuery($query, $params) {
-    $keys = array();
-    $values = $params;
-    
-    // Ordena os parâmetros pelo tamanho do nome (para evitar substituições parciais)
-    krsort($params);
-    
-    foreach ($params as $key => $value) {
-        // Remove os dois pontos dos placeholders
-        $clean_key = str_replace(':', '', $key);
-        
-        // Trata diferentes tipos de dados
-        if (is_string($value)) {
-            $value = "'" . addslashes($value) . "'";
-        } elseif (is_null($value)) {
-            $value = 'NULL';
-        } elseif (is_bool($value)) {
-            $value = $value ? 'TRUE' : 'FALSE';
-        }
-        
-        // Substitui os placeholders na query
-        $query = str_replace(':' . $clean_key, $value, $query);
-    }
-    
-    return $query;
-}
-
-// Exibe a query final formatada
-echo "<script>console.log('Query Debug:', " . json_encode(debugQuery($query, $params)) . ")</script>";
-// ================================================
-
+$stmt->execute($params);
 $res = $stmt->fetchAll(PDO::FETCH_ASSOC);
 $linhas = count($res);
+
+$moeda = fn($v) => 'R$ ' . number_format((float) $v, 2, ',', '.');
 
 if ($linhas > 0) {
     echo <<<HTML
     <table class="table table-bordered text-nowrap border-bottom dt-responsive" id="tabela">
-    <thead> 
-        <tr> 
-            <th class="text-center">Selecionar</th>
+    <thead>
+        <tr>
             <th>Data</th>
-            <th>Descrição</th>
-            <th>Compra</th>
+            <th>Material</th>
+            <th>Movimento</th>
+            <th>Cliente</th>
             <th>Venda</th>
-            <th>Preço Und.</th>
-            <th>Valor Compra</th>
-            <th>Valor Venda</th>
-            <th>Saída Estq.</th>
-            <th>Entrada Estq.</th>
-            <th>Ações</th>
-        </tr> 
+            <th class="text-end">Quantidade</th>
+            <th class="text-end">Preço Und.</th>
+            <th class="text-end">Valor</th>
+            <th class="text-end">Saída Estq.</th>
+            <th class="text-end">Entrada Estq.</th>
+        </tr>
     </thead>
     <tbody>
 HTML;
 
     foreach ($res as $item) {
-        $data_formatada = date('d/m/Y \à\s H:i', strtotime($item['data']));
-
-        $descricao_crua = $item['descricao'];
-        // Fazendo a consulta para obter o nome do plano de pagamento com base no ID
-		$query_descricao = $pdo->query("SELECT nome FROM clientes WHERE id = '$descricao_crua'");
-
-		// Recuperando o nome do plano de pagamento
-		$descricao = $query_descricao->fetch(PDO::FETCH_ASSOC);
-
-        // Verificando se o resultado foi encontrado e atribuindo o nome do plano
-		if ($descricao) {
-			$descricao = $descricao['nome'];
-		} else {
-			$descricao = 'Descrição não encontrado';
-		}
+        $data_formatada = $item['data'] ? date('d/m/Y \à\s H:i', strtotime($item['data'])) : '-';
+        $material = htmlspecialchars($item['nome_material'] ?? 'Material #' . $item['material_id']);
+        $cliente = htmlspecialchars($item['nome_cliente'] ?? '-');
+        $eh_compra = $item['compra'] > 0;
+        $movimento = $eh_compra ? 'Compra' : 'Venda';
+        $quantidade = $eh_compra ? $item['compra'] : $item['venda'];
+        $valor = $moeda($eh_compra ? $item['valor_compra'] : $item['valor_venda']);
+        $preco = $moeda($item['preco_unidade']);
+        $venda = $item['id_venda_real'] ? '#' . (int) $item['id_venda_real'] : '-';
 
         echo <<<HTML
         <tr>
-            <td class="text-center">
-                <div class="custom-control custom-checkbox">
-                    <input type="checkbox" class="custom-control-input" id="seletor-{$item['id']}">
-                    <label class="custom-control-label" for="seletor-{$item['id']}"></label>
-                </div>
-            </td>
             <td>{$data_formatada}</td>
-            <td>{$descricao}</td>
-            <td>{$item['compra']}</td>
-            <td>{$item['venda']}</td>
-            <td>R$ {$item['preco_unidade']}</td>
-            <td>R$ {$item['valor_compra']}</td>
-            <td>R$ {$item['valor_venda']}</td>
-            <td>{$item['saida_estoque']}</td>
-            <td>{$item['entrada_estoque']}</td>
-            <td>
-                <button class="btn btn-info btn-sm" onclick="editar({$item['id']})">
-                    <i class="fa fa-edit"></i>
-                </button>
-                <button class="btn btn-danger btn-sm" onclick="excluir({$item['id']})">
-                    <i class="fa fa-trash"></i>
-                </button>
-            </td>
+            <td>{$material}</td>
+            <td>{$movimento}</td>
+            <td>{$cliente}</td>
+            <td>{$venda}</td>
+            <td class="text-end">{$quantidade}</td>
+            <td class="text-end">{$preco}</td>
+            <td class="text-end">{$valor}</td>
+            <td class="text-end">{$item['saida_estoque']}</td>
+            <td class="text-end">{$item['entrada_estoque']}</td>
         </tr>
 HTML;
     }
@@ -242,4 +146,3 @@ HTML;
 } else {
     echo '<div class="alert alert-warning">Nenhum registro encontrado!</div>';
 }
-?>

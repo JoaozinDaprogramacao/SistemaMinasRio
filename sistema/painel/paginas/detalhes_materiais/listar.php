@@ -1,6 +1,7 @@
 <?php
 $tabela = 'detalhes_materiais';
 require_once("../../../conexao.php");
+require_once("../../verificar.php");
 ?>
 
 
@@ -23,11 +24,6 @@ function aplicarFiltros() {
         quantidade_min: $('#quantidade_min').val(),
         quantidade_max: $('#quantidade_max').val(),
         material: $('#material').val(),
-        fornecedor: $('#fornecedor').val(),
-        responsavel: $('#responsavel').val(),
-        descricao_filtro: $('#descricao_filtro').val(),
-        localizacao_filtro: $('#localizacao_filtro').val(),
-        notas_filtro: $('#notas_filtro').val(),
         ordenacao: $('#ordenacao').val()
     };
 
@@ -128,34 +124,10 @@ $(document).ready(function() {
                         <select class="form-select form-select-sm" id="material">
                             <option value="">Todos Materiais</option>
                             <?php
-                            $query = $pdo->query("SELECT id, nome FROM materiais");
+                            $query = $pdo->query("SELECT id, nome FROM materiais ORDER BY nome");
                             $materiais = $query->fetchAll(PDO::FETCH_ASSOC);
                             foreach ($materiais as $material) {
-                                echo "<option value='{$material['id']}'>{$material['nome']}</option>";
-                            }
-                            ?>
-                        </select>
-                    </div>
-                    <div class="col-md-2">
-                        <select class="form-select form-select-sm" id="fornecedor">
-                            <option value="">Todos Fornecedores</option>
-                            <?php
-                            $query = $pdo->query("SELECT id, nome_atacadista FROM fornecedores");
-                            $fornecedores = $query->fetchAll(PDO::FETCH_ASSOC);
-                            foreach ($fornecedores as $fornecedor) {
-                                echo "<option value='{$fornecedor['id']}'>{$fornecedor['nome_atacadista']}</option>";
-                            }
-                            ?>
-                        </select>
-                    </div>
-                    <div class="col-md-2">
-                        <select class="form-select form-select-sm" id="responsavel">
-                            <option value="">Todos Responsáveis</option>
-                            <?php
-                            $query = $pdo->query("SELECT id, nome FROM usuarios ORDER BY nome");
-                            $usuarios = $query->fetchAll(PDO::FETCH_ASSOC);
-                            foreach ($usuarios as $usuario) {
-                                echo "<option value='{$usuario['id']}'>{$usuario['nome']}</option>";
+                                echo "<option value='" . (int) $material['id'] . "'>" . htmlspecialchars($material['nome']) . "</option>";
                             }
                             ?>
                         </select>
@@ -188,6 +160,6 @@ $(document).ready(function() {
 
     <!-- Container da Tabela -->
     <div id="container-tabela">
-        <?php include('carregar_tabela.php'); ?>
+        Carregando Dados...
     </div>
 </div>

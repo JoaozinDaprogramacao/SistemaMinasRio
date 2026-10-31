@@ -1,16 +1,13 @@
 <?php 
 $tabela = 'produtos';
 require_once("../../../conexao.php");
+require_once("../../verificar.php");
 
-$cat = @$_POST['p1'];
+$cat = intval($_POST['p1'] ?? 0);
 
-if($cat == ""){
-	$filtrar = "";
-}else{
-	$filtrar = " where categoria = '$cat'";
-}
-
-$query = $pdo->query("SELECT * from $tabela $filtrar order by id desc");
+$query = $pdo->prepare("SELECT p.*, c.nome AS nome_cat from $tabela p LEFT JOIN categorias c ON c.id = p.categoria"
+	. ($cat > 0 ? " where p.categoria = :cat" : "") . " order by p.id desc");
+$query->execute($cat > 0 ? [':cat' => $cat] : []);
 $res = $query->fetchAll(PDO::FETCH_ASSOC);
 $linhas = @count($res);
 if($linhas > 0){
@@ -29,32 +26,22 @@ echo <<<HTML
 HTML;
 
 for($i=0; $i<$linhas; $i++){
-	$id = $res[$i]['id'];
-	$nome = $res[$i]['nome'];
-	$categoria = $res[$i]['categoria'];
-	$obs = $res[$i]['obs'];
+	$id = (int) $res[$i]['id'];
+	$nome = htmlspecialchars($res[$i]['nome'] ?? '', ENT_QUOTES);
+	$categoria = (int) $res[$i]['categoria'];
+	$obs = htmlspecialchars($res[$i]['obs'] ?? '', ENT_QUOTES);
 	$ativo = $res[$i]['ativo'];
-
-	$dataF = implode('/', array_reverse(@explode('-', $data)));
-
-
-	$query2 = $pdo->query("SELECT * FROM categorias where id = '$categoria'");
-	$res2 = $query2->fetchAll(PDO::FETCH_ASSOC);
-	if(@count($res2) > 0){
-		$nome_cat = $res2[0]['nome'];
-	}else{
-		$nome_cat = 'Sem Categoria';
-	}
+	$nome_cat = htmlspecialchars($res[$i]['nome_cat'] ?? 'Sem Categoria', ENT_QUOTES);
 
 
 	if($ativo == 'Sim'){
 	$icone = 'fa-check-square';
-	$titulo_link = 'Desativar Usuário';
+	$titulo_link = 'Desativar Produto';
 	$acao = 'Não';
 	$classe_ativo = '';
 	}else{
 		$icone = 'fa-square-o';
-		$titulo_link = 'Ativar Usuário';
+		$titulo_link = 'Ativar Produto';
 		$acao = 'Sim';
 		$classe_ativo = '#c4c4c4';
 	}
@@ -73,7 +60,7 @@ echo <<<HTML
 <td style="color:{$classe_ativo}">{$nome_cat}</td>
 
 <td>
-	<big><a class="btn btn-info btn-sm" href="#" onclick="editar('{$id}','{$nome}','{$categoria}', '{$obs}')" title="Editar Dados"><i class="fa fa-edit "></i></a></big>
+	<big><a class="btn btn-info btn-sm" href="#" onclick="editar(this)" data-id="{$id}" data-nome="{$nome}" data-categoria="{$categoria}" data-obs="{$obs}" title="Editar Dados"><i class="fa fa-edit "></i></a></big>
 
 	<div class="dropdown" style="display: inline-block;">                      
                         <a class="btn btn-danger btn-sm" href="#" aria-expanded="false" aria-haspopup="true" data-bs-toggle="dropdown" class="dropdown"><i class="fa fa-trash "></i> </a>
@@ -85,7 +72,7 @@ echo <<<HTML
                         </div>
 
 
-<big><a class="btn btn-primary btn-sm" href="#" onclick="mostrar('{$nome}','{$nome_cat}', '{$obs}')" title="Mostrar Dados"><i class="fa fa-info-circle "></i></a></big>
+<big><a class="btn btn-primary btn-sm" href="#" onclick="mostrar(this)" data-nome="{$nome}" data-nome_cat="{$nome_cat}" data-obs="{$obs}" title="Mostrar Dados"><i class="fa fa-info-circle "></i></a></big>
 
 
 <big><a class="btn btn-success btn-sm" href="#" onclick="ativar('{$id}', '{$acao}')" title="{$titulo_link}"><i class="fa {$icone} "></i></a></big>
@@ -130,26 +117,29 @@ HTML;
 </script>
 
 <script type="text/javascript">
-	function editar(id, nome, categoria, obs){
+	// Os dados vêm dos atributos data-* do botão: apóstrofo no nome ou na obs não quebra o onclick
+	function editar(botao){
+		var b = $(botao);
 
 		$('#mensagem').text('');
     	$('#titulo_inserir').text('Editar Registro');
 
-    	$('#id').val(id);
-    	$('#nome').val(nome); 
-    	$('#categoria').val(categoria).change();
-    	$('#obs').val(obs);  
-    
+    	$('#id').val(b.attr('data-id'));
+    	$('#nome').val(b.attr('data-nome'));
+    	$('#categoria').val(b.attr('data-categoria')).change();
+    	$('#obs').val(b.attr('data-obs'));
+
 
     	$('#modalForm').modal('show');
 	}
 
 
-	function mostrar(nome, categoria, obs){
-		    	
-    	$('#titulo_dados').text(nome);
-    	$('#categoria_dados').text(categoria);
-    	$('#obs_dados').text(obs);    	
+	function mostrar(botao){
+		var b = $(botao);
+
+    	$('#titulo_dados').text(b.attr('data-nome'));
+    	$('#categoria_dados').text(b.attr('data-nome_cat'));
+    	$('#obs_dados').text(b.attr('data-obs'));
 
     	$('#modalDados').modal('show');
 	}
