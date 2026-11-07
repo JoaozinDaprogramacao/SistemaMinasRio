@@ -3,6 +3,8 @@
 @session_start();
 require_once("../verificar.php");
 require_once("../../conexao.php");
+require_once(__DIR__ . "/../seguranca.php");
+seguranca_exigir_login();
 
 // Captura os filtros enviados via POST
 $dataInicial = $_POST['dataInicial'];
@@ -17,7 +19,7 @@ $mostrar_registros = @$_SESSION['registros'];
 $id_usuario = @$_SESSION['id'];
 
 // Monta a URL com os filtros
-$url_pdf = $url_sistema . "painel/rel/receber.php?dataInicial=$dataInicial&dataFinal=$dataFinal&tipo_data=$tipo_data&atacadista=$atacadista&formaPGTO=$formaPGTO&pago=$filtro&mostrar_registros=$mostrar_registros&id_usuario=$id_usuario&token=A5030";
+$url_pdf = $url_sistema . "painel/rel/receber.php?dataInicial=$dataInicial&dataFinal=$dataFinal&tipo_data=$tipo_data&atacadista=$atacadista&formaPGTO=$formaPGTO&pago=$filtro&mostrar_registros=$mostrar_registros&id_usuario=$id_usuario&token=" . seguranca_token_rel();
 
 // Gera o PDF
 $html = file_get_contents($url_pdf);

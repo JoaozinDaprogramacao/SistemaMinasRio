@@ -1,5 +1,7 @@
 <?php 
 include('../../conexao.php');
+require_once(__DIR__ . "/../seguranca.php");
+seguranca_exigir_login_ou_token();
 include('data_formatada.php');
 
 $quantidade = @$_GET['quantidade'];

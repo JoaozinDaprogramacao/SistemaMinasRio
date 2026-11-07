@@ -2,6 +2,8 @@
 @session_start();
 require_once("../../verificar.php");
 require_once("../../../conexao.php");
+require_once(__DIR__ . "/../../seguranca.php");
+seguranca_exigir_acesso(['caixas']);
 $nivel_usuario = $_SESSION['nivel'];
 $id_usuario = $_SESSION['id'];
 

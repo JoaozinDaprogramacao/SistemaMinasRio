@@ -1,10 +1,12 @@
 <?php 
 require_once("../../conexao.php");
+require_once(__DIR__ . "/../seguranca.php");
+seguranca_exigir_login();
 
 $id = @$_POST['id'];
 
 
-$html = file_get_contents($url_sistema."painel/rel/ordem_compra.php?id=$id");
+$html = file_get_contents($url_sistema . "painel/rel/ordem_compra.php?id=$id&token=" . seguranca_token_rel());
 
 //CARREGAR DOMPDF
 require_once '../dompdf/autoload.inc.php';

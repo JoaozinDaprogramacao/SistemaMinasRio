@@ -1,6 +1,8 @@
 <?php
 $tabela = 'vendas';
 require_once("../../../conexao.php");
+require_once(__DIR__ . "/../../seguranca.php");
+seguranca_exigir_acesso(['vendas_detalhes_perm']);
 
 // Define o cabeçalho da resposta como JSON para o AJAX interpretar corretamente
 header('Content-Type: application/json');

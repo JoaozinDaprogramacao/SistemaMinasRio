@@ -6,6 +6,8 @@ use Dompdf\Options;
 
 ob_start();
 include('../../conexao.php');
+require_once(__DIR__ . "/../seguranca.php");
+seguranca_exigir_login();
 
 // Mesmo filtro das abas de cliente da tela Vendas Detalhes
 $cliente_filtro = intval($_POST['cliente_filtro'] ?? ($_GET['cliente'] ?? 0));

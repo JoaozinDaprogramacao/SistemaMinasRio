@@ -4,6 +4,8 @@ require_once("../verificar.php");
 $mostrar_registros = @$_SESSION['registros'];
 $id_usuario = @$_SESSION['id'];
 require_once("../../conexao.php");
+require_once(__DIR__ . "/../seguranca.php");
+seguranca_exigir_login();
 
 $dadosXls = "";
 $dadosXls .= " <table border='1' >";

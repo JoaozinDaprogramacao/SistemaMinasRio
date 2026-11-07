@@ -2,6 +2,8 @@
 $tabela = 'tipo_caixa';
 $tabela_unidade_medida = 'unidade_medida';
 require_once("../../../conexao.php");
+require_once(__DIR__ . "/../../seguranca.php");
+seguranca_exigir_acesso(['produtos']);
 
 $cat = @$_POST['p1'];
 

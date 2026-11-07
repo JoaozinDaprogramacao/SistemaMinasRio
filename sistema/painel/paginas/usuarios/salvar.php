@@ -1,6 +1,8 @@
 <?php 
 $tabela = 'usuarios';
 require_once("../../../conexao.php");
+require_once(__DIR__ . "/../../seguranca.php");
+seguranca_exigir_acesso(['usuarios']);
 
 $nome = $_POST['nome'];
 $email = $_POST['email'];

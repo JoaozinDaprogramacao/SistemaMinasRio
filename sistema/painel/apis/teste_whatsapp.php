@@ -1,4 +1,7 @@
-<?php 
+<?php
+require_once(__DIR__ . "/../../conexao.php");
+require_once(__DIR__ . "/../seguranca.php");
+seguranca_exigir_acesso(['configuracoes']);
 $api_whatsapp = $_POST['seletor_api'];
 $token_whatsapp = $_POST['token'];
 $instancia_whatsapp = $_POST['instancia'];

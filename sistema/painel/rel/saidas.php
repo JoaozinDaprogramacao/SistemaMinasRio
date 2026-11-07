@@ -1,5 +1,7 @@
 <?php 
 include('../../conexao.php');
+require_once(__DIR__ . "/../seguranca.php");
+seguranca_exigir_login_ou_token();
 
 $dataInicial = $_GET['dataInicial'];
 $dataFinal = $_GET['dataFinal'];

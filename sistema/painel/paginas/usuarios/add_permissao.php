@@ -1,5 +1,7 @@
 <?php 
 require_once("../../../conexao.php");
+require_once(__DIR__ . "/../../seguranca.php");
+seguranca_exigir_acesso(['usuarios']);
 
 $id_usuario = $_POST['usuario'];
 $id_permissao = $_POST['id'];

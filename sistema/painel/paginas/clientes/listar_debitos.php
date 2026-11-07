@@ -2,6 +2,8 @@
 $tabela = 'receber';
 require_once("../../verificar.php");
 require_once("../../../conexao.php");
+require_once(__DIR__ . "/../../seguranca.php");
+seguranca_exigir_acesso(['clientes']);
 
 $data_atual = date('Y-m-d');
 $data_hoje = date('Y-m-d');

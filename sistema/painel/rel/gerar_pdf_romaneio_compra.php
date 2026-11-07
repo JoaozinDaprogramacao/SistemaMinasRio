@@ -1,6 +1,8 @@
 <?php
 // gerar_pdf_romaneio_compra.php
 require_once("../../conexao.php");
+require_once(__DIR__ . "/../seguranca.php");
+seguranca_exigir_login();
 require_once '../dompdf/autoload.inc.php';
 
 use Dompdf\Dompdf;

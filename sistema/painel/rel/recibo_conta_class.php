@@ -1,10 +1,12 @@
 <?php 
 include('../../conexao.php');
+require_once(__DIR__ . "/../seguranca.php");
+seguranca_exigir_login();
 require_once("../verificar.php");
 $id = $_POST['id'];
 
 //ALIMENTAR OS DADOS NO RELATÓRIO
-$html = file_get_contents($url_sistema."painel/rel/recibo_conta.php?id=$id&token=A5030");
+$html = file_get_contents($url_sistema."painel/rel/recibo_conta.php?id=$id&token=" . seguranca_token_rel());
 
 
 //CARREGAR DOMPDF

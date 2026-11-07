@@ -1,6 +1,8 @@
 <?php 
 $tabela = 'ordem_compra';
 require_once("../../../conexao.php");
+require_once(__DIR__ . "/../../seguranca.php");
+seguranca_exigir_login();
 
 $data_atual = date('Y-m-d');
 

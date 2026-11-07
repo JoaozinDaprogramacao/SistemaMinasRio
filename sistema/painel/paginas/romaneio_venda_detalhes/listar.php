@@ -1,6 +1,8 @@
 <?php
 $tabela = 'romaneio_venda';
 require_once("../../../conexao.php"); // Verifique se o caminho da conexão está correto
+require_once(__DIR__ . "/../../seguranca.php");
+seguranca_exigir_acesso(['produtos']);
 
 $dataInicial = @$_POST['dataInicial'];
 $dataFinal = @$_POST['dataFinal'];

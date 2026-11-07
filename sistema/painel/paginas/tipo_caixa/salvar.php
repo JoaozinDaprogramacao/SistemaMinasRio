@@ -1,6 +1,8 @@
 <?php 
 $tabela = 'tipo_caixa';
 require_once("../../../conexao.php");
+require_once(__DIR__ . "/../../seguranca.php");
+seguranca_exigir_acesso(['produtos']);
 
 $tipo = $_POST['tipo'];
 $tipo = str_replace(',', '.', $tipo); 

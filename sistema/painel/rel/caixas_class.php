@@ -1,6 +1,8 @@
 <?php 
 require_once("../verificar.php");
 require_once("../../conexao.php");
+require_once(__DIR__ . "/../seguranca.php");
+seguranca_exigir_login();
 
 
 
@@ -14,7 +16,7 @@ $dataFinal = $_POST['dataFinal'];
 
 
 
-$html = file_get_contents($url_sistema."painel/rel/caixa.php?dataInicial=$dataInicial&dataFinal=$dataFinal&operador=$operador&token=A5030");
+$html = file_get_contents($url_sistema."painel/rel/caixa.php?dataInicial=$dataInicial&dataFinal=$dataFinal&operador=$operador&token=" . seguranca_token_rel());
 
 
 

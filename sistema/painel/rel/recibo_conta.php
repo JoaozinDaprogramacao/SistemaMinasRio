@@ -1,13 +1,9 @@
 <?php 
 require_once("../../conexao.php");
+require_once(__DIR__ . "/../seguranca.php");
+seguranca_exigir_login_ou_token();
 require_once("../funcoes/extenso.php");
 $id = $_GET['id'];
-
-$token_rel = @$_GET['token'];
-if($token_rel != 'A5030'){
-echo '<script>window.location="../../"</script>';
-exit();
-}
 
 $query = $pdo->query("SELECT * from receber where id = '$id' ");
 $res = $query->fetchAll(PDO::FETCH_ASSOC);

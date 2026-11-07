@@ -5,6 +5,8 @@ ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
 require_once("../../../conexao.php");
+require_once(__DIR__ . "/../../seguranca.php");
+seguranca_exigir_acesso(['produtos']);
 $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
 try {

@@ -1,16 +1,11 @@
 <?php 
 include('../../conexao.php');
+require_once(__DIR__ . "/../seguranca.php");
+seguranca_exigir_login_ou_token();
 include('data_formatada.php');
 
 $mostrar_registros = $_GET['mostrar_registros'];
 $id_usuario = $_GET['id_usuario'];
-
-$token_rel = @$_GET['token'];
-if($token_rel != 'A5030'){
-echo '<script>window.location="../../"</script>';
-exit();
-}
-
 
 ?>
 <!DOCTYPE html>

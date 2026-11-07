@@ -1,12 +1,14 @@
 <?php 
 require_once("../../conexao.php");
+require_once(__DIR__ . "/../seguranca.php");
+seguranca_exigir_login();
 
 $dataInicial = $_POST['dataInicial'];
 $dataFinal = $_POST['dataFinal'];
 $pago = urlencode($_POST['pago']);
 $funcionario = urlencode($_POST['funcionario']);
 
-$html = file_get_contents($url_sistema."painel/rel/comissoes.php?dataInicial=$dataInicial&dataFinal=$dataFinal&pago=$pago&funcionario=$funcionario");
+$html = file_get_contents($url_sistema . "painel/rel/comissoes.php?dataInicial=$dataInicial&dataFinal=$dataFinal&pago=$pago&funcionario=$funcionario&token=" . seguranca_token_rel());
 
 //CARREGAR DOMPDF
 require_once '../dompdf/autoload.inc.php';

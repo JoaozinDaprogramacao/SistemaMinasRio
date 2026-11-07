@@ -1,6 +1,8 @@
 <?php 
 $tabela = 'arquivos';
 require_once("../../../conexao.php");
+require_once(__DIR__ . "/../../seguranca.php");
+seguranca_exigir_acesso(['pagar']);
 
 $id = $_POST['id'];
 $nome = $_POST['nome'];

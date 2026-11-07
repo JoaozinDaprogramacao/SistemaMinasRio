@@ -1,5 +1,7 @@
 <?php 
 require_once("../../../conexao.php");
+require_once(__DIR__ . "/../../seguranca.php");
+seguranca_exigir_acesso(['minhas_comissoes']);
 $tabela = 'pagar';
 $data_hoje = date('Y-m-d');
 

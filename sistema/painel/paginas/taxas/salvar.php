@@ -1,6 +1,8 @@
 <?php 
 $tabela = 'taxas_abatimentos';
 require_once("../../../conexao.php");
+require_once(__DIR__ . "/../../seguranca.php");
+seguranca_exigir_acesso(['categorias']);
 
 $descricao = $_POST['descricao'];
 $id = $_POST['id'];

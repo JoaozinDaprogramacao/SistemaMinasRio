@@ -6,6 +6,8 @@ use Dompdf\Options;
 
 ob_start();
 include('../../conexao.php');
+require_once(__DIR__ . "/../seguranca.php");
+seguranca_exigir_login();
 require_once('../verificar.php');
 
 $materiais = $pdo->query("SELECT * FROM materiais ORDER BY nome ASC")->fetchAll(PDO::FETCH_ASSOC);

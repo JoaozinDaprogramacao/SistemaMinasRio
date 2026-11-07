@@ -1,6 +1,8 @@
 <?php 
 $tabela = 'receber';
 require_once("../../../conexao.php");
+require_once(__DIR__ . "/../../seguranca.php");
+seguranca_exigir_acesso(['receber', 'clientes']);
 
 $ids = $_POST['ids'];
 $total_contas = 0;

@@ -3,13 +3,9 @@
 $mostrar_registros = @$_SESSION['registros'];
 $id_usuario = @$_SESSION['id'];
 
-$token_rel = @$_GET['token'];
-if($token_rel != 'A5030'){
-echo '<script>window.location="../../"</script>';
-exit();
-}
-
 require_once("../../conexao.php");
+require_once(__DIR__ . "/../seguranca.php");
+seguranca_exigir_login_ou_token();
 require_once("data_formatada.php");
 
 $dataInicial = $_GET['dataInicial'];

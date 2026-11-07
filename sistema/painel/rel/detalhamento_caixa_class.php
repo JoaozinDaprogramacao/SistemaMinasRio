@@ -1,9 +1,11 @@
 <?php 
 require_once("../verificar.php");
 require_once("../../conexao.php");
+require_once(__DIR__ . "/../seguranca.php");
+seguranca_exigir_login();
 $id = $_POST['id'];
 
-$html = file_get_contents($url_sistema."painel/rel/detalhamento_caixa.php?id=$id&token=A5030");
+$html = file_get_contents($url_sistema."painel/rel/detalhamento_caixa.php?id=$id&token=" . seguranca_token_rel());
 
 
 

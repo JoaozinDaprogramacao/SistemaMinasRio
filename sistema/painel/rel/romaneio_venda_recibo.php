@@ -1,6 +1,8 @@
 <?php 
 @session_start();
 require_once("../../conexao.php");
+require_once(__DIR__ . "/../seguranca.php");
+seguranca_exigir_login();
 
 $dataInicial = $_POST['dataInicial'];
 $dataFinal = $_POST['dataFinal']; 

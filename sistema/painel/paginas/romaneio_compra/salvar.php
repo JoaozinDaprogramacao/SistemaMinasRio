@@ -1,6 +1,8 @@
 <?php
 $tabela = 'romaneio_compra';
 require_once("../../../conexao.php");
+require_once(__DIR__ . "/../../seguranca.php");
+seguranca_exigir_acesso(['produtos']);
 session_start();
 
 header('Content-Type: application/json; charset=utf-8');

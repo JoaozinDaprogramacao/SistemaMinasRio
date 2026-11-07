@@ -1,8 +1,10 @@
 <?php 
 require_once("../../conexao.php");
+require_once(__DIR__ . "/../seguranca.php");
+seguranca_exigir_login();
 require_once("../verificar.php");
 
-$html = file_get_contents($url_sistema."painel/rel/balanco_anual.php?token=A5030");
+$html = file_get_contents($url_sistema."painel/rel/balanco_anual.php?token=" . seguranca_token_rel());
 
 //CARREGAR DOMPDF
 require_once '../dompdf/autoload.inc.php';

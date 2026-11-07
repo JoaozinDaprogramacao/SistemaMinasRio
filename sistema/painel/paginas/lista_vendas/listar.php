@@ -1,5 +1,7 @@
 <?php 
 require_once("../../../conexao.php");
+require_once(__DIR__ . "/../../seguranca.php");
+seguranca_exigir_acesso(['lista_vendas']);
 $pagina = 'receber';
 $data_atual = date('Y-m-d');
 

@@ -1,13 +1,9 @@
 <?php 
 
 include('../../conexao.php');
+require_once(__DIR__ . "/../seguranca.php");
+seguranca_exigir_login_ou_token();
 include('data_formatada.php');
-
-$token_rel = @$_GET['token'];
-if($token_rel != 'A5030'){
-echo '<script>window.location="../../"</script>';
-exit();
-}
 
 $filtro_data = $_GET['filtro_data'];
 $dataInicial = $_GET['dataInicial'];

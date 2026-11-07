@@ -1,5 +1,7 @@
 <?php 
 require_once("../../conexao.php");
+require_once(__DIR__ . "/../seguranca.php");
+seguranca_exigir_login();
 
 $id = @$_POST['id'];
 
@@ -7,7 +9,7 @@ $query = $pdo->query("SELECT * from orcamentos where id = '$id'");
 $res = $query->fetchAll(PDO::FETCH_ASSOC);
 $tipo = $res[0]['tipo'];
 
-$html = file_get_contents($url_sistema."painel/rel/orcamento.php?id=$id");
+$html = file_get_contents($url_sistema . "painel/rel/orcamento.php?id=$id&token=" . seguranca_token_rel());
 
 //CARREGAR DOMPDF
 require_once '../dompdf/autoload.inc.php';

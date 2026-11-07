@@ -3,6 +3,8 @@
 $id_usuario = @$_SESSION['id']; 
 $tabela = 'tarefas';
 require_once("../../../conexao.php");
+require_once(__DIR__ . "/../../seguranca.php");
+seguranca_exigir_acesso(['tarefas']);
 
 $data_atual = 'Y-m-d';
 $hora_atual = date("H:i:s");

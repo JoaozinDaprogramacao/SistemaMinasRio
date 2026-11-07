@@ -1,5 +1,7 @@
 <?php 
 require_once("../../../conexao.php");
+require_once(__DIR__ . "/../../seguranca.php");
+seguranca_exigir_acesso(['funcionarios']);
 require_once("../../verificar.php");
 $pagina = 'arquivos';
 $id = $_POST['id'];

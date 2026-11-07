@@ -1,10 +1,12 @@
 <?php 
 require_once("../../conexao.php");
+require_once(__DIR__ . "/../seguranca.php");
+seguranca_exigir_login();
 
 
 $quantidade = @$_POST['quantidade'];
 
-$html = file_get_contents($url_sistema."painel/rel/produtos_vendidos.php?quantidade=$quantidade");
+$html = file_get_contents($url_sistema . "painel/rel/produtos_vendidos.php?quantidade=$quantidade&token=" . seguranca_token_rel());
 
 //CARREGAR DOMPDF
 require_once '../dompdf/autoload.inc.php';

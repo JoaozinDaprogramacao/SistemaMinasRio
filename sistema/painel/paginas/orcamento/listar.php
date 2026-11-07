@@ -4,6 +4,8 @@ $mostrar_registros = @$_SESSION['registros'];
 $id_usuario = @$_SESSION['id'];
 $tabela = 'orcamentos';
 require_once("../../../conexao.php");
+require_once(__DIR__ . "/../../seguranca.php");
+seguranca_exigir_acesso(['orcamento']);
 require_once("../../verificar.php");
 
 $inserir_orcamentos = '';

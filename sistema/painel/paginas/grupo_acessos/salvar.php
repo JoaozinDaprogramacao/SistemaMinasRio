@@ -1,6 +1,8 @@
 <?php 
 $tabela = 'grupo_acessos';
 require_once("../../../conexao.php");
+require_once(__DIR__ . "/../../seguranca.php");
+seguranca_exigir_acesso(['grupo_acessos']);
 
 if($alterar_acessos != 'Sim'){
 	echo 'Você não tem permissão para alterar os acessos!';

@@ -1,5 +1,7 @@
 <?php
 require_once("../../../conexao.php");
+require_once(__DIR__ . "/../../seguranca.php");
+seguranca_exigir_acesso(['vendas_detalhes_perm']);
 require_once("../vendas/funcoes_venda.php");
 
 @session_start();

@@ -1,6 +1,11 @@
 <?php
 require_once("../../conexao.php");
-require_once("../verificar_permissoes.php");
+require_once(__DIR__ . "/../seguranca.php");
+seguranca_exigir_login();
+// Administrador não tem acessos cadastrados: como no index.php, só os outros níveis passam pelas permissões
+if (@$_SESSION['nivel'] != 'Administrador') {
+	require_once("../verificar_permissoes.php");
+}
 require_once("data_formatada.php");
 require_once("../funcoes/extenso.php");
 
@@ -9,7 +14,6 @@ if(@$funcionarios == 'ocultar'){
     echo "<script>window.location='index'</script>";
     exit();
 }
- ?>
 
 $data_atual = date('Y-m-d');
 $ano_atual = date('Y');

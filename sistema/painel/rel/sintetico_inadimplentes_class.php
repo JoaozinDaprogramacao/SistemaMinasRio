@@ -4,8 +4,10 @@ $mostrar_registros = @$_SESSION['registros'];
 $id_usuario = @$_SESSION['id'];
 require_once("../verificar.php");
 require_once("../../conexao.php");
+require_once(__DIR__ . "/../seguranca.php");
+seguranca_exigir_login();
 
-$html = file_get_contents($url_sistema."painel/rel/sintetico_ina.php?mostrar_registros=$mostrar_registros&id_usuario=$id_usuario&token=A5030");
+$html = file_get_contents($url_sistema."painel/rel/sintetico_ina.php?mostrar_registros=$mostrar_registros&id_usuario=$id_usuario&token=" . seguranca_token_rel());
 
 //CARREGAR DOMPDF
 require_once '../dompdf/autoload.inc.php';

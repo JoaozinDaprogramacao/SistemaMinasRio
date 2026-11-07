@@ -1,6 +1,8 @@
 <?php 
 $tabela = 'categorias';
 require_once("../../../conexao.php");
+require_once(__DIR__ . "/../../seguranca.php");
+seguranca_exigir_acesso(['categorias']);
 
 $query = $pdo->query("SELECT * from $tabela order by id desc");
 $res = $query->fetchAll(PDO::FETCH_ASSOC);

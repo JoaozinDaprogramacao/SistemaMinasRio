@@ -14,6 +14,8 @@ ob_start();
 
 // 1. INCLUSÃO E VARIÁVEIS INICIAIS
 include('../../conexao.php');
+require_once(__DIR__ . "/../seguranca.php");
+seguranca_exigir_login();
 
 // Define um valor padrão para impressao_automatica (não será usado no PDF, mas mantido)
 $impressao_automatica = @$impressao_automatica ?? 'Não';

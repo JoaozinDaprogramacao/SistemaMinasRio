@@ -4,6 +4,8 @@ $mostrar_registros = @$_SESSION['registros'];
 $id_usuario = @$_SESSION['id'];
 require_once("../verificar.php");
 require_once("../../conexao.php");
+require_once(__DIR__ . "/../seguranca.php");
+seguranca_exigir_login();
 
 $filtro_data = $_POST['filtro_data'];
 $dataInicial = $_POST['dataInicial'];
@@ -12,7 +14,7 @@ $filtro_tipo = "receber";
 $filtro_lancamento = urlencode($_POST['filtro_lancamento']);
 $filtro_pendentes = $_POST['filtro_pendentes'];
 
-$html = file_get_contents($url_sistema."painel/rel/sintetico_recebimentos.php?filtro_data=$filtro_data&dataInicial=$dataInicial&dataFinal=$dataFinal&filtro_tipo=$filtro_tipo&filtro_lancamento=$filtro_lancamento&filtro_pendentes=$filtro_pendentes&mostrar_registros=$mostrar_registros&id_usuario=$id_usuario&token=A5030");
+$html = file_get_contents($url_sistema."painel/rel/sintetico_recebimentos.php?filtro_data=$filtro_data&dataInicial=$dataInicial&dataFinal=$dataFinal&filtro_tipo=$filtro_tipo&filtro_lancamento=$filtro_lancamento&filtro_pendentes=$filtro_pendentes&mostrar_registros=$mostrar_registros&id_usuario=$id_usuario&token=" . seguranca_token_rel());
 
 //CARREGAR DOMPDF
 require_once '../dompdf/autoload.inc.php';

@@ -1,5 +1,7 @@
 <?php
 require_once("../../../conexao.php");
+require_once(__DIR__ . "/../../seguranca.php");
+seguranca_exigir_acesso(['receber', 'clientes']);
 
 $valor = str_replace(',', '.', $_POST['valor']);
 $pgto = $_POST['pgto'];

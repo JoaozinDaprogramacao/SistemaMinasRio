@@ -1,6 +1,8 @@
 <?php 
 $tabela = 'entradas';
 require_once("../../../conexao.php");
+require_once(__DIR__ . "/../../seguranca.php");
+seguranca_exigir_acesso(['produtos']);
 
 @session_start();
 $id_usuario = @$_SESSION['id'];

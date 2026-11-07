@@ -11,7 +11,7 @@ $total_reg = @count($res);
 if($total_reg > 0){    
 	$telefone = $res[0]['telefone'];
 
-        $token = hash('sha256',time());
+        $token = bin2hex(random_bytes(32));
 
         $q = $pdo->prepare("UPDATE usuarios SET token=? WHERE email=?");
         $q->execute([$token,$email]);

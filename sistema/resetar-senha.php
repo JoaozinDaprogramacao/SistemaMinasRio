@@ -6,7 +6,7 @@ if( !isset($_REQUEST['email']) || !isset($_REQUEST['token']) ) {
     exit;
 }
 
-$statement = $pdo->prepare("SELECT * FROM usuarios WHERE email=? AND token=?");
+$statement = $pdo->prepare("SELECT * FROM usuarios WHERE email=? AND token=? AND token <> ''");
 $statement->execute([$_REQUEST['email'],$_REQUEST['token']]);
 $result = $statement->fetchAll();
 $tot = $statement->rowCount();
@@ -52,9 +52,9 @@ $_SESSION['temp_reset_token'] = $_REQUEST['token'];
         </div> 
 
 
-       	<input type="hidden" name="token" id="token" value="">
+       	<input type="hidden" name="token" id="token" value="<?php echo htmlspecialchars($_REQUEST['token'], ENT_QUOTES) ?>">
 
-       	<input type="hidden" name="email" id="email" value="<?php echo $_REQUEST['email'] ?>">
+       	<input type="hidden" name="email" id="email" value="<?php echo htmlspecialchars($_REQUEST['email'], ENT_QUOTES) ?>">
 
 				<button type="submit">Alterar Senha</button>
 

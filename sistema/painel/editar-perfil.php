@@ -1,6 +1,8 @@
 <?php 
 $tabela = 'usuarios';
 require_once("../conexao.php");
+require_once(__DIR__ . "/seguranca.php");
+seguranca_exigir_login();
 
 $nome = $_POST['nome'];
 $email = $_POST['email'];
@@ -9,7 +11,8 @@ $conf_senha = $_POST['conf_senha'];
 $endereco = $_POST['endereco'];
 $senha = $_POST['senha'];
 $senha_crip = password_hash($senha, PASSWORD_DEFAULT);
-$id = $_POST['id_usuario'];
+// Sempre o próprio usuário logado: o id que vem do formulário não é confiável
+$id = $_SESSION['id'];
 
 if($conf_senha != $senha){
 	echo 'As senhas não se coincidem';
@@ -17,19 +20,17 @@ if($conf_senha != $senha){
 }
 
 //validacao email
-$query = $pdo->query("SELECT * from $tabela where email = '$email'");
-$res = $query->fetchAll(PDO::FETCH_ASSOC);
-$id_reg = @$res[0]['id'];
-if(@count($res) > 0 and $id != $id_reg){
+$query = $pdo->prepare("SELECT id from $tabela where email = :email and id <> :id");
+$query->execute([':email' => $email, ':id' => $id]);
+if($query->fetchColumn()){
 	echo 'Email já Cadastrado!';
 	exit();
 }
 
 //validacao telefone
-$query = $pdo->query("SELECT * from $tabela where telefone = '$telefone'");
-$res = $query->fetchAll(PDO::FETCH_ASSOC);
-$id_reg = @$res[0]['id'];
-if(@count($res) > 0 and $id != $id_reg){
+$query = $pdo->prepare("SELECT id from $tabela where telefone = :telefone and id <> :id");
+$query->execute([':telefone' => $telefone, ':id' => $id]);
+if($query->fetchColumn()){
 	echo 'Telefone já Cadastrado!';
 	exit();
 }
@@ -38,7 +39,8 @@ if(@count($res) > 0 and $id != $id_reg){
 
 
 //validar troca da foto
-$query = $pdo->query("SELECT * FROM $tabela where id = '$id'");
+$query = $pdo->prepare("SELECT * FROM $tabela where id = :id");
+$query->execute([':id' => $id]);
 $res = $query->fetchAll(PDO::FETCH_ASSOC);
 $total_reg = @count($res);
 if($total_reg > 0){
@@ -86,8 +88,11 @@ if(@$_FILES['foto']['name'] != ""){
 
 
 
-$query = $pdo->prepare("UPDATE $tabela SET nome = :nome, email = :email, telefone = :telefone, senha_crip = '$senha_crip', endereco = :endereco, foto = '$foto' where id = '$id'");
+$query = $pdo->prepare("UPDATE $tabela SET nome = :nome, email = :email, telefone = :telefone, senha_crip = :senha_crip, endereco = :endereco, foto = :foto where id = :id");
 
+$query->bindValue(":senha_crip", $senha_crip);
+$query->bindValue(":foto", $foto);
+$query->bindValue(":id", $id);
 $query->bindValue(":nome", "$nome");
 $query->bindValue(":email", "$email");
 $query->bindValue(":telefone", "$telefone");

@@ -1,5 +1,7 @@
 <?php
 require_once("../../../conexao.php");
+require_once(__DIR__ . "/../../seguranca.php");
+seguranca_exigir_acesso(['bancos']);
 
 // Query simplificada com JOIN direto
 $query = $pdo->query("SELECT b.*, rv.data, c.nome as nome_atacadista 

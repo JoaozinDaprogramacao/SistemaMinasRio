@@ -1,6 +1,8 @@
 <?php
 $tabela = 'pagar';
 require_once("../../../conexao.php");
+require_once(__DIR__ . "/../../seguranca.php");
+seguranca_exigir_acesso(['pagar']);
 
 // Converte "1.234,56" (formato BR) ou "2.60" (vindo do banco) em número
 function valor_br($v) {

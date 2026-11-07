@@ -6,6 +6,8 @@ use Dompdf\Options;
 
 ob_start();
 include('../../conexao.php');
+require_once(__DIR__ . "/../seguranca.php");
+seguranca_exigir_login();
 require_once('../verificar.php');
 
 // Mesmo filtro das abas de categoria da tela Produtos

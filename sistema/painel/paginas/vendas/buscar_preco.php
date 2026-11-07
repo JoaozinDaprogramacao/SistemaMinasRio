@@ -1,5 +1,7 @@
 <?php
 require_once("../../../conexao.php");
+require_once(__DIR__ . "/../../seguranca.php");
+seguranca_exigir_acesso(['vendas']);
 
 $id_material = $_POST['id_material'] ?? 0;
 $valor_encontrado = null; // Inicia a variável de preço como nula
