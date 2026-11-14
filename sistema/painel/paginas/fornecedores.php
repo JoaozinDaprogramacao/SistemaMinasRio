@@ -536,3 +536,12 @@ if (@$fornecedores == 'ocultar') {
 	var pag = "<?= $pag ?>"
 </script>
 <script src="js/ajax.js"></script>
+<script type="text/javascript">
+	// Vendas e Compras abrem esta tela com #novo para cadastrar sem sair do carrinho
+	document.addEventListener('DOMContentLoaded', function() {
+		if (location.hash === '#novo' && typeof inserir === 'function') {
+			history.replaceState(null, '', location.pathname);
+			inserir();
+		}
+	});
+</script>

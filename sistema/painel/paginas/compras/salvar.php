@@ -1,217 +1,168 @@
 <?php
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
-
-$tabela = 'pagar';
 require_once("../../../conexao.php");
 require_once(__DIR__ . "/../../seguranca.php");
 seguranca_exigir_acesso(['compras']);
+require_once(__DIR__ . "/../vendas/funcoes_venda.php");
 
-@session_start();
 $id_usuario = $_SESSION['id'];
-
-// Define a data atual no início do arquivo
 $data_atual = date('Y-m-d');
 
-// Função para converter datas do formato DD/MM/YYYY para YYYY-MM-DD
-function convertDateToMySQL($date, $default_date) {
-    if (!empty($date)) {
-        $dateParts = explode('/', $date);
-        if (count($dateParts) == 3) {
-            return $dateParts[2] . '-' . $dateParts[1] . '-' . $dateParts[0];
-        }
-    }
-    return $default_date;
+function compra_data($v, $padrao)
+{
+	return preg_match('/^\d{4}-\d{2}-\d{2}$/', (string) $v) ? $v : $padrao;
 }
 
+// --- 1. DADOS DO FORMULÁRIO (mesmas regras do PDV de vendas) ---
+$fornecedor = intval($_POST['pessoa'] ?? 0);
+$saida = intval($_POST['saida'] ?? 0);
+$data = compra_data($_POST['data2'] ?? '', $data_atual);
+$desconto = venda_valor_br($_POST['desconto'] ?? '');
+$frete = venda_valor_br($_POST['frete'] ?? '');
+$tipo_desconto = ($_POST['tipo_desconto'] ?? '') == '%' ? '%' : 'valor';
+$valor_pago = venda_valor_br($_POST['valor_pago'] ?? '');
+$forma_pgto2 = intval($_POST['forma_pgto2'] ?? 0);
+$data_restante = compra_data($_POST['data_restante'] ?? '', $data);
+
+if ($saida <= 0) {
+	echo 'Selecione a forma de pagamento!';
+	exit();
+}
+if ($desconto < 0 || $frete < 0 || $valor_pago < 0) {
+	echo 'Desconto, frete e valor pago não podem ser negativos!';
+	exit();
+}
+
+// O carrinho no banco é a fonte da verdade: a tela só exibe.
+$stmt = $pdo->prepare("SELECT ic.*, m.nome FROM itens_compra ic
+	JOIN materiais m ON m.id = ic.material
+	WHERE ic.funcionario = :f AND ic.id_compra = 0 ORDER BY ic.id");
+$stmt->execute([':f' => $id_usuario]);
+$itens = $stmt->fetchAll(PDO::FETCH_ASSOC);
+if (count($itens) == 0) {
+	echo 'Adicione pelo menos um item à compra!';
+	exit();
+}
+
+$subtotal = 0;
+foreach ($itens as $item) {
+	if ($item['valor'] <= 0) {
+		echo 'Informe o preço unitário do item ' . $item['nome'] . '!';
+		exit();
+	}
+	$subtotal += $item['total'];
+}
+$subtotal = round($subtotal, 2);
+
+$valor_desconto = ($tipo_desconto == '%') ? round($subtotal * $desconto / 100, 2) : $desconto;
+if ($valor_desconto > $subtotal) {
+	echo 'O desconto não pode ser maior que o valor dos itens!';
+	exit();
+}
+$total_final = round($subtotal - $valor_desconto + $frete, 2);
+if ($total_final <= 0) {
+	echo 'O valor final da compra tem que ser maior que zero.';
+	exit();
+}
+
+if ($valor_pago > $total_final) {
+	$valor_pago = $total_final;
+}
+$valor_restante = round($total_final - $valor_pago, 2);
+if ($valor_restante > 0 && $forma_pgto2 <= 0) {
+	$forma_pgto2 = $saida;
+}
+
+// Compra com data futura é a prazo: a entrada fica a pagar até a baixa.
+$entrada_paga = ($data <= $data_atual);
+
+$stmt = $pdo->prepare("SELECT id FROM caixas WHERE operador = :op AND data_fechamento IS NULL ORDER BY id DESC LIMIT 1");
+$stmt->execute([':op' => $id_usuario]);
+$id_caixa = (int) $stmt->fetchColumn();
+
+// --- 2. GRAVAÇÃO ---
+$pdo->beginTransaction();
 try {
-    // Log inicial
-    error_log("Iniciando processamento da compra");
-    
-    // Verifica se há itens com valor zero
-    $query = $pdo->query("SELECT COUNT(*) as total FROM itens_compra WHERE funcionario = '$id_usuario' AND id_compra = 0 AND (valor = 0 OR valor IS NULL)");
-    $res = $query->fetch(PDO::FETCH_ASSOC);
-    
-    if ($res['total'] > 0) {
-        header('Content-Type: application/json');
-        echo json_encode([
-            'status' => 'erro',
-            'mensagem' => 'Existem itens sem valor definido.'
-        ]);
-        exit();
-    }
+	// Contas a pagar: entrada (o que foi pago agora) e restante
+	$sql_pagar = "INSERT INTO pagar SET descricao = 'Compra', valor = :valor, subtotal = :subtotal, vencimento = :vencimento,
+		data_lanc = curDate(), data_pgto = :data_pgto, usuario_lanc = :usuario_lanc, usuario_pgto = :usuario_pgto,
+		arquivo = 'sem-foto.png', pago = :pago, fornecedor = :fornecedor, funcionario = 0, referencia = 'Compra',
+		id_ref = :id_ref, hora = curTime(), forma_pgto = :forma_pgto, desconto = :desconto, frete = :frete,
+		tipo_desconto = :tipo_desconto, valor_restante = :valor_restante, caixa = :caixa, frequencia = 0";
+	$comuns = [
+		':usuario_lanc' => $id_usuario,
+		':fornecedor' => $fornecedor,
+		':desconto' => $desconto,
+		':frete' => $frete,
+		':tipo_desconto' => $tipo_desconto,
+		':caixa' => $id_caixa,
+	];
+	$ids_pagar = [];
 
-    // Verifica se o total da compra é zero
-    $query = $pdo->query("SELECT SUM(total) as total FROM itens_compra WHERE funcionario = '$id_usuario' AND id_compra = 0");
-    $res = $query->fetch(PDO::FETCH_ASSOC);
-    if (floatval($res['total']) <= 0) {
-        header('Content-Type: application/json');
-        echo json_encode([
-            'status' => 'erro',
-            'mensagem' => 'O valor total da compra não pode ser zero!'
-        ]);
-        exit();
-    }
+	if ($valor_pago > 0) {
+		$pdo->prepare($sql_pagar)->execute($comuns + [
+			':valor' => $valor_pago,
+			':subtotal' => $valor_pago,
+			':vencimento' => $data,
+			':data_pgto' => $entrada_paga ? $data : null,
+			':usuario_pgto' => $entrada_paga ? $id_usuario : 0,
+			':pago' => $entrada_paga ? 'Sim' : 'Não',
+			':forma_pgto' => $saida,
+			':id_ref' => null,
+			':valor_restante' => $entrada_paga ? 0 : $valor_pago,
+		]);
+		$ids_pagar['entrada'] = (int) $pdo->lastInsertId();
+	}
 
-    // Captura e trata os dados do POST
-    $desconto = floatval(str_replace(',', '.', $_POST['desconto'] ?? '0'));
-    $fornecedor = !empty($_POST['fornecedor']) ? intval($_POST['fornecedor']) : 0;
-    $saida = $_POST['saida'] ?? '';
-    $data = convertDateToMySQL($_POST['data2'] ?? '', $data_atual);
-    $frete = floatval(str_replace(',', '.', $_POST['frete'] ?? '0'));
-    $tipo_desconto = $_POST['tipo_desconto'] ?? '';
-    $subtotal_compra = floatval(str_replace(',', '.', $_POST['subtotal_compra'] ?? '0'));
-    $valor_restante = floatval(str_replace(',', '.', $_POST['valor_restante'] ?? '0'));
-    $valor_pago = floatval(str_replace(',', '.', $_POST['valor_pago'] ?? '0'));
-    $data_restante = convertDateToMySQL($_POST['data_restante'] ?? '', $data_atual);
-    $forma_pgto2 = $_POST['forma_pgto2'] ?? '';
+	if ($valor_restante > 0) {
+		$pdo->prepare($sql_pagar)->execute($comuns + [
+			':valor' => $valor_restante,
+			':subtotal' => $valor_restante,
+			':vencimento' => $data_restante,
+			':data_pgto' => null,
+			':usuario_pgto' => 0,
+			':pago' => 'Não',
+			':forma_pgto' => $forma_pgto2,
+			':id_ref' => $ids_pagar['entrada'] ?? null,
+			':valor_restante' => $valor_restante,
+		]);
+		$ids_pagar['restante'] = (int) $pdo->lastInsertId();
+	}
 
-    // Verifica se há itens na compra
-    $query = $pdo->query("SELECT COUNT(*) as total FROM itens_compra WHERE funcionario = '$id_usuario' AND id_compra = 0");
-    $res = $query->fetch(PDO::FETCH_ASSOC);
+	// O número da compra é o id do primeiro lançamento
+	$id_compra = reset($ids_pagar);
+	$parcial = count($ids_pagar) > 1;
+	foreach ($ids_pagar as $tipo => $id_pagar) {
+		$sufixo = $parcial ? ($tipo == 'entrada' ? ' (Entrada)' : ' (Restante)') : '';
+		$pdo->prepare("UPDATE pagar SET descricao = :d WHERE id = :id")
+			->execute([':d' => 'Compra #' . $id_compra . $sufixo, ':id' => $id_pagar]);
+	}
 
-    if ($res['total'] == 0) {
-        header('Content-Type: application/json');
-        echo json_encode([
-            'status' => 'erro',
-            'mensagem' => 'Não há itens na compra!'
-        ]);
-        exit();
-    }
+	$pdo->prepare("UPDATE itens_compra SET id_compra = :c WHERE funcionario = :f AND id_compra = 0")
+		->execute([':c' => $id_compra, ':f' => $id_usuario]);
 
-    // Verifica se o pagamento é à vista ou a prazo
-    $pago = ($valor_restante > 0) ? 'Não' : 'Sim';
-    $data_pgto = ($pago == 'Sim') ? $data : null;
-    $usuario_pgto = ($pago == 'Sim') ? $id_usuario : null;
+	// Estoque sobe uma única vez, aqui; o contador de compras anda para todos os materiais
+	$stmt_estoque = $pdo->prepare("UPDATE materiais SET
+			estoque = IF(tem_estoque = 'Sim', estoque + :q1, estoque),
+			compras = COALESCE(compras, 0) + :q2
+		WHERE id = :id");
+	// Movimentação que aparece em Detalhes Materiais
+	$stmt_detalhes = $pdo->prepare("INSERT INTO detalhes_materiais (material_id, data, compra, valor_compra, preco_unidade, entrada_estoque, descricao)
+		VALUES (:material_id, :data, :compra, :valor_compra, :preco_unidade, :entrada_estoque, 0)");
+	foreach ($itens as $item) {
+		$stmt_estoque->execute([':q1' => $item['quantidade'], ':q2' => $item['quantidade'], ':id' => $item['material']]);
+		$stmt_detalhes->execute([
+			':material_id' => $item['material'],
+			':data' => $data . ' ' . date('H:i:s'),
+			':compra' => $item['quantidade'],
+			':valor_compra' => $item['total'],
+			':preco_unidade' => $item['valor'],
+			':entrada_estoque' => $item['quantidade'],
+		]);
+	}
 
-    // Verifica se o caixa está aberto
-    $query = $pdo->query("SELECT * FROM caixas WHERE operador = '$id_usuario' AND data_fechamento IS NULL ORDER BY id DESC LIMIT 1");
-    $res = $query->fetchAll(PDO::FETCH_ASSOC);
-    $id_caixa = count($res) > 0 ? $res[0]['id'] : 0;
-
-    // Calcula o total da compra
-    $query = $pdo->query("SELECT SUM(total) as total FROM itens_compra WHERE funcionario = '$id_usuario' AND id_compra = 0");
-    $res = $query->fetch(PDO::FETCH_ASSOC);
-    $total_compra = floatval($res['total']);
-
-    // Aplica desconto
-    if ($tipo_desconto == '%') {
-        if ($desconto > 0 && $total_compra > 0) {
-            $desconto_valor = $total_compra * ($desconto / 100);
-            $total_compra = $total_compra - $desconto_valor;
-        }
-    } else {
-        $total_compra = $total_compra - floatval($desconto);
-    }
-
-    // Adiciona frete
-    $total_compra = $total_compra + floatval($frete);
-
-    // Log dos valores importantes
-    error_log("Total da compra: " . $total_compra);
-    error_log("Fornecedor: " . $fornecedor);
-    error_log("Data: " . $data);
-    error_log("ID Caixa: " . $id_caixa);
-
-    // Antes do INSERT, verifique os valores
-    error_log("Preparando para inserir na tabela pagar");
-    error_log("Valor total: " . $total_compra);
-    error_log("Pago: " . $pago);
-    error_log("Data pgto: " . $data_pgto);
-
-    try {
-        // Execute o INSERT dentro de uma transação
-        $pdo->beginTransaction();
-
-        // Insere a compra com o valor total correto
-        $stmt = $pdo->prepare("INSERT INTO pagar (
-            descricao, valor, vencimento, data_lanc, data_pgto, 
-            usuario_lanc, arquivo, pago, usuario_pgto, fornecedor, 
-            referencia, hora, forma_pgto, desconto, frete, 
-            tipo_desconto, subtotal, caixa, funcionario, frequencia
-        ) VALUES (
-            :descricao, :valor, :vencimento, CURDATE(), :data_pgto,
-            :usuario_lanc, :arquivo, :pago, :usuario_pgto, :fornecedor,
-            :referencia, CURTIME(), :forma_pgto, :desconto, :frete,
-            :tipo_desconto, :subtotal, :caixa, :funcionario, :frequencia
-        )");
-        
-        $stmt->execute([
-            ':descricao' => 'Nova Compra',
-            ':valor' => $total_compra,
-            ':vencimento' => $data,
-            ':data_pgto' => $data_pgto,
-            ':usuario_lanc' => $id_usuario,
-            ':arquivo' => 'sem-foto.png',
-            ':pago' => $pago,
-            ':usuario_pgto' => $usuario_pgto,
-            ':fornecedor' => $fornecedor,
-            ':referencia' => 'Compra',
-            ':forma_pgto' => $saida,
-            ':desconto' => $desconto,
-            ':frete' => $frete,
-            ':tipo_desconto' => $tipo_desconto,
-            ':subtotal' => $subtotal_compra,
-            ':caixa' => $id_caixa,
-            ':funcionario' => $id_usuario,
-            ':frequencia' => 0
-        ]);
-
-        $id_compra = $pdo->lastInsertId();
-        
-        // Atualiza os itens da compra
-        $pdo->query("UPDATE itens_compra SET id_compra = '$id_compra' WHERE id_compra = 0 AND funcionario = '$id_usuario'");
-        
-        // Após inserir a compra, atualizar o estoque dos materiais
-        $query = $pdo->query("SELECT ic.material, ic.quantidade, m.tem_estoque, m.estoque, m.compras 
-                              FROM itens_compra ic 
-                              JOIN materiais m ON ic.material = m.id 
-                              WHERE ic.funcionario = '$id_usuario' AND ic.id_compra = '$id_compra'");
-        $itens = $query->fetchAll(PDO::FETCH_ASSOC);
-
-        foreach($itens as $item) {
-            if($item['tem_estoque'] == 'Sim') {
-                $novo_estoque = $item['estoque'] + $item['quantidade'];
-                $novas_compras = $item['compras'] + $item['quantidade'];
-                
-                $pdo->query("UPDATE materiais SET 
-                             estoque = '$novo_estoque', 
-                             compras = '$novas_compras' 
-                             WHERE id = '{$item['material']}'");
-            }
-        }
-
-        // Commit a transação
-        $pdo->commit();
-
-        header('Content-Type: application/json');
-        echo json_encode([
-            'status' => 'success',
-            'mensagem' => 'Compra finalizada com sucesso!',
-            'limpar_campos' => true
-        ]);
-        exit();
-
-    } catch (PDOException $e) {
-        $pdo->rollBack();
-        error_log("Erro na transação: " . $e->getMessage());
-        
-        header('Content-Type: application/json');
-        echo json_encode([
-            'status' => 'erro',
-            'mensagem' => 'Erro ao salvar a compra: ' . $e->getMessage()
-        ]);
-        exit();
-    }
-
+	$pdo->commit();
+	echo 'Salvo com Sucesso-' . $id_compra;
 } catch (Exception $e) {
-    error_log("Erro geral: " . $e->getMessage());
-    
-    header('Content-Type: application/json');
-    echo json_encode([
-        'status' => 'erro',
-        'mensagem' => 'Erro no processamento: ' . $e->getMessage()
-    ]);
-    exit();
+	$pdo->rollBack();
+	echo 'Erro ao salvar: ' . $e->getMessage();
 }
