@@ -9,7 +9,7 @@ $data_atual = date('Y-m-d');
 
 // --- 1. DADOS DO FORMULÁRIO ---
 $id_venda_edicao = intval($_POST['id_venda_edicao'] ?? 0);
-$cliente = intval($_POST['cliente'] ?? 0);
+$cliente = intval($_POST['pessoa'] ?? $_POST['cliente'] ?? 0);
 $saida = intval($_POST['saida'] ?? 0); // forma_pagamento_id
 $data = $_POST['data2'] ?? '';
 if (empty($data)) {
