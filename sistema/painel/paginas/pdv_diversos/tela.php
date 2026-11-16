@@ -452,6 +452,22 @@ $rotulo_op = $eh_venda ? 'venda' : 'compra';
 		text-decoration: underline;
 	}
 
+	.pdv-prazo-linha {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		flex-wrap: wrap;
+		font-size: 13px;
+	}
+
+	.pdv-prazo-linha input {
+		width: 64px;
+	}
+
+	.pdv-prazo-txt {
+		color: var(--pdv-texto-2);
+	}
+
 	.pdv-condicao {
 		display: flex;
 		justify-content: space-between;
@@ -773,6 +789,14 @@ $rotulo_op = $eh_venda ? 'venda' : 'compra';
 					<label class="pdv-label" for="data2">Data</label>
 					<input type="date" class="form-control" id="data2" name="data2" value="<?= $h($pdv['data'] ?? date('Y-m-d')) ?>">
 				</div>
+				<div class="col-12">
+					<div class="pdv-prazo-linha">
+						<label class="pdv-label mb-0" for="pdv_prazo">Prazo</label>
+						<input type="text" inputmode="numeric" class="form-control form-control-sm text-end" id="pdv_prazo" value="<?= (int) ($pdv['prazo'] ?? 0) ?>" autocomplete="off" aria-describedby="pdv_prazo_txt">
+						<span>dias</span>
+						<span class="pdv-prazo-txt" id="pdv_prazo_txt"></span>
+					</div>
+				</div>
 				<?php $tem_ajuste = (float) ($pdv['desconto'] ?? 0) > 0 || (float) ($pdv['frete'] ?? 0) > 0; ?>
 				<div class="col-12" id="pdv_abrir_ajustes_box" <?= $tem_ajuste ? 'style="display:none"' : '' ?>>
 					<button type="button" class="pdv-link" id="pdv_abrir_ajustes">+ Desconto ou frete</button>
@@ -814,11 +838,7 @@ $rotulo_op = $eh_venda ? 'venda' : 'compra';
 					<?= $eh_venda ? 'Fica a receber' : 'Fica a pagar' ?>: <strong id="pdv_restante_valor">R$ 0,00</strong>
 				</div>
 				<div class="row g-2">
-					<div class="col-4">
-						<label class="pdv-label" for="pdv_prazo">Prazo (dias)</label>
-						<input type="text" inputmode="numeric" class="form-control form-control-sm text-end" id="pdv_prazo" value="<?= (int) ($pdv['prazo'] ?? 30) ?>" autocomplete="off">
-					</div>
-					<div class="col-4">
+					<div class="col-6" id="pdv_col_parcelas">
 						<label class="pdv-label" for="pdv_n_parcelas">Parcelas</label>
 						<select class="form-select form-select-sm" id="pdv_n_parcelas">
 							<?php for ($i = 1; $i <= 24; $i++) { ?>
@@ -826,7 +846,7 @@ $rotulo_op = $eh_venda ? 'venda' : 'compra';
 							<?php } ?>
 						</select>
 					</div>
-					<div class="col-4">
+					<div class="col-6">
 						<label class="pdv-label" for="forma_pgto2">Forma</label>
 						<select class="form-select form-select-sm" name="forma_pgto2" id="forma_pgto2">
 							<option value="">Mesma</option>

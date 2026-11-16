@@ -357,14 +357,16 @@ document.addEventListener('DOMContentLoaded', function () {
 		$('#pdv_desc_erro').toggle(t.vDesc > t.subtotal && n > 0);
 		$('#pdv_total').text(rs(t.total));
 
-		// À vista o valor pago acompanha o total; a prazo começa sem entrada.
-		// Vale até o operador digitar outro valor.
+		// À vista na hora o valor pago acompanha o total; à vista com prazo (ex.: 7 dias)
+		// e a prazo começam sem nada pago agora. Vale até o operador digitar outro valor.
 		var aVista = plano() === 'vista';
+		var naHora = aVista && prazoDias() === 0;
 		var manual = String($pago.attr('data-manual')) === '1';
-		if (!manual && !$pago.is(':focus')) $pago.val(n && aVista ? moeda(Math.max(0, t.total)) : '');
+		if (!manual && !$pago.is(':focus')) $pago.val(n && naHora ? moeda(Math.max(0, t.total)) : '');
 		var pago = num($pago.val());
-		$('#pdv_usar_total').toggle(aVista && manual && n > 0 && Math.abs(pago - t.total) > 0.004);
-		$('#pdv_rotulo_pago').text(aVista ? (C.tipo === 'venda' ? 'Valor recebido agora' : 'Valor pago agora') : 'Entrada opcional');
+		$('#pdv_usar_total').toggle(aVista && n > 0 && Math.abs(pago - t.total) > 0.004 && (manual || !naHora));
+		var agora = C.tipo === 'venda' ? 'Valor recebido agora' : 'Valor pago agora';
+		$('#pdv_rotulo_pago').text(naHora ? agora : (aVista ? agora + ' (opcional)' : 'Entrada opcional'));
 
 		var acima = n > 0 && pago - t.total > 0.004;
 		var troco = (C.tipo === 'venda' && acima) ? r2(pago - t.total) : 0;
@@ -398,6 +400,11 @@ document.addEventListener('DOMContentLoaded', function () {
 		if (!manterValores) {
 			$pago.attr('data-manual', 0);  // volta a seguir o padrão do plano
 			if (p === 'prazo' && prazoDias() === 0) $('#pdv_prazo').val(30);
+			if (p === 'vista') {
+				// À vista vale o prazo do cadastro (ex.: 7 dias); sem cadastro à vista, é na hora
+				var pd = padraoPessoa();
+				$('#pdv_prazo').val(pd && pd.tipo === 'vista' ? pd.prazo : 0);
+			}
 			parcelaManual = {};
 		}
 		recalcular();
@@ -437,10 +444,19 @@ document.addEventListener('DOMContentLoaded', function () {
 		return vals;
 	}
 
+	function dataBR(iso) { return iso ? iso.split('-').reverse().join('/') : ''; }
+
 	function renderParcelas(restante, ativo) {
 		var $box = $('#pdv_parcelas');
-		var n = parseInt($('#pdv_n_parcelas').val(), 10) || 1;
+		var aVista = plano() === 'vista';
+		// À vista é um vencimento só; parcelar é coisa do "a prazo"
+		var n = aVista ? 1 : (parseInt($('#pdv_n_parcelas').val(), 10) || 1);
+		$('#pdv_col_parcelas').toggle(!aVista);
 		var datas = datasParcelas(n), vals = valoresParcelas(restante, n);
+		var pz = prazoDias(), txt;
+		if (aVista) txt = pz === 0 ? '· na hora' : '· vence em ' + dataBR(datas[0]);
+		else txt = '· 1ª parcela em ' + dataBR(datas[0]) + (n > 1 ? ', depois a cada ' + (pz > 0 ? pz : 30) + ' dias' : '');
+		$('#pdv_prazo_txt').text(txt);
 		if ($box.children().length !== n) {
 			$box.empty();
 			for (var i = 0; i < n; i++) {
@@ -502,7 +518,7 @@ document.addEventListener('DOMContentLoaded', function () {
 		mostrarPadrao(p);
 		if (!p) return;
 		if (p.forma && C.formas[p.forma]) $('#saida').val(String(p.forma));
-		if (p.prazo) $('#pdv_prazo').val(p.prazo);
+		$('#pdv_prazo').val(p.prazo || 0);
 		setPlano(p.tipo || plano());
 	}
 
@@ -516,7 +532,7 @@ document.addEventListener('DOMContentLoaded', function () {
 		recalcular();
 	});
 	$('#pdv_usar_total').on('click', function () {
-		$pago.attr('data-manual', 0);
+		$pago.val(moeda(Math.max(0, totais().total))).attr('data-manual', 1);
 		recalcular();
 	});
 
