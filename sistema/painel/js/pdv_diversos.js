@@ -357,11 +357,14 @@ document.addEventListener('DOMContentLoaded', function () {
 		$('#pdv_desc_erro').toggle(t.vDesc > t.subtotal && n > 0);
 		$('#pdv_total').text(rs(t.total));
 
-		// O valor pago acompanha o total até o operador digitar outro
+		// À vista o valor pago acompanha o total; a prazo começa sem entrada.
+		// Vale até o operador digitar outro valor.
+		var aVista = plano() === 'vista';
 		var manual = String($pago.attr('data-manual')) === '1';
-		if (!manual && !$pago.is(':focus')) $pago.val(n ? moeda(Math.max(0, t.total)) : '');
+		if (!manual && !$pago.is(':focus')) $pago.val(n && aVista ? moeda(Math.max(0, t.total)) : '');
 		var pago = num($pago.val());
-		$('#pdv_usar_total').toggle(manual && n > 0 && Math.abs(pago - t.total) > 0.004);
+		$('#pdv_usar_total').toggle(aVista && manual && n > 0 && Math.abs(pago - t.total) > 0.004);
+		$('#pdv_rotulo_pago').text(aVista ? (C.tipo === 'venda' ? 'Valor recebido agora' : 'Valor pago agora') : 'Entrada opcional');
 
 		var acima = n > 0 && pago - t.total > 0.004;
 		var troco = (C.tipo === 'venda' && acima) ? r2(pago - t.total) : 0;
@@ -370,8 +373,10 @@ document.addEventListener('DOMContentLoaded', function () {
 		$('#pdv_acima').toggle(C.tipo !== 'venda' && acima);
 
 		var restante = r2(Math.max(0, t.total - pago));
-		$('#pdv_restante').toggle(n > 0 && restante > 0.004);
+		var temRestante = n > 0 && restante > 0.004;
+		$('#pdv_restante').toggle(temRestante);
 		$('#pdv_restante_valor').text(rs(restante));
+		renderParcelas(restante, temRestante);
 
 		var rotulo = C.edicao ? 'Salvar alterações' : 'Fechar ' + C.operacao;
 		if (!salvando) {
@@ -384,6 +389,123 @@ document.addEventListener('DOMContentLoaded', function () {
 	}
 
 	$('#desconto, #frete').on('input', function () { recalcular(); });
+	// ---------- Condição de pagamento (à vista / a prazo e parcelas) ----------
+	function plano() { return $('#plano').val() === 'prazo' ? 'prazo' : 'vista'; }
+
+	function setPlano(p, manterValores) {
+		$('#plano').val(p);
+		$('.pdv-plano button').each(function () { $(this).toggleClass('ativo', $(this).data('plano') === p); });
+		if (!manterValores) {
+			$pago.attr('data-manual', 0);  // volta a seguir o padrão do plano
+			if (p === 'prazo' && prazoDias() === 0) $('#pdv_prazo').val(30);
+			parcelaManual = {};
+		}
+		recalcular();
+	}
+	$('.pdv-plano button').on('click', function () { setPlano($(this).data('plano')); });
+
+	var parcelaManual = {};  // índice da parcela -> data digitada pelo operador
+
+	function pad(n) { return (n < 10 ? '0' : '') + n; }
+	function isoHoje() { var d = new Date(); return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
+	function somaDias(iso, dias) {
+		var p = iso.split('-');
+		var d = new Date(+p[0], +p[1] - 1, +p[2] + dias);
+		return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+	}
+	function difDias(de, ate) {
+		var a = de.split('-'), b = ate.split('-');
+		return Math.round((Date.UTC(+b[0], +b[1] - 1, +b[2]) - Date.UTC(+a[0], +a[1] - 1, +a[2])) / 86400000);
+	}
+	function dataBase() { return $('#data2').val() || isoHoje(); }
+	function prazoDias() {
+		var v = parseInt($('#pdv_prazo').val(), 10);
+		return isNaN(v) || v < 0 ? 0 : v;
+	}
+
+	// 1ª parcela em data + prazo; as seguintes a cada "prazo" dias (30 se o prazo for 0)
+	function datasParcelas(n) {
+		var pz = prazoDias(), intervalo = pz > 0 ? pz : 30, datas = [];
+		for (var i = 0; i < n; i++) datas.push(parcelaManual[i] || somaDias(dataBase(), pz + i * intervalo));
+		return datas;
+	}
+
+	// Mesma divisão do pdv_parcelas() no PHP: centavos iguais, a sobra vai na última
+	function valoresParcelas(restante, n) {
+		var cent = Math.round(restante * 100), base = Math.floor(cent / n), vals = [];
+		for (var i = 0; i < n; i++) vals.push((i === n - 1 ? cent - base * (n - 1) : base) / 100);
+		return vals;
+	}
+
+	function renderParcelas(restante, ativo) {
+		var $box = $('#pdv_parcelas');
+		var n = parseInt($('#pdv_n_parcelas').val(), 10) || 1;
+		var datas = datasParcelas(n), vals = valoresParcelas(restante, n);
+		if ($box.children().length !== n) {
+			$box.empty();
+			for (var i = 0; i < n; i++) {
+				$box.append('<div class="pdv-parcela"><span>' + (i + 1) + 'ª</span>' +
+					'<input type="date" class="form-control form-control-sm" name="parcela_venc[]" data-i="' + i + '" aria-label="Vencimento da parcela ' + (i + 1) + '">' +
+					'<strong></strong></div>');
+			}
+		}
+		$box.children().each(function (i) {
+			var $in = $(this).find('input');
+			if (!$in.is(':focus')) $in.val(datas[i]);
+			$in.prop('disabled', !ativo).toggleClass('is-invalid', datas[i] < dataBase());
+			$(this).find('strong').text(rs(vals[i]));
+		});
+	}
+
+	$('#pdv_parcelas').on('change', 'input', function () {
+		var i = +$(this).data('i'), v = this.value;
+		if (!v) { delete parcelaManual[i]; recalcular(); return; }
+		if (i === 0) {
+			// Mudar a 1ª data muda o prazo, e as outras acompanham
+			$('#pdv_prazo').val(Math.max(0, difDias(dataBase(), v)));
+			parcelaManual = {};
+		} else {
+			parcelaManual[i] = v;
+		}
+		recalcular();
+	});
+	$('#pdv_prazo').on('input', function () {
+		this.value = this.value.replace(/\D/g, '').slice(0, 4);
+		parcelaManual = {};
+		recalcular();
+	}).on('focus', function () { this.select(); });
+	$('#pdv_n_parcelas').on('change', function () { parcelaManual = {}; recalcular(); });
+	$('#data2').on('change', function () { parcelaManual = {}; recalcular(); });
+
+	// Plano, forma e prazo do cadastro do cliente/fornecedor
+	function padraoPessoa() {
+		var $o = $('#pdv_pessoa').find('option:selected');
+		if (!$o.val()) return null;
+		var idPlano = +$o.attr('data-plano') || 0, forma = +$o.attr('data-forma') || 0, prazo = +$o.attr('data-prazo') || 0;
+		var tipo = idPlano && idPlano === C.planos.prazo ? 'prazo' : (idPlano && idPlano === C.planos.vista ? 'vista' : null);
+		if (!tipo && !forma && !prazo) return null;
+		return { tipo: tipo, forma: forma, prazo: prazo };
+	}
+
+	function mostrarPadrao(p) {
+		if (!p) { $('#pdv_padrao').hide(); return; }
+		var partes = [];
+		if (p.tipo) partes.push(p.tipo === 'prazo' ? 'A prazo' : 'À vista');
+		if (p.prazo) partes.push(p.prazo + ' dias');
+		if (p.forma && C.formas[p.forma]) partes.push(C.formas[p.forma]);
+		$('#pdv_padrao').html('<i class="fa fa-id-card-o me-1"></i>No cadastro: <strong></strong> · você pode alterar')
+			.show().find('strong').text(partes.join(' · '));
+	}
+
+	function aplicarPadrao() {
+		var p = padraoPessoa();
+		mostrarPadrao(p);
+		if (!p) return;
+		if (p.forma && C.formas[p.forma]) $('#saida').val(String(p.forma));
+		if (p.prazo) $('#pdv_prazo').val(p.prazo);
+		setPlano(p.tipo || plano());
+	}
+
 	$('#pdv_abrir_ajustes').on('click', function () {
 		$('#pdv_abrir_ajustes_box').hide();
 		$('.pdv-ajuste').show();
@@ -414,6 +536,8 @@ document.addEventListener('DOMContentLoaded', function () {
 		if (campo) campo.focus();
 	});
 
+	$pessoa.on('change', aplicarPadrao);
+
 	var esperandoCadastro = false;
 	$('#pdv_nova_pessoa').on('click', function () {
 		esperandoCadastro = true;
@@ -431,10 +555,12 @@ document.addEventListener('DOMContentLoaded', function () {
 			var novo = null;
 			$pessoa.empty().append('<option value=""></option>');
 			lista.forEach(function (p) {
-				$pessoa.append(new Option(p.nome, p.id, false, false));
+				$(new Option(p.nome, p.id, false, false))
+					.attr({ 'data-plano': p.plano, 'data-forma': p.forma, 'data-prazo': p.prazo })
+					.appendTo($pessoa);
 				if (!antes[p.id] && (!novo || p.id > novo.id)) novo = p;
 			});
-			$pessoa.val(novo ? String(novo.id) : atual).trigger('change');
+			$pessoa.val(novo ? String(novo.id) : atual).trigger(novo ? 'change' : 'change.select2');
 			if (novo) aviso(C.pessoa + ' ' + novo.nome + ' selecionado');
 		});
 	});
@@ -457,6 +583,12 @@ document.addEventListener('DOMContentLoaded', function () {
 		if (t.vDesc > t.subtotal) { erro('O desconto é maior que o valor dos itens.'); $('#desconto').trigger('focus'); return false; }
 		if (t.total <= 0) { erro('O total precisa ser maior que zero.'); return false; }
 		if (!$('#saida').val()) { erro('Selecione a forma de pagamento.'); $('#saida').trigger('focus'); return false; }
+		var $vencRuim = $('#pdv_parcelas input:enabled').filter(function () { return !this.value || this.value < dataBase(); }).first();
+		if ($vencRuim.length) {
+			erro('O vencimento da parcela não pode ser antes da data da ' + C.operacao + '.');
+			$vencRuim.trigger('focus');
+			return false;
+		}
 		return true;
 	}
 
@@ -571,6 +703,11 @@ document.addEventListener('DOMContentLoaded', function () {
 	});
 
 	// ---------- Início ----------
+	// Na edição as parcelas em aberto da venda vêm prontas; senão vale o cadastro de quem está selecionado
+	(C.parcelasIniciais || []).forEach(function (d, i) { parcelaManual[i] = d; });
+	setPlano($('#plano').val(), true);
+	if (C.edicao) mostrarPadrao(padraoPessoa());
+	else if ($pessoa.val()) aplicarPadrao();
 	tipoDesconto($('#tipo_desconto').val() === '%' ? '%' : 'reais');
 	api({ acao: 'listar' })
 		.done(function (r) { itens = r.itens; renderCarrinho(); })

@@ -3,6 +3,7 @@ require_once("../../../conexao.php");
 require_once(__DIR__ . "/../../seguranca.php");
 seguranca_exigir_acesso(['compras']);
 require_once(__DIR__ . "/../vendas/funcoes_venda.php");
+require_once(__DIR__ . "/../pdv_diversos/pagamento_comum.php");
 
 $id_usuario = $_SESSION['id'];
 $data_atual = date('Y-m-d');
@@ -21,7 +22,6 @@ $frete = venda_valor_br($_POST['frete'] ?? '');
 $tipo_desconto = ($_POST['tipo_desconto'] ?? '') == '%' ? '%' : 'valor';
 $valor_pago = venda_valor_br($_POST['valor_pago'] ?? '');
 $forma_pgto2 = intval($_POST['forma_pgto2'] ?? 0);
-$data_restante = compra_data($_POST['data_restante'] ?? '', $data);
 
 if ($saida <= 0) {
 	echo 'Selecione a forma de pagamento!';
@@ -72,6 +72,15 @@ if ($valor_restante > 0 && $forma_pgto2 <= 0) {
 	$forma_pgto2 = $saida;
 }
 
+$parcelas = [];
+if ($valor_restante > 0) {
+	$parcelas = pdv_parcelas($valor_restante, $data);
+	if (is_string($parcelas)) {
+		echo $parcelas;
+		exit();
+	}
+}
+
 // Compra com data futura é a prazo: a entrada fica a pagar até a baixa.
 $entrada_paga = ($data <= $data_atual);
 
@@ -96,7 +105,8 @@ try {
 		':tipo_desconto' => $tipo_desconto,
 		':caixa' => $id_caixa,
 	];
-	$ids_pagar = [];
+	$ids_entrada = 0;
+	$ids_parcelas = [];
 
 	if ($valor_pago > 0) {
 		$pdo->prepare($sql_pagar)->execute($comuns + [
@@ -110,31 +120,34 @@ try {
 			':id_ref' => null,
 			':valor_restante' => $entrada_paga ? 0 : $valor_pago,
 		]);
-		$ids_pagar['entrada'] = (int) $pdo->lastInsertId();
+		$ids_entrada = (int) $pdo->lastInsertId();
 	}
 
-	if ($valor_restante > 0) {
+	// O restante (a prazo) vira uma conta a pagar por parcela
+	foreach ($parcelas as $parcela) {
 		$pdo->prepare($sql_pagar)->execute($comuns + [
-			':valor' => $valor_restante,
-			':subtotal' => $valor_restante,
-			':vencimento' => $data_restante,
+			':valor' => $parcela['valor'],
+			':subtotal' => $parcela['valor'],
+			':vencimento' => $parcela['vencimento'],
 			':data_pgto' => null,
 			':usuario_pgto' => 0,
 			':pago' => 'Não',
 			':forma_pgto' => $forma_pgto2,
-			':id_ref' => $ids_pagar['entrada'] ?? null,
-			':valor_restante' => $valor_restante,
+			':id_ref' => ($ids_entrada ?: ($ids_parcelas[0] ?? null)),
+			':valor_restante' => $parcela['valor'],
 		]);
-		$ids_pagar['restante'] = (int) $pdo->lastInsertId();
+		$ids_parcelas[] = (int) $pdo->lastInsertId();
 	}
 
 	// O número da compra é o id do primeiro lançamento
-	$id_compra = reset($ids_pagar);
-	$parcial = count($ids_pagar) > 1;
-	foreach ($ids_pagar as $tipo => $id_pagar) {
-		$sufixo = $parcial ? ($tipo == 'entrada' ? ' (Entrada)' : ' (Restante)') : '';
+	$id_compra = $ids_entrada ?: $ids_parcelas[0];
+	if ($ids_entrada) {
 		$pdo->prepare("UPDATE pagar SET descricao = :d WHERE id = :id")
-			->execute([':d' => 'Compra #' . $id_compra . $sufixo, ':id' => $id_pagar]);
+			->execute([':d' => 'Compra #' . $id_compra . ($ids_parcelas ? ' (Entrada)' : ''), ':id' => $ids_entrada]);
+	}
+	foreach ($ids_parcelas as $i => $id_pagar) {
+		$pdo->prepare("UPDATE pagar SET descricao = :d WHERE id = :id")
+			->execute([':d' => pdv_descricao_parcela('Compra #' . $id_compra, $i, count($ids_parcelas), $ids_entrada > 0), ':id' => $id_pagar]);
 	}
 
 	$pdo->prepare("UPDATE itens_compra SET id_compra = :c WHERE funcionario = :f AND id_compra = 0")
