@@ -16,12 +16,22 @@ $materiais = $pdo->query("SELECT m.id, m.nome, m.tem_estoque, m.estoque,
 		(SELECT i.valor FROM $tabela_itens i WHERE i.material = m.id AND $item_fechado AND i.valor > 0 ORDER BY i.id DESC LIMIT 1) AS ultimo_preco
 	FROM materiais m ORDER BY m.nome ASC")->fetchAll(PDO::FETCH_ASSOC);
 
+// Plano, forma e prazo de pagamento do cadastro viram o padrão da condição de pagamento
 if ($eh_venda) {
-	$pessoas = $pdo->query("SELECT id, nome, cpf AS doc FROM clientes ORDER BY nome ASC")->fetchAll(PDO::FETCH_ASSOC);
+	$pessoas = $pdo->query("SELECT id, nome, cpf AS doc, plano_pagamento, forma_pagamento, prazo_pagamento FROM clientes ORDER BY nome ASC")->fetchAll(PDO::FETCH_ASSOC);
 } else {
-	$pessoas = $pdo->query("SELECT id, nome_atacadista AS nome, COALESCE(NULLIF(cnpj, ''), cpf) AS doc FROM fornecedores ORDER BY nome_atacadista ASC")->fetchAll(PDO::FETCH_ASSOC);
+	$pessoas = $pdo->query("SELECT id, nome_atacadista AS nome, COALESCE(NULLIF(cnpj, ''), cpf) AS doc, plano_pagamento, forma_pagamento, prazo_pagamento FROM fornecedores ORDER BY nome_atacadista ASC")->fetchAll(PDO::FETCH_ASSOC);
 }
 $formas = $pdo->query("SELECT id, nome FROM formas_pgto ORDER BY id ASC")->fetchAll(PDO::FETCH_ASSOC);
+
+// Planos cadastrados (hoje "A VISTA" e "A PRAZO"): o que tem VISTA no nome é à vista
+$plano_ids = ['vista' => 0, 'prazo' => 0];
+foreach ($pdo->query("SELECT id, nome FROM planos_pgto ORDER BY id")->fetchAll(PDO::FETCH_ASSOC) as $pl) {
+	$tipo_plano = stripos(str_replace('À', 'A', mb_strtoupper($pl['nome'], 'UTF-8')), 'VISTA') !== false ? 'vista' : 'prazo';
+	if (!$plano_ids[$tipo_plano]) $plano_ids[$tipo_plano] = (int) $pl['id'];
+}
+$plano_inicial = ($pdv['plano'] ?? '') == 'prazo' ? 'prazo' : 'vista';
+$parcelas_iniciais = $pdv['parcelas'] ?? [];
 
 $h = function ($v) {
 	return htmlspecialchars((string) $v, ENT_QUOTES, 'UTF-8');
@@ -442,6 +452,72 @@ $rotulo_op = $eh_venda ? 'venda' : 'compra';
 		text-decoration: underline;
 	}
 
+	.pdv-condicao {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		gap: 8px;
+	}
+
+	.pdv-plano {
+		display: inline-flex;
+		border: 1px solid var(--pdv-borda);
+		border-radius: 8px;
+		overflow: hidden;
+	}
+
+	.pdv-plano button {
+		border: 0;
+		background: #fff;
+		font-size: 13px;
+		font-weight: 600;
+		padding: 6px 14px;
+		color: var(--pdv-texto-2);
+	}
+
+	.pdv-plano button+button {
+		border-left: 1px solid var(--pdv-borda);
+	}
+
+	.pdv-plano button.ativo {
+		background: var(--pdv-destaque);
+		color: #fff;
+	}
+
+	.pdv-padrao {
+		font-size: 12px;
+		color: var(--pdv-texto-2);
+		margin-top: 6px;
+	}
+
+	.pdv-parcelas {
+		margin-top: 8px;
+	}
+
+	.pdv-parcela {
+		display: grid;
+		grid-template-columns: 34px 1fr auto;
+		align-items: center;
+		gap: 8px;
+		padding: 3px 0;
+		font-size: 13px;
+	}
+
+	.pdv-parcela span:first-child {
+		color: var(--pdv-texto-2);
+		font-weight: 600;
+	}
+
+	.pdv-parcela input {
+		height: 30px;
+		padding: 2px 8px;
+	}
+
+	.pdv-parcela strong {
+		min-width: 92px;
+		text-align: right;
+	}
+
 	.pdv-acoes .btn-fechar {
 		width: 100%;
 		height: 50px;
@@ -569,7 +645,8 @@ $rotulo_op = $eh_venda ? 'venda' : 'compra';
 	.dark-theme .pdv-cartao,
 	.dark-theme .pdv-mat,
 	.dark-theme .pdv-barra,
-	.dark-theme .pdv-seg button:not(.ativo) {
+	.dark-theme .pdv-seg button:not(.ativo),
+	.dark-theme .pdv-plano button:not(.ativo) {
 		background: #1f2433;
 		color: #e5e7eb;
 	}
@@ -655,7 +732,7 @@ $rotulo_op = $eh_venda ? 'venda' : 'compra';
 				<select id="pdv_pessoa" name="pessoa" style="width:100%">
 					<option value=""></option>
 					<?php foreach ($pessoas as $p) { ?>
-						<option value="<?= (int) $p['id'] ?>" <?= (string) $p['id'] === (string) ($pdv['pessoa'] ?? '') ? 'selected' : '' ?>><?= $h(trim($p['nome'] . ($p['doc'] ? ' - ' . $p['doc'] : ''))) ?></option>
+						<option value="<?= (int) $p['id'] ?>" data-plano="<?= (int) $p['plano_pagamento'] ?>" data-forma="<?= (int) $p['forma_pagamento'] ?>" data-prazo="<?= (int) $p['prazo_pagamento'] ?>" <?= (string) $p['id'] === (string) ($pdv['pessoa'] ?? '') ? 'selected' : '' ?>><?= $h(trim($p['nome'] . ($p['doc'] ? ' - ' . $p['doc'] : ''))) ?></option>
 					<?php } ?>
 				</select>
 				<button type="button" class="btn btn-outline-primary" id="pdv_nova_pessoa" title="Cadastrar <?= strtolower($rotulo_pessoa) ?> (abre em nova aba)" aria-label="Cadastrar <?= strtolower($rotulo_pessoa) ?>"><i class="fa fa-user-plus"></i></button>
@@ -673,7 +750,16 @@ $rotulo_op = $eh_venda ? 'venda' : 'compra';
 		</section>
 
 		<section>
-			<div class="row g-2">
+			<div class="pdv-condicao">
+				<span class="pdv-label mb-0">Condição de pagamento</span>
+				<div class="pdv-plano" role="group" aria-label="Condição de pagamento">
+					<button type="button" data-plano="vista">À vista</button><button type="button" data-plano="prazo">A prazo</button>
+				</div>
+			</div>
+			<div class="pdv-padrao" id="pdv_padrao" style="display:none"></div>
+			<input type="hidden" name="plano" id="plano" value="<?= $plano_inicial ?>">
+
+			<div class="row g-2 mt-1">
 				<div class="col-7">
 					<label class="pdv-label" for="saida">Forma de pagamento</label>
 					<select class="form-select" name="saida" id="saida">
@@ -715,7 +801,7 @@ $rotulo_op = $eh_venda ? 'venda' : 'compra';
 
 			<div class="mt-3">
 				<label class="pdv-label" for="valor_pago">
-					<?= $eh_venda ? 'Valor recebido agora' : 'Valor pago agora' ?> (R$)
+					<span id="pdv_rotulo_pago"><?= $eh_venda ? 'Valor recebido agora' : 'Valor pago agora' ?></span> (R$)
 					<button type="button" class="pdv-link ms-1" id="pdv_usar_total" style="display:none">usar o total</button>
 				</label>
 				<input type="text" inputmode="decimal" class="form-control text-end" id="valor_pago" name="valor_pago" placeholder="0,00" value="<?= $h($pdv['valor_pago'] ?? '') ?>" data-formato="moeda" data-manual="<?= ($pdv['valor_pago'] ?? '') !== '' ? 1 : 0 ?>" style="font-weight:600">
@@ -728,20 +814,30 @@ $rotulo_op = $eh_venda ? 'venda' : 'compra';
 					<?= $eh_venda ? 'Fica a receber' : 'Fica a pagar' ?>: <strong id="pdv_restante_valor">R$ 0,00</strong>
 				</div>
 				<div class="row g-2">
-					<div class="col-7">
-						<label class="pdv-label" for="forma_pgto2">Forma do restante</label>
-						<select class="form-select form-select-sm" name="forma_pgto2" id="forma_pgto2">
-							<option value="">Mesma forma</option>
-							<?php foreach ($formas as $f) { ?>
-								<option value="<?= (int) $f['id'] ?>"><?= $h($f['nome']) ?></option>
+					<div class="col-4">
+						<label class="pdv-label" for="pdv_prazo">Prazo (dias)</label>
+						<input type="text" inputmode="numeric" class="form-control form-control-sm text-end" id="pdv_prazo" value="<?= (int) ($pdv['prazo'] ?? 30) ?>" autocomplete="off">
+					</div>
+					<div class="col-4">
+						<label class="pdv-label" for="pdv_n_parcelas">Parcelas</label>
+						<select class="form-select form-select-sm" id="pdv_n_parcelas">
+							<?php for ($i = 1; $i <= 24; $i++) { ?>
+								<option value="<?= $i ?>" <?= $i == max(1, count($parcelas_iniciais)) ? 'selected' : '' ?>><?= $i ?>x</option>
 							<?php } ?>
 						</select>
 					</div>
-					<div class="col-5">
-						<label class="pdv-label" for="data_restante">Vencimento</label>
-						<input type="date" class="form-control form-control-sm" name="data_restante" id="data_restante" value="<?= date('Y-m-d', strtotime('+30 days')) ?>">
+					<div class="col-4">
+						<label class="pdv-label" for="forma_pgto2">Forma</label>
+						<select class="form-select form-select-sm" name="forma_pgto2" id="forma_pgto2">
+							<option value="">Mesma</option>
+							<?php foreach ($formas as $f) { ?>
+								<option value="<?= (int) $f['id'] ?>" <?= (string) $f['id'] === (string) ($pdv['forma_parcelas'] ?? '') ? 'selected' : '' ?>><?= $h($f['nome']) ?></option>
+							<?php } ?>
+						</select>
 					</div>
 				</div>
+				<div class="pdv-parcelas" id="pdv_parcelas"></div>
+				<div class="pdv-aviso text-muted">Cada vencimento pode ser alterado; os valores são divididos igualmente.</div>
 			</div>
 		</section>
 
@@ -807,6 +903,9 @@ $rotulo_op = $eh_venda ? 'venda' : 'compra';
 		pessoaObrigatoria: <?= $eh_venda ? 'true' : 'false' ?>,
 		cadastroPessoa: <?= json_encode($eh_venda ? 'clientes' : 'fornecedores') ?>,
 		edicao: <?= (int) ($pdv['id_edicao'] ?? 0) ?>,
+		planos: <?= json_encode($plano_ids) ?>,
+		formas: <?= json_encode(array_column($formas, 'nome', 'id'), JSON_UNESCAPED_UNICODE) ?>,
+		parcelasIniciais: <?= json_encode(array_values($parcelas_iniciais)) ?>,
 		impressaoAutomatica: <?= json_encode(($pdv['impressao_automatica'] ?? '') == 'Sim') ?>
 	};
 </script>

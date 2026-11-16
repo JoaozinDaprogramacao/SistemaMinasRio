@@ -3,6 +3,7 @@ require_once("../../../conexao.php");
 require_once(__DIR__ . "/../../seguranca.php");
 seguranca_exigir_acesso(['vendas']);
 require_once("funcoes_venda.php");
+require_once(__DIR__ . "/../pdv_diversos/pagamento_comum.php");
 @session_start();
 $id_usuario = $_SESSION['id'];
 $data_atual = date('Y-m-d');
@@ -21,10 +22,6 @@ $tipo_desconto = ($_POST['tipo_desconto'] ?? '') == '%' ? '%' : 'valor';
 $valor_pago = venda_valor_br($_POST['valor_pago'] ?? '');
 $troco = venda_valor_br($_POST['troco'] ?? '');
 $forma_pgto2 = intval($_POST['forma_pgto2'] ?? 0);
-$data_restante = $_POST['data_restante'] ?? '';
-if (empty($data_restante)) {
-    $data_restante = $data;
-}
 
 // --- 2. VALIDAÇÕES ---
 if ($cliente <= 0) {
@@ -82,6 +79,16 @@ if ($valor_pago > $total_final) {
 $valor_restante = round($total_final - $valor_pago, 2);
 if ($valor_restante > 0 && $forma_pgto2 <= 0) {
     $forma_pgto2 = $saida;
+}
+
+// O restante (a prazo) vira uma conta a receber por parcela
+$parcelas = [];
+if ($valor_restante > 0) {
+    $parcelas = pdv_parcelas($valor_restante, $data);
+    if (is_string($parcelas)) {
+        echo $parcelas;
+        exit();
+    }
 }
 
 // Venda com data futura é a prazo: a entrada fica a receber até a baixa.
@@ -178,7 +185,7 @@ try {
         ':troco' => $troco,
         ':valor_restante' => $valor_restante,
         ':forma_pgto_restante' => $valor_restante > 0 ? $forma_pgto2 : null,
-        ':data_restante' => $valor_restante > 0 ? $data_restante : null,
+        ':data_restante' => $parcelas ? $parcelas[0]['vencimento'] : null,
         ':id_venda_real' => $id_venda_real,
     ];
     $id_receber_principal = 0;
@@ -198,12 +205,12 @@ try {
         $id_receber_principal = $pdo->lastInsertId();
     }
 
-    if ($valor_restante > 0) {
+    foreach ($parcelas as $i => $parcela) {
         $pdo->prepare($sql_receber)->execute($comuns + [
-            ':descricao' => 'Venda #' . $id_venda_real . ($valor_pago > 0 ? ' (Restante)' : ''),
-            ':valor' => $valor_restante,
-            ':subtotal' => $valor_restante,
-            ':vencimento' => $data_restante,
+            ':descricao' => pdv_descricao_parcela('Venda #' . $id_venda_real, $i, count($parcelas), $valor_pago > 0),
+            ':valor' => $parcela['valor'],
+            ':subtotal' => $parcela['valor'],
+            ':vencimento' => $parcela['vencimento'],
             ':data_pgto' => null,
             ':usuario_pgto' => 0,
             ':pago' => 'Não',

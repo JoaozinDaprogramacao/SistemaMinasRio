@@ -58,6 +58,19 @@ if (@$_SESSION['modo_edicao_venda'] === true) {
 	$pdv['forma_pgto'] = $dados['forma_pagamento_id'];
 	$pdv['data'] = date('Y-m-d', strtotime($dados['data_venda']));
 
+	// Parcelas ainda em aberto da venda: a edição começa com os mesmos vencimentos
+	$stmt = $pdo->prepare("SELECT vencimento, forma_pgto FROM receber
+		WHERE id_venda_real = :id AND pago <> 'Sim' AND COALESCE(cancelada, '') <> 'Sim' AND vencimento > :data
+		ORDER BY vencimento, id");
+	$stmt->execute([':id' => $dados['id'], ':data' => $pdv['data']]);
+	$abertas = $stmt->fetchAll(PDO::FETCH_ASSOC);
+	if ($abertas) {
+		$pdv['plano'] = 'prazo';
+		$pdv['parcelas'] = array_column($abertas, 'vencimento');
+		$pdv['prazo'] = max(0, (int) round((strtotime($abertas[0]['vencimento']) - strtotime($pdv['data'])) / 86400));
+		$pdv['forma_parcelas'] = $abertas[0]['forma_pgto'] != $pdv['forma_pgto'] ? $abertas[0]['forma_pgto'] : '';
+	}
+
 	unset($_SESSION['modo_edicao_venda'], $_SESSION['dados_edicao_venda']);
 }
 
