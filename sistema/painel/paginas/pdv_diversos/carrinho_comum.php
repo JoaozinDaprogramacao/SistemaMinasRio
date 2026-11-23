@@ -55,6 +55,20 @@ function pdv_material($pdo, $id_material)
 	return $stmt->fetch(PDO::FETCH_ASSOC);
 }
 
+// Quanto do material já está no carrinho, somando todas as linhas (o mesmo
+// material pode estar em várias linhas, uma por preço). $exceto = id de uma
+// linha que não entra na soma (a que está sendo alterada).
+function pdv_qtd_no_carrinho($pdo, $cfg, $id_usuario, $id_material, $exceto = 0)
+{
+	$t = $cfg['tabela'];
+	$c = $cfg['coluna_pai'];
+	$stmt = $pdo->prepare("SELECT COALESCE(SUM(quantidade), 0) FROM $t
+		WHERE funcionario = :f AND $c = 0 AND material = :m AND id <> :exceto");
+	$stmt->execute([':f' => $id_usuario, ':m' => $id_material, ':exceto' => $exceto]);
+	return (float) $stmt->fetchColumn();
+}
+
+// $quantidade = total do material no carrinho depois da alteração (todas as linhas)
 function pdv_conferir_estoque($pdo, $cfg, $material, $quantidade)
 {
 	if (empty($cfg['disponivel'])) return;
@@ -81,21 +95,27 @@ function pdv_carrinho_executar($pdo, $cfg)
 		$valor = round(venda_valor_br($valor_post), 2);
 		if ($valor < 0) pdv_erro('O preço não pode ser negativo.');
 
-		// Material que já está no carrinho soma na mesma linha
-		$stmt = $pdo->prepare("SELECT * FROM $t WHERE funcionario = :f AND $c = 0 AND material = :m LIMIT 1");
-		$stmt->execute([':f' => $id_usuario, ':m' => $material['id']]);
+		// Sem preço informado vale o da última linha desse material
+		if ($valor_post === '') {
+			$stmt = $pdo->prepare("SELECT valor FROM $t WHERE funcionario = :f AND $c = 0 AND material = :m ORDER BY id DESC LIMIT 1");
+			$stmt->execute([':f' => $id_usuario, ':m' => $material['id']]);
+			$ultimo = $stmt->fetchColumn();
+			if ($ultimo !== false) $valor = round((float) $ultimo, 2);
+		}
+
+		// O mesmo material pode entrar com preços diferentes na mesma venda/compra:
+		// só soma numa linha existente quando o preço é o mesmo; senão abre outra linha.
+		$stmt = $pdo->prepare("SELECT * FROM $t WHERE funcionario = :f AND $c = 0 AND material = :m AND ABS(valor - :v) < 0.005 ORDER BY id LIMIT 1");
+		$stmt->execute([':f' => $id_usuario, ':m' => $material['id'], ':v' => $valor]);
 		$item = $stmt->fetch(PDO::FETCH_ASSOC);
 
 		$nova_quantidade = $quantidade + ($item ? (float) $item['quantidade'] : 0);
-		pdv_conferir_estoque($pdo, $cfg, $material, $nova_quantidade);
-		if ($valor_post === '' && $item) {
-			$valor = (float) $item['valor'];
-		}
+		pdv_conferir_estoque($pdo, $cfg, $material, $quantidade + pdv_qtd_no_carrinho($pdo, $cfg, $id_usuario, $material['id']));
 		$total = round($nova_quantidade * $valor, 2);
 
 		if ($item) {
-			$pdo->prepare("UPDATE $t SET quantidade = :q, valor = :v, total = :tot WHERE id = :id")
-				->execute([':q' => $nova_quantidade, ':v' => $valor, ':tot' => $total, ':id' => $item['id']]);
+			$pdo->prepare("UPDATE $t SET quantidade = :q, total = :tot WHERE id = :id")
+				->execute([':q' => $nova_quantidade, ':tot' => $total, ':id' => $item['id']]);
 			$id = (int) $item['id'];
 		} else {
 			$pdo->prepare("INSERT INTO $t SET material = :m, quantidade = :q, valor = :v, total = :tot, $c = 0, funcionario = :f")
@@ -118,7 +138,9 @@ function pdv_carrinho_executar($pdo, $cfg)
 		if ($valor < 0) pdv_erro('O preço não pode ser negativo.');
 
 		$material = pdv_material($pdo, $item['material']);
-		if ($material) pdv_conferir_estoque($pdo, $cfg, $material, $quantidade);
+		if ($material) {
+			pdv_conferir_estoque($pdo, $cfg, $material, $quantidade + pdv_qtd_no_carrinho($pdo, $cfg, $id_usuario, $material['id'], $id));
+		}
 
 		$total = round($quantidade * $valor, 2);
 		$pdo->prepare("UPDATE $t SET quantidade = :q, valor = :v, total = :tot WHERE id = :id")
