@@ -94,11 +94,12 @@ document.addEventListener('DOMContentLoaded', function () {
 	var modal = bootstrap.Modal.getOrCreateInstance(modalEl);
 	var lancando = null;
 
-	function noCarrinho(idMaterial) {
-		for (var i = 0; i < itens.length; i++) {
-			if (String(itens[i].material) === String(idMaterial)) return itens[i];
-		}
-		return null;
+	// O mesmo material pode estar em várias linhas, uma por preço
+	function linhasDoMaterial(idMaterial) {
+		return itens.filter(function (it) { return String(it.material) === String(idMaterial); });
+	}
+	function qtdNoCarrinho(idMaterial) {
+		return linhasDoMaterial(idMaterial).reduce(function (s, it) { return s + it.quantidade; }, 0);
 	}
 
 	function abrirLancamento($card) {
@@ -110,15 +111,20 @@ document.addEventListener('DOMContentLoaded', function () {
 			preco: $card.attr('data-preco')
 		};
 		lancando = m;
-		var item = noCarrinho(m.id);
+		var linhas = linhasDoMaterial(m.id);
 
 		$('#pdv_mi_titulo').text(m.nome);
 		var info = [];
 		info.push(m.controla ? 'Estoque atual: <strong>' + qtd(m.estoque) + '</strong>' : 'Sem controle de estoque');
-		if (item) info.push('Já no carrinho: <strong>' + qtd(item.quantidade) + '</strong> (a quantidade será somada)');
+		if (linhas.length) {
+			info.push('Já no carrinho: <strong>' + qtd(qtdNoCarrinho(m.id)) + '</strong> (' +
+				linhas.map(function (it) { return qtd(it.quantidade) + ' a ' + rs(it.valor); }).join(', ') + ')');
+		}
 		$('#pdv_mi_info').html(info.join(' · '));
 
-		var preco = item ? item.valor : (m.preco !== '' ? parseFloat(m.preco) : 0);
+		// Sugere o preço da última linha desse material; dá para trocar e lançar com outro preço
+		var ultima = linhas[linhas.length - 1];
+		var preco = ultima ? ultima.valor : (m.preco !== '' ? parseFloat(m.preco) : 0);
 		$('#pdv_mi_qtd').val('').removeClass('is-invalid');
 		$('#pdv_mi_preco').val(preco > 0 ? moeda(preco) : '').removeClass('is-invalid');
 		atualizarModal();
@@ -131,15 +137,18 @@ document.addEventListener('DOMContentLoaded', function () {
 		var p = num($('#pdv_mi_preco').val());
 		$('#pdv_mi_total').text(rs(r2(q * p)));
 
-		var aviso = '';
-		if (C.tipo === 'venda' && lancando.controla && q > 0) {
-			var item = noCarrinho(lancando.id);
-			var total = q + (item ? item.quantidade : 0);
-			if (total > lancando.estoque) {
-				aviso = '<span class="text-danger">Acima do estoque atual (' + qtd(lancando.estoque) + ').</span>';
-			}
+		var avisos = [];
+		var linhas = linhasDoMaterial(lancando.id);
+		if (linhas.length) {
+			var mesmoPreco = linhas.filter(function (it) { return Math.abs(it.valor - r2(p)) < 0.005; })[0];
+			avisos.push(mesmoPreco
+				? '<span class="text-muted">Soma na linha de ' + rs(mesmoPreco.valor) + ' (já tem ' + qtd(mesmoPreco.quantidade) + ').</span>'
+				: '<span class="text-primary">Preço diferente: entra como nova linha.</span>');
 		}
-		$('#pdv_mi_aviso').html(aviso);
+		if (C.tipo === 'venda' && lancando.controla && q > 0 && q + qtdNoCarrinho(lancando.id) > lancando.estoque) {
+			avisos.push('<span class="text-danger">Acima do estoque atual (' + qtd(lancando.estoque) + ').</span>');
+		}
+		$('#pdv_mi_aviso').html(avisos.join('<br>'));
 	}
 
 	modalEl.addEventListener('shown.bs.modal', function () { $('#pdv_mi_qtd').trigger('focus'); });
