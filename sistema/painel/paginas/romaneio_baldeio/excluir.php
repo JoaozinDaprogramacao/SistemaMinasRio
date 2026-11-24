@@ -2,17 +2,18 @@
 $tabela = 'baldeio';
 require_once("../../../conexao.php");
 require_once(__DIR__ . "/../../seguranca.php");
+require_once(__DIR__ . "/../../funcoes/financeiro.php");
 seguranca_exigir_acesso(['bancos']);
 
-$id = $_POST['id'];
+$id = (int) $_POST['id'];
 
-$query = $pdo->query("SELECT * FROM $tabela where id = '$id'");
-$res = $query->fetchAll(PDO::FETCH_ASSOC);
-
-$pdo->query("DELETE FROM $tabela WHERE id = '$id' ");
-
-$pdo->query("DELETE FROM pagar WHERE id_baldeio = '$id' ");
-
-
-echo 'Excluído com Sucesso';
+fin_responder(function () use ($pdo, $id) {
+	return fin_transacao($pdo, function () use ($pdo, $id) {
+		foreach (fin_q($pdo, "SELECT id FROM pagar WHERE id_baldeio = ?", [$id])->fetchAll(PDO::FETCH_COLUMN) as $id_pagar) {
+			fin_excluir_titulo($pdo, 'pagar', $id_pagar, 'baldeio #' . $id . ' excluído');
+		}
+		fin_q($pdo, "DELETE FROM baldeio WHERE id = ?", [$id]);
+		return 'Excluído com Sucesso';
+	});
+});
 ?>

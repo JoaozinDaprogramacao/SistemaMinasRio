@@ -1,557 +1,191 @@
 <?php
+require_once("verificar.php");
+require_once(__DIR__ . "/../funcoes/financeiro.php");
 $pag = 'detalhes_bancos';
 
-//verificar se ele tem a permissão de estar nessa página
-if (@$produtos == 'ocultar') {
-	echo "<script>window.location='../index.php'</script>";
-	exit();
+if (@$contas_bancarias == 'ocultar') {
+    echo "<script>window.location='index'</script>";
+    exit();
 }
-
-// Buscar os totais do banco de dados
-$id_banco = @$_GET['id']; // Pega o ID do banco da URL
-
-try {
-    if(!empty($id_banco)) {
-        $query = $pdo->query("SELECT 
-            SUM(credito) as total_creditos,
-            SUM(debito) as total_debitos,
-            (SELECT saldo FROM linha_bancos WHERE id_banco = '$id_banco' ORDER BY id DESC LIMIT 1) as saldo_total
-        FROM linha_bancos 
-        WHERE id_banco = '$id_banco'");
-    } else {
-        $query = $pdo->query("SELECT 
-            SUM(credito) as total_creditos,
-            SUM(debito) as total_debitos,
-            (SELECT saldo FROM linha_bancos ORDER BY id DESC LIMIT 1) as saldo_total
-        FROM linha_bancos");
-    }
-    
-    $res = $query->fetch(PDO::FETCH_ASSOC);
-
-    $total_creditos = $res['total_creditos'] ?? 0;	
-    $total_debitos = $res['total_debitos'] ?? 0; 
-    $saldo_total = $res['saldo_total'] ?? 0;
-
-    // Formatando os valores
-    $total_creditosF = number_format($total_creditos, 2, ',', '.');
-    $total_debitosF = number_format($total_debitos, 2, ',', '.');
-    $saldo_totalF = number_format($saldo_total, 2, ',', '.');
-} catch(PDOException $e) {
-    // Em caso de erro, define valores zerados
-    $total_creditos = 0;
-    $total_debitos = 0;
-    $saldo_total = 0;
-    $total_creditosF = '0,00';
-    $total_debitosF = '0,00';
-    $saldo_totalF = '0,00';
-}
+$banco_sel = (int) ($_GET['banco'] ?? 0);
 ?>
 
-<div class="justify-content-between">
-	<div class="left-content mt-2 mb-3">
-		<div class="dropdown" style="display: inline-block;">
-			<a href="#" aria-expanded="false" aria-haspopup="true" data-bs-toggle="dropdown" class="btn btn-danger dropdown" id="btn-deletar" style="display:none"><i class="fe fe-trash-2"></i> Deletar</a>
-			<div class="dropdown-menu tx-13">
-				<div style="width: 240px; padding:15px 5px 0 10px;" class="dropdown-item-text">
-					<p>Excluir Selecionados? <a href="#" onclick="deletarSel()"><span class="text-danger">Sim</span></a></p>
-				</div>
-			</div>
-		</div>
-
-
-
-	</div>
-
-
-	<form action="rel/produtos_class.php" target="_blank" method="POST">
-		<input type="hidden" name="cat" id="cat">
-		<div style=" position:absolute; right:10px; margin-bottom: 10px; top:70px">
-			<button style="width:40px" type="submit" class="btn btn-danger ocultar_mobile_app" title="Gerar Relatório"><i class="fa fa-file-pdf-o"></i></button>
-		</div>
-	</form
-
-</div>
-
-<div class="card-group mb-4" style="margin-top: 50px">
-    <div class="card text-center" style="width: 100%; margin-right: 10px; border-radius: 10px; height:80px">
-        <div class="card-header bg-success border-light text-white" style="padding: 8px">
-            Créditos
-            <i class="fa fa-arrow-up pull-right"></i>
-        </div>
-        <div class="card-body" style="padding: 8px">
-            <p class="card-text" style="margin-top:-5px;">
-                <h5><span class="text-success" id="total_creditos">R$ <?php echo $total_creditosF; ?></span></h5>
-            </p>
-        </div>
-    </div>
-
-    <div class="card text-center" style="width: 100%; margin-right: 10px; border-radius: 10px; height:80px">
-        <div class="card-header bg-danger border-light text-white" style="padding: 8px">
-            Débitos
-            <i class="fa fa-arrow-down pull-right"></i>
-        </div>
-        <div class="card-body" style="padding: 8px">
-            <p class="card-text" style="margin-top:-5px;">
-                <h5><span class="text-danger" id="total_debitos">R$ <?php echo $total_debitosF; ?></span></h5>
-            </p>
-        </div>
-    </div>
-
-    <div class="card text-center" style="width: 100%; margin-right: 10px; border-radius: 10px; height:80px">
-        <div class="card-header <?php echo ($saldo_total >= 0) ? 'bg-success' : 'bg-danger'; ?> border-light text-white" style="padding: 8px">
-            Saldo Total
-            <i class="fa fa-balance-scale pull-right"></i>
-        </div>
-        <div class="card-body" style="padding: 8px">
-            <p class="card-text" style="margin-top:-5px;">
-                <h5><span class="<?php echo ($saldo_total >= 0) ? 'text-success' : 'text-danger'; ?>" id="saldo_total">R$ <?php echo $saldo_totalF; ?></span></h5>
-            </p>
-        </div>
+<div class="d-flex justify-content-between align-items-center mt-2 mb-3 flex-wrap gap-2">
+    <h4 class="mb-0">Extrato bancário</h4>
+    <div class="d-flex gap-2 flex-wrap">
+        <a class="btn btn-success btn-sm text-white" onclick="abrirLancamento('credito')"><i class="fa fa-plus me-1"></i>Entrada avulsa</a>
+        <a class="btn btn-danger btn-sm text-white" onclick="abrirLancamento('debito')"><i class="fa fa-minus me-1"></i>Saída avulsa</a>
+        <a class="btn btn-secondary btn-sm text-white" onclick="abrirTransferencia()"><i class="fa fa-exchange me-1"></i>Transferência</a>
+        <a class="btn btn-outline-primary btn-sm" href="conciliacao"><i class="fa fa-check-square-o me-1"></i>Conciliação</a>
+        <a class="btn btn-outline-dark btn-sm" href="#" onclick="exportar()"><i class="fa fa-file-excel-o me-1"></i>Exportar CSV</a>
     </div>
 </div>
 
-<div class="card mb-4">
-    <div class="card-header bg-light d-flex justify-content-between align-items-center">
-        <div>
-            <button type="button" class="btn btn-primary btn-sm" onclick="toggleFiltros()">
-                <i class="fa fa-filter"></i> Filtros
-                <i class="fa fa-chevron-down ms-2" id="icone-filtro"></i>
-            </button>
-        </div>
+<div class="row g-2 mb-3 align-items-end">
+    <div class="col-auto">
+        <label class="small">Conta</label>
+        <select id="f-banco" class="form-select form-select-sm" onchange="buscar()">
+            <?= fin_options($pdo, "SELECT id, banco FROM bancos ORDER BY banco", $banco_sel ?: null, 'Todas as contas') ?>
+        </select>
     </div>
-    
-    <div id="filtros-container" style="display: none;">
-        <div class="card-body">
-            <div class="row g-2">
-                <div class="col-md-2">
-                    <label>Data Inicial</label>
-                    <input type="date" class="form-control form-control-sm" id="data_inicio" onchange="aplicarFiltros()">
-                </div>
-                
-                <div class="col-md-2">
-                    <label>Data Final</label>
-                    <input type="date" class="form-control form-control-sm" id="data_fim" onchange="aplicarFiltros()">
-                </div>
+    <div class="col-auto">
+        <label class="small">De</label>
+        <input type="date" id="f-ini" class="form-control form-control-sm" value="<?= date('Y-m-01') ?>" onchange="buscar()">
+    </div>
+    <div class="col-auto">
+        <label class="small">Até</label>
+        <input type="date" id="f-fim" class="form-control form-control-sm" value="<?= date('Y-m-t') ?>" onchange="buscar()">
+    </div>
+    <div class="col-auto">
+        <label class="small">Tipo</label>
+        <select id="f-tipo" class="form-select form-select-sm" onchange="buscar()">
+            <option value="">Entradas e saídas</option>
+            <option value="credito">Só entradas</option>
+            <option value="debito">Só saídas</option>
+        </select>
+    </div>
+    <div class="col-auto">
+        <label class="small">Conciliação</label>
+        <select id="f-conc" class="form-select form-select-sm" onchange="buscar()">
+            <option value="">Todos</option>
+            <option value="0">A conciliar</option>
+            <option value="1">Conciliados</option>
+        </select>
+    </div>
+    <div class="col-auto">
+        <label class="small">Origem</label>
+        <select id="f-origem" class="form-select form-select-sm" onchange="buscar()">
+            <option value="">Todas</option>
+            <option value="receber_pgto">Recebimentos</option>
+            <option value="pagar_pgto">Pagamentos</option>
+            <option value="manual">Lançamentos avulsos</option>
+            <option value="transferencia">Transferências</option>
+            <option value="adiantamento">Adiantamentos</option>
+            <option value="legado">Antigos sem vínculo</option>
+        </select>
+    </div>
+    <div class="col">
+        <label class="small">Buscar</label>
+        <input type="text" id="f-busca" class="form-control form-control-sm" placeholder="Descrição ou documento" onkeyup="if(event.key==='Enter')buscar()">
+    </div>
+</div>
 
-                <div class="col-md-2">
-                    <label>Tipo</label>
-                    <select class="form-select form-select-sm" id="tipo_movimento" onchange="aplicarFiltros()">
-                        <option value="">Todos</option>
-                        <option value="credito">Créditos</option>
-                        <option value="debito">Débitos</option>
-                    </select>
-                </div>
+<div class="card custom-card"><div class="card-body" id="listar">Carregando...</div></div>
 
-                <div class="col-md-2">
-                    <label>Valor Mínimo</label>
-                    <input type="text" class="form-control form-control-sm" id="valor_min" onkeyup="mascara_valor(this)" onchange="aplicarFiltros()">
-                </div>
-
-                <div class="col-md-2">
-                    <label>Valor Máximo</label>
-                    <input type="text" class="form-control form-control-sm" id="valor_max" onkeyup="mascara_valor(this)" onchange="aplicarFiltros()">
-                </div>
+<!-- Modal lançamento avulso -->
+<div class="modal fade" id="modalLancamento" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header text-white" id="lanc-header">
+                <h5 class="modal-title" id="lanc-titulo">Lançamento</h5>
+                <button class="btn-close btn-close-white" data-bs-dismiss="modal" type="button" id="btn-fechar-lanc"></button>
             </div>
-
-            <div class="row mt-2">
-                <div class="col-12 text-end">
-                    <button onclick="limparFiltros()" class="btn btn-sm btn-light">
-                        <i class="fa fa-eraser"></i> Limpar
-                    </button>
+            <form id="form-lancamento">
+                <div class="modal-body">
+                    <div class="row g-2">
+                        <div class="col-6">
+                            <label>Conta</label>
+                            <select class="form-select" name="id_banco" required><?= fin_options($pdo, "SELECT id, banco FROM bancos ORDER BY banco", $banco_sel ?: null, 'Selecione...') ?></select>
+                        </div>
+                        <div class="col-6">
+                            <label>Data</label>
+                            <input type="date" class="form-control" name="data" value="<?= date('Y-m-d') ?>" required>
+                        </div>
+                        <div class="col-8">
+                            <label>Descrição</label>
+                            <input type="text" class="form-control" name="descricao" required placeholder="Ex.: Tarifa pacote de serviços">
+                        </div>
+                        <div class="col-4">
+                            <label>Valor</label>
+                            <input type="text" class="form-control" name="valor" required placeholder="0,00">
+                        </div>
+                        <div class="col-6 lanc-credito">
+                            <label>Categoria de receita</label>
+                            <select class="form-select" name="categoria_receber"><?= fin_options($pdo, "SELECT id, nome FROM categorias_receber ORDER BY nome", null, 'Sem categoria') ?></select>
+                        </div>
+                        <div class="col-6 lanc-debito">
+                            <label>Categoria de despesa</label>
+                            <select class="form-select" name="categoria_pagar"><?= fin_options($pdo, "SELECT id, nome FROM categorias_pagar ORDER BY nome", null, 'Sem categoria') ?></select>
+                        </div>
+                        <div class="col-6">
+                            <label>Centro de custo</label>
+                            <select class="form-select" name="centro_custo"><?= fin_options($pdo, "SELECT id, nome FROM centros_custo WHERE ativo = 1 ORDER BY nome", null, 'Nenhum') ?></select>
+                        </div>
+                        <div class="col-6">
+                            <label>Documento</label>
+                            <input type="text" class="form-control" name="documento">
+                        </div>
+                        <div class="col-12">
+                            <label>Observação</label>
+                            <input type="text" class="form-control" name="obs">
+                        </div>
+                    </div>
+                    <small class="text-muted d-block mt-2">Use para o que não passa por Contas a Pagar/Receber: tarifas, rendimentos, IOF, depósitos não identificados...</small>
+                    <input type="hidden" name="tipo" id="lanc-tipo">
+                    <div id="msg-lanc" class="text-danger small mt-2"></div>
                 </div>
-            </div>
+                <div class="modal-footer"><button type="submit" class="btn btn-success">Lançar</button></div>
+            </form>
         </div>
     </div>
 </div>
 
-<?php
-$query = $pdo->query("SELECT * from bancos order by banco asc");
-$res = $query->fetchAll(PDO::FETCH_ASSOC);
-$linhas = @count($res);
-if ($linhas > 0) {
-?>
-	<ul class="nav nav-tabs" id="myTab" role="tablist" style="background: #FFF">
-
-
-		<li class="nav-item" role="presentation">
-			<a onclick="buscarCat('')" class="nav-link active" data-bs-toggle="tab" data-bs-target="#home" type="button" role="tab" aria-controls="home" aria-selected="true">Todos</a>
-		</li>
-
-		<?php
-		for ($i = 0; $i < $linhas; $i++) {
-			$id = $res[$i]['id'];
-			$nome = $res[$i]['banco'];
-
-		?>
-
-			<li class="nav-item" role="presentation">
-				<a onclick="buscarCat('<?php echo $id ?>')" class="nav-link " id="home-tab" data-bs-toggle="tab" data-bs-target="#home" type="button" role="tab" aria-controls="home" aria-selected="true"><?php echo $nome ?></a>
-			</li>
-		<?php } ?>
-	</ul>
-<?php } ?>
-
-
-<div class="row row-sm">
-	<div class="col-lg-12">
-		<div class="card custom-card">
-			<div class="card-body" id="listar">
-
-			</div>
-		</div>
-	</div>
-</div>
-
-<input type="hidden" id="ids">
-
-<script src="paginas/js/<?php echo $pag; ?>/materiais.js" defer></script>
-
-<!-- Modal Saida-->
-<div class="modal fade" id="modalSaida" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
-	<div class="modal-dialog modal-lg" role="document">
-		<div class="modal-content">
-			<div class="modal-header bg-primary text-white">
-				<h4 class="modal-title" id="exampleModalLabel"><span id="nome_saida"></span></h4>
-				<button id="btn-fechar-saida" aria-label="Close" class="btn-close" data-bs-dismiss="modal" type="button"><span class="text-white" aria-hidden="true">&times;</span></button>
-			</div>
-
-			<div class="modal-body">
-				<form id="form-saida">
-
-					<div class="row">
-						<div class="col-md-4">
-							<div class="form-group">
-
-								<input type="text" class="form-control" id="quantidade_saida" name="quantidade_saida" placeholder="Quantidade Saída" required onkeyup="mascara_decimal('quantidade_saida')">
-							</div>
-						</div>
-
-						<div class="col-md-5">
-							<div class="form-group">
-								<input type="text" class="form-control" id="motivo_saida" name="motivo_saida" placeholder="Motivo Saída" required>
-							</div>
-						</div>
-						<div class="col-md-3">
-							<button type="submit" class="btn btn-primary">Salvar</button>
-
-						</div>
-					</div>
-
-					<input type="hidden" id="id_saida" name="id">
-					<input type="hidden" id="estoque_saida" name="estoque">
-
-				</form>
-
-				<br>
-				<small>
-					<div id="mensagem-saida" align="center"></div>
-				</small>
-			</div>
-
-
-		</div>
-	</div>
-</div>
-
-
-
-
-
-<!-- Modal Entrada-->
-<div class="modal fade" id="modalEntrada" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
-	<div class="modal-dialog modal-lg" role="document">
-		<div class="modal-content">
-			<div class="modal-header bg-primary text-white">
-				<h4 class="modal-title" id="exampleModalLabel"><span id="nome_entrada"></span></h4>
-				<button id="btn-fechar-entrada" aria-label="Close" class="btn-close" data-bs-dismiss="modal" type="button"><span class="text-white" aria-hidden="true">&times;</span></button>
-			</div>
-
-			<div class="modal-body">
-				<form id="form-entrada">
-
-					<div class="row">
-						<div class="col-md-4">
-							<div class="form-group">
-
-								<input type="text" class="form-control" id="quantidade_entrada" name="quantidade_entrada" placeholder="Quantidade Entrada" required onkeyup="mascara_decimal('quantidade_entrada')">
-							</div>
-						</div>
-
-						<div class="col-md-5">
-							<div class="form-group">
-								<input type="text" class="form-control" id="motivo_entrada" name="motivo_entrada" placeholder="Motivo Entrada" required>
-							</div>
-						</div>
-						<div class="col-md-3">
-							<button type="submit" class="btn btn-primary">Salvar</button>
-
-						</div>
-					</div>
-
-					<input type="hidden" id="id_entrada" name="id">
-					<input type="hidden" id="estoque_entrada" name="estoque">
-
-				</form>
-
-				<br>
-				<small>
-					<div id="mensagem-entrada" align="center"></div>
-				</small>
-			</div>
-
-
-		</div>
-	</div>
-</div>
-
-
-
-
-<script type="text/javascript">
-	var pag = "<?= $pag ?>"
-</script>
-<script src="js/ajax.js"></script>
-
-<script type="text/javascript">
-	$(document).ready(function() {
-		$('.sel2').select2({
-			dropdownParent: $('#modalForm')
-		});
-	});
-</script>
-
-
-<script type="text/javascript">
-	function carregarImg() {
-		var target = document.getElementById('target');
-		var file = document.querySelector("#foto").files[0];
-
-		var reader = new FileReader();
-
-		reader.onloadend = function() {
-			target.src = reader.result;
-		};
-
-		if (file) {
-			reader.readAsDataURL(file);
-
-		} else {
-			target.src = "";
-		}
-	}
-</script>
-
-
-<script type="text/javascript">
-	function buscarCat(id) {
-		$('#cat').val(id);
-		aplicarFiltros();
-		$.ajax({
-			url: 'paginas/detalhes_bancos/buscar_totais.php',
-			method: 'POST',
-			data: {id_banco: id},
-			dataType: "json",
-			success: function(result){
-				// Atualiza os valores nos cards
-				$('#total_creditos').html('R$ ' + result.total_creditos);
-				$('#total_debitos').html('R$ ' + result.total_debitos);
-				$('#saldo_total').html('R$ ' + result.saldo_total);
-				
-				// Atualiza as classes de cores baseado no saldo
-				if(parseFloat(result.saldo_total.replace(',','.')) >= 0){
-					$('#saldo_total').removeClass('text-danger').addClass('text-success');
-					$('#saldo_total').parent().parent().parent().find('.card-header')
-						.removeClass('bg-danger').addClass('bg-success');
-				} else {
-					$('#saldo_total').removeClass('text-success').addClass('text-danger');
-					$('#saldo_total').parent().parent().parent().find('.card-header')
-						.removeClass('bg-success').addClass('bg-danger');
-				}
-			}
-		});
-	}
-</script>
-
-
-
-<script type="text/javascript">
-	$("#form_itens").submit(function() {
-
-		event.preventDefault();
-		var formData = new FormData(this);
-
-		$('#mensagem').text('Salvando...')
-		$('#btn_salvar').hide();
-
-		$.ajax({
-			url: 'paginas/' + pag + "/salvar.php",
-			type: 'POST',
-			data: formData,
-
-			success: function(mensagem) {
-				$('#mensagem').text('');
-				$('#mensagem').removeClass()
-				if (mensagem.trim() == "Salvo com Sucesso") {
-
-					$('#btn-fechar').click();
-					var id = $('#cat').val()
-					listar(id)
-
-					$('#mensagem').text('')
-
-				} else {
-
-					$('#mensagem').addClass('text-danger')
-					$('#mensagem').text(mensagem)
-				}
-
-				$('#btn_salvar').show();
-
-			},
-
-			cache: false,
-			contentType: false,
-			processData: false,
-
-		});
-
-	});
-</script>
-
-
-
-
-<script type="text/javascript">
-	$("#form-saida").submit(function() {
-
-		event.preventDefault();
-		var formData = new FormData(this);
-
-		$.ajax({
-			url: 'paginas/' + pag + "/saida.php",
-			type: 'POST',
-			data: formData,
-
-			success: function(mensagem) {
-				$('#mensagem-saida').text('');
-				$('#mensagem-saida').removeClass()
-				if (mensagem.trim() == "Salvo com Sucesso") {
-
-					$('#btn-fechar-saida').click();
-					listar();
-
-				} else {
-
-					$('#mensagem-saida').addClass('text-danger')
-					$('#mensagem-saida').text(mensagem)
-				}
-
-
-			},
-
-			cache: false,
-			contentType: false,
-			processData: false,
-
-		});
-
-	});
-</script>
-
-
-
-
-
-<script type="text/javascript">
-	$("#form-entrada").submit(function() {
-
-		event.preventDefault();
-		var formData = new FormData(this);
-
-		$.ajax({
-			url: 'paginas/' + pag + "/entrada.php",
-			type: 'POST',
-			data: formData,
-
-			success: function(mensagem) {
-				$('#mensagem-entrada').text('');
-				$('#mensagem-entrada').removeClass()
-				if (mensagem.trim() == "Salvo com Sucesso") {
-
-					$('#btn-fechar-entrada').click();
-					listar();
-
-				} else {
-
-					$('#mensagem-entrada').addClass('text-danger')
-					$('#mensagem-entrada').text(mensagem)
-				}
-
-
-			},
-
-			cache: false,
-			contentType: false,
-			processData: false,
-
-		});
-
-	});
-</script>
+<?php include __DIR__ . '/detalhes_bancos/modal_transferencia.php'; ?>
 
 <script>
-function toggleFiltros() {
-    const container = $('#filtros-container');
-    const icone = $('#icone-filtro');
-    container.slideToggle(300, function() {
-        icone.toggleClass('fa-chevron-down fa-chevron-up');
+    var pag = 'detalhes_bancos';
+
+    function filtros() {
+        return {
+            banco: $('#f-banco').val(), ini: $('#f-ini').val(), fim: $('#f-fim').val(), tipo: $('#f-tipo').val(),
+            conciliado: $('#f-conc').val(), origem: $('#f-origem').val(), busca: $('#f-busca').val()
+        };
+    }
+
+    function buscar() {
+        $.post('paginas/detalhes_bancos/listar.php', filtros(), function (html) { $('#listar').html(html); });
+    }
+
+    function exportar() {
+        window.open('paginas/detalhes_bancos/exportar.php?' + $.param(filtros()), '_blank');
+    }
+
+    function abrirLancamento(tipo) {
+        $('#form-lancamento')[0].reset();
+        $('#lanc-tipo').val(tipo);
+        $('#msg-lanc').text('');
+        $('#lanc-titulo').text(tipo === 'credito' ? 'Entrada avulsa' : 'Saída avulsa');
+        $('#lanc-header').removeClass('bg-success bg-danger').addClass(tipo === 'credito' ? 'bg-success' : 'bg-danger');
+        $('.lanc-credito').toggle(tipo === 'credito');
+        $('.lanc-debito').toggle(tipo === 'debito');
+        if ($('#f-banco').val()) $('#form-lancamento [name=id_banco]').val($('#f-banco').val());
+        $('#modalLancamento').modal('show');
+    }
+
+    $('#form-lancamento').on('submit', function (e) {
+        e.preventDefault();
+        $.post('paginas/detalhes_bancos/lancar.php', $(this).serialize(), function (m) {
+            if (m.trim() == 'Lançado com Sucesso') { $('#btn-fechar-lanc').click(); buscar(); }
+            else $('#msg-lanc').text(m);
+        });
     });
-}
 
-function mascara_valor(input) {
-    var valor = input.value.replace(/\D/g, '');
-    valor = (valor/100).toFixed(2);
-    valor = valor.replace(".", ",");
-    valor = valor.replace(/(\d)(\d{3})(\d{3}),/g, "$1.$2.$3,");
-    valor = valor.replace(/(\d)(\d{3}),/g, "$1.$2,");
-    input.value = valor;
-}
+    function conciliar(id, marcado) {
+        $.post('paginas/detalhes_bancos/conciliar.php', { id: id, conciliado: marcado ? 1 : 0 }, function (m) {
+            if (m.trim() != 'Salvo com Sucesso') { Swal.fire({ icon: 'warning', text: m }); }
+            buscar();
+        });
+    }
 
-function aplicarFiltros() {
-    var banco_id = $('#cat').val();
-    
-    // Preparar valores monetários
-    var valor_min = $('#valor_min').val() ? $('#valor_min').val().replace('.', '').replace(',', '.') : '';
-    var valor_max = $('#valor_max').val() ? $('#valor_max').val().replace('.', '').replace(',', '.') : '';
-    
-    $.ajax({
-        url: 'paginas/detalhes_bancos/carregar_tabela.php',
-        method: 'POST',
-        data: {
-            p1: banco_id,
-            data_inicio: $('#data_inicio').val(),
-            data_fim: $('#data_fim').val(),
-            tipo_movimento: $('#tipo_movimento').val(),
-            valor_min: valor_min,
-            valor_max: valor_max
-        },
-        success: function(response) {
-            $('#listar').html(response);
-        }
-    });
-}
+    function excluirLancamento(id) {
+        Swal.fire({ title: 'Excluir lançamento?', text: 'Transferências são excluídas nas duas contas.', icon: 'warning', showCancelButton: true,
+            confirmButtonText: 'Excluir', cancelButtonText: 'Cancelar', confirmButtonColor: '#d33' }).then(function (r) {
+            if (!r.isConfirmed) return;
+            $.post('paginas/detalhes_bancos/excluir.php', { id: id }, function (m) {
+                if (m.trim() == 'Excluído com Sucesso') buscar(); else Swal.fire({ icon: 'warning', text: m });
+            });
+        });
+    }
 
-function limparFiltros() {
-    $('#data_inicio').val('');
-    $('#data_fim').val('');
-    $('#tipo_movimento').val('');
-    $('#valor_min').val('');
-    $('#valor_max').val('');
-    aplicarFiltros();
-}
-
-// Inicializar filtros quando a página carregar
-$(document).ready(function() {
-    aplicarFiltros();
-});
+    $(function () { buscar(); });
 </script>

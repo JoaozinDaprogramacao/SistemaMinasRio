@@ -1,192 +1,74 @@
-<?php 
-$tabela = 'pagar';
+<?php
 require_once("../../../conexao.php");
 require_once(__DIR__ . "/../../seguranca.php");
 seguranca_exigir_acesso(['pagar']);
+require_once(__DIR__ . "/../../funcoes/financeiro.php");
 
-@session_start();
-$id_usuario = @$_SESSION['id'];
+fin_responder(function () use ($pdo) {
+	$id = (int) ($_POST['id'] ?? 0);
+	$descricao = trim($_POST['descricao'] ?? '');
+	$valor = fin_num($_POST['valor'] ?? 0);
+	$fornecedor = (int) ($_POST['fornecedor'] ?? 0);
+	$funcionario = (int) ($_POST['funcionario'] ?? 0);
+	$vencimento = $_POST['vencimento'] ?? '';
+	$data_pgto = $_POST['data_pgto'] ?? '';
+	$forma_pgto = (int) ($_POST['forma_pgto'] ?? 0);
+	$frequencia = (int) ($_POST['frequencia'] ?? 0);
+	$obs = trim($_POST['obs'] ?? '');
+	$banco = (int) ($_POST['banco'] ?? 0);
+	$categoria = (int) ($_POST['categoria_pagar'] ?? 0) ?: null;
+	$centro = (int) ($_POST['centro_custo'] ?? 0) ?: null;
 
-$descricao = $_POST['descricao'];
-$valor = $_POST['valor'];
-$fornecedor = $_POST['fornecedor'];
-$funcionario = $_POST['funcionario'];
-$vencimento = $_POST['vencimento'];
-$data_pgto = $_POST['data_pgto'];
-$forma_pgto = $_POST['forma_pgto'];
-$frequencia = $_POST['frequencia'];
-$obs = $_POST['obs'];
-$id = $_POST['id'];
-$banco = $_POST['banco'] ?? 0;
-$descricao_banco = $_POST['descricao_banco'] ?? 0;
-$categoria_pagar = !empty($_POST['categoria_pagar']) ? (int)$_POST['categoria_pagar'] : 'NULL';
+	if ($descricao == '' && !$fornecedor && !$funcionario) return 'Selecione um Fornecedor ou um Funcionário ou uma Descrição!';
+	if ($fornecedor && $funcionario) return 'Selecione um Fornecedor ou um Funcionário!';
+	if ($valor <= 0) return 'Informe o valor da conta!';
+	if (!fin_data_valida($vencimento)) return 'Informe o vencimento!';
+	if ($data_pgto !== '' && !fin_data_valida($data_pgto)) return 'Data de pagamento inválida!';
 
-// Lançamento gerado por romaneio só pode ser alterado pelo próprio romaneio
-if($id != ""){
-	$query = $pdo->prepare("SELECT id_romaneio FROM $tabela WHERE id = :id");
-	$query->execute([':id' => $id]);
-	if((int) $query->fetchColumn() > 0){
-		echo 'Este lançamento veio de um romaneio. Edite pelo romaneio.';
-		exit();
+	if ($descricao == '') {
+		$descricao = $fornecedor
+			? fin_q($pdo, "SELECT nome_atacadista FROM fornecedores WHERE id = ?", [$fornecedor])->fetchColumn()
+			: fin_q($pdo, "SELECT nome FROM funcionarios WHERE id = ?", [$funcionario])->fetchColumn();
+		$descricao = $descricao ?: 'Conta a pagar';
 	}
-}
 
-$valor = str_replace(',', '.', $valor);
-$valorF = @number_format($valor, 2, ',', '.');
-
-if($fornecedor == ""){
-	$fornecedor = 0;
-}
-if($funcionario == ""){
-	$funcionario = 0;
-}
-if($forma_pgto == ""){
-	$forma_pgto = 0;
-}
-if($frequencia == ""){
-	$frequencia = 0;
-}
-
-if($data_pgto == ""){
-	$pgto = '';
-	$usu_pgto = '';
-	$pago = 'Não';
-}else{
-	$pgto = " ,data_pgto = '$data_pgto'";
-	$usu_pgto = " ,usuario_pgto = '$id_usuario'";
-	$pago = 'Sim';
-}
-
-// Validação básica
-if($descricao == "" and $fornecedor == "0" and $funcionario == "0"){
-	echo 'Selecione um Fornecedor ou um Funcionário ou uma Descrição!';
-	exit();
-}
-if($fornecedor != "0" and $funcionario != "0"){
-	echo 'Selecione um Fornecedor ou um Funcionário!';
-	exit();
-}
-
-// Pega arquivo antigo se houver
-$query = $pdo->query("SELECT * FROM $tabela WHERE id = '$id'");
-$res = $query->fetchAll(PDO::FETCH_ASSOC);
-$foto = (@count($res) > 0) ? $res[0]['arquivo'] : 'sem-foto.png';
-
-// Upload de arquivo
-$nome_img = date('d-m-Y H:i:s') .'-'.@$_FILES['foto']['name'];
-$nome_img = preg_replace('/[ :]+/' , '-' , $nome_img);
-$caminho = '../../images/contas/' .$nome_img;
-$imagem_temp = @$_FILES['foto']['tmp_name'];
-
-if(@$_FILES['foto']['name'] != ""){
-	$ext = pathinfo($nome_img, PATHINFO_EXTENSION);   
-	$ext_permitidas = ['png','jpg','jpeg','gif','pdf','rar','zip','doc','docx','webp','xlsx','xlsm','xls','xml','PNG','JPG','JPEG','GIF','PDF','RAR','ZIP','DOC','DOCX','WEBP'];
-	if(in_array($ext, $ext_permitidas)){ 
-		if($foto != "sem-foto.png"){
-			@unlink('../../images/contas/'.$foto);
+	return fin_transacao($pdo, function () use ($pdo, $id, $descricao, $valor, $fornecedor, $funcionario, $vencimento, $data_pgto, $forma_pgto, $frequencia, $obs, $banco, $categoria, $centro) {
+		if ($id) {
+			$t = fin_titulo($pdo, 'pagar', $id);
+			if ((int) $t['id_romaneio'] > 0) return 'Este lançamento veio de um romaneio. Edite pelo romaneio.';
+			if ((int) $t['id_baldeio'] > 0) return 'Este lançamento veio de um baldeio. Edite pelo baldeio.';
+			$tem_pgto = (bool) fin_pagamentos($pdo, 'pagar', $id);
+			if ($tem_pgto && round($t['valor'], 2) != $valor) {
+				return 'Esta conta já tem pagamentos. Para mudar o valor, estorne a baixa primeiro.';
+			}
+			fin_validar_periodo($pdo, $t['data_lanc'], 'alterar');
+			$arquivo = fin_upload_anexo('foto', $t['arquivo']);
+			fin_q($pdo, "UPDATE pagar SET descricao = ?, fornecedor = ?, funcionario = ?, valor = ?, vencimento = ?, forma_pgto = ?, frequencia = ?,
+				obs = ?, arquivo = ?, categoria_pagar = ?, centro_custo = ?" . ($tem_pgto ? '' : ', subtotal = ?') . " WHERE id = ?",
+				array_merge([$descricao, $fornecedor, $funcionario, $valor, $vencimento, $forma_pgto, $frequencia, mb_substr($obs, 0, 100), $arquivo, $categoria, $centro],
+					$tem_pgto ? [] : [$valor], [$id]));
+			if ($tem_pgto) fin_recalcular_titulo($pdo, 'pagar', $id);
+			fin_log($pdo, 'editar', 'pagar', $id, 'Editou "' . $descricao . '" (' . fin_moeda($valor) . ')', ['antes' => $t]);
+			if (!$tem_pgto && $data_pgto !== '') {
+				fin_titulo_pago_na_criacao($pdo, 'pagar', $id, $data_pgto, $forma_pgto, $banco);
+			}
+			return 'Salvo com Sucesso';
 		}
-		$foto = $nome_img;
-		list($largura, $altura) = getimagesize($imagem_temp);
-		if($largura > 1400 && in_array($ext, ['png','jpg','jpeg','gif','webp','PNG','JPG','JPEG','GIF','WEBP'])){
-			$image = imagecreatefromjpeg($imagem_temp);
-			imagejpeg($image, $caminho, 20);
-			imagedestroy($image);
-		}else{
-			move_uploaded_file($imagem_temp, $caminho);
+
+		fin_validar_periodo($pdo, date('Y-m-d'), 'lançar');
+		$arquivo = fin_upload_anexo('foto');
+		$caixa = (int) fin_q($pdo, "SELECT id FROM caixas WHERE operador = ? AND data_fechamento IS NULL ORDER BY id DESC LIMIT 1", [fin_usuario()])->fetchColumn();
+		fin_q($pdo, "INSERT INTO pagar SET descricao = ?, fornecedor = ?, funcionario = ?, valor = ?, subtotal = ?, vencimento = ?, data_lanc = curDate(),
+			forma_pgto = ?, frequencia = ?, obs = ?, arquivo = ?, usuario_lanc = ?, usuario_pgto = 0, pago = 'Não', referencia = 'Conta', caixa = ?,
+			hora = curTime(), categoria_pagar = ?, centro_custo = ?", [
+			$descricao, $fornecedor, $funcionario, $valor, $valor, $vencimento, $forma_pgto, $frequencia, mb_substr($obs, 0, 100), $arquivo,
+			fin_usuario(), $caixa, $categoria, $centro,
+		]);
+		$novo = (int) $pdo->lastInsertId();
+		fin_log($pdo, 'criar', 'pagar', $novo, 'Lançou "' . $descricao . '" de ' . fin_moeda($valor) . ' para ' . fin_data_br($vencimento));
+		if ($data_pgto !== '') {
+			fin_titulo_pago_na_criacao($pdo, 'pagar', $novo, $data_pgto, $forma_pgto, $banco);
 		}
-	}else{
-		echo 'Extensão de Imagem não permitida!';
-		exit();
-	}
-}
-
-// Se necessário, preenche a descrição com o nome do fornecedor ou funcionário
-if($fornecedor != 0 || $funcionario != 0){
-	$tab = $fornecedor != 0 ? 'fornecedores' : 'usuarios';
-	$id_pessoa = $fornecedor != 0 ? $fornecedor : $funcionario;
-	$query = $pdo->query("SELECT * FROM $tab WHERE id = '$id_pessoa'");
-	$res = $query->fetchAll(PDO::FETCH_ASSOC);
-	$nome_pessoa = (@count($res) > 0) ? $res[0]['nome'] : '';
-	if($descricao == ""){
-		$descricao = $nome_pessoa;
-	}
-}
-
-// Verifica se o caixa está aberto para o usuário atual
-$query1 = $pdo->query("SELECT * FROM caixas WHERE operador = '$id_usuario' AND data_fechamento IS NULL ORDER BY id DESC LIMIT 1");
-$res1 = $query1->fetchAll(PDO::FETCH_ASSOC);
-$id_caixa = (@count($res1) > 0) ? $res1[0]['id'] : 0;
-
-$sql_categoria = ($categoria_pagar !== 'NULL') ? ", categoria_pagar = $categoria_pagar" : ", categoria_pagar = NULL";
-
-// INSERT ou UPDATE
-if($id == ""){
-	$query = $pdo->prepare("INSERT INTO $tabela SET
-		descricao = :descricao,
-		fornecedor = :fornecedor,
-		funcionario = :funcionario,
-		valor = :valor,
-		vencimento = '$vencimento' $pgto,
-		data_lanc = curDate(),
-		forma_pgto = '$forma_pgto',
-		frequencia = '$frequencia',
-		obs = :obs,
-		arquivo = '$foto',
-		subtotal = :valor,
-		usuario_lanc = '$id_usuario' $usu_pgto,
-		pago = '$pago',
-		referencia = 'Conta',
-		caixa = '$id_caixa',
-		hora = curTime() $sql_categoria");
-} else {
-	$query = $pdo->prepare("UPDATE $tabela SET
-		descricao = :descricao,
-		fornecedor = :fornecedor,
-		funcionario = :funcionario,
-		valor = :valor,
-		vencimento = '$vencimento' $pgto,
-		forma_pgto = '$forma_pgto',
-		frequencia = '$frequencia',
-		obs = :obs,
-		arquivo = '$foto',
-		subtotal = :valor
-		$sql_categoria
-		WHERE id = '$id'");
-}
-
-$query->bindValue(":descricao", $descricao);
-$query->bindValue(":fornecedor", $fornecedor);
-$query->bindValue(":funcionario", $funcionario);
-$query->bindValue(":valor", $valor);
-$query->bindValue(":obs", $obs);
-$query->execute();
-
-
-if($vencimento == $data_pgto) {
-
-
-	$valor_para_db = preg_replace('/\.(?=.*\.)/', '', $valor);
-
-	// Inserir na tabela linha_bancos
-	$pdo->query("INSERT INTO linha_bancos SET 
-	descricao = '$descricao_banco',
-	id_banco = '$banco',
-	data = '$data_pgto',
-	remetente = '$id_usuario',
-	n_fiscal = '',
-	classificacao = 1,
-	mes_ref = MONTH('$data_pgto'),
-	credito = '0',
-	debito = '$valor_para_db',
-	saldo = (SELECT saldo FROM bancos WHERE id = '$banco') - '$valor_para_db',
-	status = 'Confirmado'
-	");
-    $pdo->query("UPDATE bancos SET 
-        saldo = saldo + $valor_para_db 
-        WHERE id = '$banco'
-    ");
-}
-
-
-echo 'Salvo com Sucesso';
-?>
+		return 'Salvo com Sucesso';
+	});
+});

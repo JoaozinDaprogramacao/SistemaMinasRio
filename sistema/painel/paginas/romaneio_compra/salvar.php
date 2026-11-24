@@ -2,6 +2,7 @@
 $tabela = 'romaneio_compra';
 require_once("../../../conexao.php");
 require_once(__DIR__ . "/../../seguranca.php");
+require_once(__DIR__ . "/../../funcoes/financeiro.php");
 seguranca_exigir_acesso(['produtos']);
 session_start();
 
@@ -191,16 +192,21 @@ try {
         ]);
     }
 
-    $pdo->prepare("DELETE FROM pagar WHERE id_ref = :id AND referencia = 'romaneio_compra'")->execute([':id' => $romaneioId]);
-
-    if ($total_liquido > 0) {
-        $sqlPagar = "INSERT INTO pagar (descricao, fornecedor, valor, vencimento, data_lanc, forma_pgto, frequencia, referencia, id_romaneio, usuario_lanc, usuario_pgto, funcionario, id_ref, categoria_pagar) VALUES (:desc, :forn, :valor, :ven, :dtl, :fp, '0', 'romaneio_compra', :idr, :ul, null, '0', :idref, :cat)";
-        $pdo->prepare($sqlPagar)->execute([
-            'desc' => "Romaneio Compra #{$romaneioId}", 'forn' => $fornecedor, 'valor' => $total_liquido,
-            'ven' => $vencimento, 'dtl' => substr($data_mysql, 0, 10), 'fp' => is_numeric($plano_pgto) ? (int)$plano_pgto : null,
-            'idr' => $romaneioId, 'ul' => $id_usuario, 'idref' => $romaneioId, 'cat' => $id_categoria_romaneio
-        ]);
-    }
+    // Mantém o título alinhado ao romaneio sem apagar pagamentos já feitos
+    fin_sincronizar_titulo($pdo, 'pagar', "id_ref = ? AND referencia = 'romaneio_compra'", [$romaneioId], [
+        'descricao' => "Romaneio Compra #{$romaneioId}",
+        'fornecedor' => $fornecedor,
+        'funcionario' => 0,
+        'valor' => (float) $total_liquido,
+        'vencimento' => $vencimento,
+        'data_lanc' => substr($data_mysql, 0, 10),
+        'forma_pgto' => is_numeric($plano_pgto) ? (int) $plano_pgto : 0,
+        'referencia' => 'romaneio_compra',
+        'id_romaneio' => $romaneioId,
+        'id_ref' => $romaneioId,
+        'usuario_lanc' => $id_usuario,
+        'categoria_pagar' => $id_categoria_romaneio,
+    ]);
 
     $pdo->commit();
     echo json_encode(['status' => 'sucesso', 'mensagem' => 'Salvo com sucesso!', 'id' => $romaneioId, 'debug' => $debug_log], JSON_UNESCAPED_UNICODE);

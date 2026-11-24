@@ -281,13 +281,10 @@ document.addEventListener('DOMContentLoaded', function () {
 							</div>
 							<div class="col-md-2">
 								<label class="small fw-bold text-secondary text-uppercase">Forma</label>
-								<select class="form-select form-select-sm forma_pagamento" name="saida_baixar[]" onchange="handlePagamentoInput(this)">
+								<select class="form-select form-select-sm forma_pagamento" name="saida_baixar[]">
 									<option value="">Selecione...</option>
-									<?php
-									$query = $pdo->query("SELECT * FROM formas_pgto order by id asc");
-									$res = $query->fetchAll(PDO::FETCH_ASSOC);
-									for ($i = 0; $i < @count($res); $i++) { ?>
-										<option value="<?php echo $res[$i]['id'] ?>"><?php echo $res[$i]['nome'] ?></option>
+									<?php foreach ($pdo->query("SELECT id, nome, banco_padrao FROM formas_pgto ORDER BY id")->fetchAll(PDO::FETCH_ASSOC) as $f) { ?>
+										<option value="<?= $f['id'] ?>" data-banco="<?= (int) $f['banco_padrao'] ?: '' ?>"><?= fin_e($f['nome']) ?></option>
 									<?php } ?>
 								</select>
 							</div>
@@ -295,12 +292,7 @@ document.addEventListener('DOMContentLoaded', function () {
 								<label class="small fw-bold text-secondary text-uppercase">Banco</label>
 								<select class="form-select form-select-sm banco_pagamento" name="banco_baixar[]" onchange="handlePagamentoInput(this)">
 									<option value="">Selecione...</option>
-									<?php
-									$query = $pdo->query("SELECT * FROM bancos order by id asc");
-									$res = $query->fetchAll(PDO::FETCH_ASSOC);
-									for ($i = 0; $i < @count($res); $i++) { ?>
-										<option value="<?php echo $res[$i]['id'] ?>"><?php echo $res[$i]['banco'] ?></option>
-									<?php } ?>
+									<?php echo fin_options($pdo, "SELECT id, banco FROM bancos ORDER BY banco"); ?>
 								</select>
 							</div>
 							<div class="col-md-3">
@@ -329,6 +321,7 @@ document.addEventListener('DOMContentLoaded', function () {
 				</div>
 
 				<div class="modal-footer bg-light border-0">
+					<small><div id="mensagem-baixar" class="text-danger me-2"></div></small>
 					<button type="submit" id="btn-confirmar-baixar" class="btn btn-success px-5 fw-bold shadow-sm">Confirmar Pagamento</button>
 				</div>
 			</form>
@@ -360,12 +353,9 @@ document.addEventListener('DOMContentLoaded', function () {
 							<label class="small fw-bold text-secondary text-uppercase">Forma de Pagamento</label>
 							<select class="form-select form-select-sm" name="forma_baixar" id="forma-baixar-massa" required>
 								<option value="">Selecione...</option>
-								<?php
-								$query = $pdo->query("SELECT * FROM formas_pgto order by id asc");
-								$res = $query->fetchAll(PDO::FETCH_ASSOC);
-								for ($i = 0; $i < @count($res); $i++) { ?>
-									<option value="<?php echo $res[$i]['id'] ?>"><?php echo $res[$i]['nome'] ?></option>
-								<?php } ?>
+								<?php foreach ($pdo->query("SELECT id, nome, banco_padrao FROM formas_pgto ORDER BY id")->fetchAll(PDO::FETCH_ASSOC) as $f) { ?>
+										<option value="<?= $f['id'] ?>" data-banco="<?= (int) $f['banco_padrao'] ?: '' ?>"><?= fin_e($f['nome']) ?></option>
+									<?php } ?>
 							</select>
 						</div>
 					</div>
@@ -375,12 +365,7 @@ document.addEventListener('DOMContentLoaded', function () {
 							<label class="small fw-bold text-secondary text-uppercase">Banco</label>
 							<select class="form-select form-select-sm" name="banco_baixar" id="banco-baixar-massa" required>
 								<option value="">Selecione...</option>
-								<?php
-								$query = $pdo->query("SELECT * FROM bancos order by id asc");
-								$res = $query->fetchAll(PDO::FETCH_ASSOC);
-								for ($i = 0; $i < @count($res); $i++) { ?>
-									<option value="<?php echo $res[$i]['id'] ?>"><?php echo $res[$i]['banco'] ?></option>
-								<?php } ?>
+								<?php echo fin_options($pdo, "SELECT id, banco FROM bancos ORDER BY banco"); ?>
 							</select>
 						</div>
 						<div class="col-md-6">
@@ -539,14 +524,11 @@ document.addEventListener('DOMContentLoaded', function () {
 						</div>
 						<div class="col-md-2 mb-2">
 							<label>Forma Pgto</label>
-							<select name="forma_pgto" id="forma_pgto" class="form-select">
-								<?php
-								$q = $pdo->query("SELECT id, nome FROM formas_pgto ORDER BY id ASC");
-								foreach ($q->fetchAll(PDO::FETCH_ASSOC) as $row) {
-									echo '<option value="' . $row['id'] . '">' . $row['nome'] . '</option>';
-								}
-								?>
-							</select>
+								<select name="forma_pgto" id="forma_pgto" class="form-select">
+									<?php foreach ($pdo->query("SELECT id, nome, banco_padrao FROM formas_pgto ORDER BY id")->fetchAll(PDO::FETCH_ASSOC) as $f) { ?>
+										<option value="<?= $f['id'] ?>" data-banco="<?= (int) $f['banco_padrao'] ?: '' ?>"><?= fin_e($f['nome']) ?></option>
+									<?php } ?>
+								</select>
 						</div>
 						<div class="col-md-2 mb-2">
 							<label>Frequência</label>
@@ -573,30 +555,23 @@ document.addEventListener('DOMContentLoaded', function () {
 							<img width="80px" id="target" src="images/contas/sem-foto.png">
 						</div>
 					</div>
-					<div class="row d-none" id="div-banco">
+					<div class="row">
 						<div class="col-md-6 mb-2">
-							<label>Banco</label>
-							<select class="form-select" name="banco" id="banco">
-								<option value="">Selecione</option>
-								<?php
-								$q = $pdo->query("SELECT id, banco FROM bancos ORDER BY id ASC");
-								foreach ($q->fetchAll(PDO::FETCH_ASSOC) as $row) {
-									echo '<option value="' . $row['id'] . '">' . $row['banco'] . '</option>';
-								}
-								?>
+							<label>Centro de Custo</label>
+							<select name="centro_custo" id="centro_custo" class="form-select">
+								<?php echo fin_options($pdo, "SELECT id, nome FROM centros_custo WHERE ativo = 1 ORDER BY nome", null, 'Nenhum'); ?>
 							</select>
 						</div>
+					</div>
+					<div class="row d-none" id="div-banco">
 						<div class="col-md-6 mb-2">
-							<label>Descrição (Banco)</label>
-							<select class="form-select" name="descricao_banco" id="descricao_banco">
-								<option value="">Selecione a Classificação</option>
-								<?php
-								$q = $pdo->query("SELECT id, descricao FROM descricao_banco ORDER BY descricao ASC");
-								foreach ($q->fetchAll(PDO::FETCH_ASSOC) as $row) {
-									echo '<option value="' . $row['id'] . '">' . htmlspecialchars($row['descricao']) . '</option>';
-								}
-								?>
+							<label>Conta bancária de onde o valor saiu</label>
+							<select class="form-select" name="banco" id="banco">
+								<?php echo fin_options($pdo, "SELECT id, banco FROM bancos ORDER BY banco", null, 'Conta padrão da forma de pagamento'); ?>
 							</select>
+						</div>
+						<div class="col-md-6 mb-2 d-flex align-items-end">
+							<small class="text-muted">Com a data de pagamento preenchida, a conta já nasce paga e o valor sai do extrato desta conta bancária.</small>
 						</div>
 					</div>
 					<input type="hidden" id="id" name="id">

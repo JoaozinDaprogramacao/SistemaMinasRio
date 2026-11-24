@@ -23,6 +23,12 @@ if ($conta['pago'] == 'Sim' || $conta['cancelada'] == 'Sim') {
 	echo 'Não é possível parcelar uma conta paga ou cancelada!';
 	exit();
 }
+$query = $pdo->prepare("SELECT COUNT(*) FROM receber_pagamentos WHERE id_receber = :id");
+$query->execute([':id' => $id]);
+if ($conta['pago'] == 'Parcial' || $query->fetchColumn() > 0) {
+	echo 'Esta conta já tem recebimento parcial. Estorne a baixa em Contas a Receber antes de parcelar.';
+	exit();
+}
 if ($qtd_parcelas < 2) {
 	echo 'Informe pelo menos 2 parcelas!';
 	exit();

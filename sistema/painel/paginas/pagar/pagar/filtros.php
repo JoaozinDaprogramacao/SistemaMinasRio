@@ -55,9 +55,27 @@
     </div>
 
     <div class="col-auto">
+        <select id="centro_filtro" class="form-select form-select-sm" onchange="buscar()">
+            <option value="">Centro de Custo</option>
+            <?php echo fin_options($pdo, "SELECT id, nome FROM centros_custo WHERE ativo = 1 ORDER BY nome") ?>
+        </select>
+    </div>
+
+    <div class="col-auto">
+        <select id="status_filtro" class="form-select form-select-sm" onchange="buscar()">
+            <option value="">Situação</option>
+            <option value="aberto">Em aberto</option>
+            <option value="vencido">Vencidas</option>
+            <option value="parcial">Pagas em parte</option>
+            <option value="pago">Pagas</option>
+        </select>
+    </div>
+
+    <div class="col-auto">
         <select id="filtrar_por" class="form-select form-select-sm" onchange="buscar()">
             <option value="vencimento">Por Vencimento</option>
             <option value="data_lanc">Por Faturamento</option>
+            <option value="data_pgto">Por Pagamento</option>
         </select>
     </div>
 
@@ -74,6 +92,6 @@
     <div class="col-auto d-flex align-items-center gap-1">
         <input type="date" id="dataInicial" class="form-control form-control-sm" value="<?php echo $data_inicio_mes ?>" onchange="alteracaoManualData()">
         <span class="text-muted">até</span>
-        <input type="date" id="dataFinal" class="form-control form-control-sm" value="<?php echo $data_hoje ?>" onchange="alteracaoManualData()">
+        <input type="date" id="dataFinal" class="form-control form-control-sm" value="<?php echo $data_final_mes ?>" onchange="alteracaoManualData()">
     </div>
 </div>

@@ -3,6 +3,7 @@
 $tabela = 'romaneio_venda';
 require_once("../../../conexao.php");
 require_once(__DIR__ . "/../../seguranca.php");
+require_once(__DIR__ . "/../../funcoes/financeiro.php");
 seguranca_exigir_acesso(['produtos']);
 
 @session_start();
@@ -427,55 +428,19 @@ try {
     $descricao_receber = "Venda Romaneio Nº " . $romaneio_venda_id;
     $total_liquido_final = $total_liquido;
 
-    if ($id != "") {
-        // UPDATE
-        $check_receber = $pdo->prepare("SELECT id FROM receber WHERE id_ref = ? AND referencia = 'Romaneio Venda'");
-        $check_receber->execute([$romaneio_venda_id]);
-
-        if ($check_receber->rowCount() > 0) {
-            $query_receber = $pdo->prepare("UPDATE receber SET 
-            cliente = :cliente,
-            valor = :valor,
-            vencimento = :vencimento,
-            pago = 'Não',
-            data_pgto = NULL,
-            usuario_pgto = 0
-            WHERE id_ref = :id_ref AND referencia = 'Romaneio Venda'");
-            gravarLog("Atualizando Receber existente.");
-        } else {
-            $id = ""; // Força insert
-        }
-    }
-
-    if ($id == "") {
-        // INSERT
-        $query_receber = $pdo->prepare("INSERT INTO receber SET 
-        descricao = :descricao,
-        cliente = :cliente,
-        valor = :valor,
-        vencimento = :vencimento,
-        data_lanc = CURDATE(),
-        usuario_lanc = :usuario_lanc,
-        pago = 'Não',
-        referencia = 'Romaneio Venda',
-        id_ref = :id_ref,
-        usuario_pgto = 0
-        ");
-        $query_receber->bindValue(":descricao", $descricao_receber);
-        $query_receber->bindValue(":usuario_lanc", $id_usuario);
-        gravarLog("Inserindo novo Receber.");
-    }
-
-    $query_receber->bindValue(":cliente", $atacadista);
-    $query_receber->bindValue(":valor", $total_liquido_final);
-    $query_receber->bindValue(":vencimento", $vencimento);
-    $query_receber->bindValue(":id_ref", $romaneio_venda_id);
-    
-    if (!$query_receber->execute()) {
-        $errR = $query_receber->errorInfo();
-        gravarLog("ERRO RECEBER: " . $errR[2]);
-        throw new Exception("Erro ao salvar contas a receber: " . $errR[2]);
-    }
+    // Mantém o título alinhado ao romaneio sem desfazer recebimentos já feitos
+    fin_sincronizar_titulo($pdo, 'receber', "id_romaneio = ? AND referencia = 'Romaneio Venda' AND COALESCE(residuo, '') <> 'Sim'", [$romaneio_venda_id], [
+        'descricao' => $descricao_receber,
+        'cliente' => $atacadista,
+        'valor' => (float) $total_liquido_final,
+        'vencimento' => $vencimento,
+        'data_lanc' => date('Y-m-d'),
+        'usuario_lanc' => $id_usuario,
+        'referencia' => 'Romaneio Venda',
+        'id_ref' => $romaneio_venda_id,
+        'id_romaneio' => $romaneio_venda_id,
+    ]);
+    gravarLog("Contas a Receber sincronizado.");
 
 
     // Atualiza romaneios de compra como usados

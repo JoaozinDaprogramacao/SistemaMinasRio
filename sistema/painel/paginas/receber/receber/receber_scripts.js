@@ -58,18 +58,6 @@ $(document).ready(function () {
         console.error("Erro: daterangepicker não carregado. Verifique os links CDN.");
     }
 
-    function verificarDatasEExibirBanco() {
-        var vencimento = $('#vencimento').val();
-        var dataPgto = $('#data_pgto').val();
-        if (dataPgto && vencimento && dataPgto === vencimento) {
-            $('#div-banco').removeClass('d-none');
-        } else {
-            $('#div-banco').addClass('d-none');
-        }
-    }
-
-    $('#vencimento, #data_pgto').on('change', verificarDatasEExibirBanco);
-    $('#modalForm').on('shown.bs.modal', verificarDatasEExibirBanco);
     $('#modalForm').on('hidden.bs.modal', function () {
         $('#div-banco').addClass('d-none');
         limparCampos();
@@ -115,27 +103,85 @@ function definirPeriodo(valor) {
 }
 
 function buscar() {
-    var filtro = "";
-    var dataInicial = $('#dataInicial').val();
-    var dataFinal = $('#dataFinal').val();
-    var tipo_data = $('#filtrar_por').val();
-    var atacadista = $('#atacadista').val();
-    var formaPGTO = $('#formaPGTO').val();
-    var tipo_conta = $('#tipo_conta').val();
-
-    listar(filtro, dataInicial, dataFinal, tipo_data, atacadista, formaPGTO, tipo_conta);
+    // Card clicado (Vencidas / A Vencer / Recebidas / Todas) filtra a lista
+    var filtro = $('#tipo_data_filtro').val() || '';
+    if (filtro === 'Todas') filtro = '';
+    listarReceber({
+        p1: filtro,
+        p2: $('#dataInicial').val(),
+        p3: $('#dataFinal').val(),
+        p4: $('#filtrar_por').val() || 'vencimento',
+        p5: $('#atacadista').val(),
+        p6: $('#formaPGTO').val(),
+        p7: $('#tipo_conta').val(),
+        p8: $('#categoria_filtro').val(),
+        p9: $('#status_filtro').val(),
+        p10: $('#centro_filtro').val()
+    });
 }
 
-function listar(p1, p2, p3, p4, p5, p6, p7) {
+function listarReceber(filtros) {
     $.ajax({
         url: 'paginas/' + pag + "/listar.php",
         method: 'POST',
-        data: { p1: p1, p2: p2, p3: p3, p4: p4, p5: p5, p6: p6, p7: p7 },
+        data: filtros,
         dataType: "html",
         success: function (result) {
             $("#listar").html(result);
+            if (typeof gravarIds === 'function') gravarIds([]);
         }
     });
+}
+
+// Editar conta lançada manualmente (as de romaneio/venda são editadas na origem)
+function editar(id) {
+    $.ajax({
+        url: 'paginas/' + pag + '/buscar.php', method: 'POST', data: { id: id }, dataType: 'json',
+        success: function (t) {
+            if (t.erro) { finAviso(t.erro, 'warning'); return; }
+            limparCampos();
+            $('#titulo_inserir').text('Editar Registro');
+            $('#id').val(t.id);
+            $('#descricao').val(t.descricao);
+            $('#valor').val((parseFloat(t.valor) || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 }));
+            $('#cliente').val(t.cliente || '0').change();
+            $('#vencimento').val(t.vencimento);
+            $('#data_pgto').val('');
+            $('#forma_pgto').val(t.forma_pgto).change();
+            $('#frequencia').val(t.frequencia).change();
+            $('#obs').val(t.obs);
+            $('#categoria_receber').val(t.categoria_receber || '');
+            $('#centro_custo').val(t.centro_custo || '');
+            $('#target').attr('src', 'images/contas/' + (t.arquivo || 'sem-foto.png'));
+            // Conta já recebida: a data de recebimento é gerida pela baixa
+            $('#data_pgto').prop('disabled', t.pago !== 'Não');
+            $('#modalForm').modal('show');
+        }
+    });
+}
+
+function cobrarPix(id) {
+    $.ajax({
+        url: 'paginas/' + pag + '/pix.php', method: 'POST', data: { id: id }, dataType: 'json',
+        success: function (r) {
+            if (r.erro) { finAviso(r.erro, 'warning'); return; }
+            $('#pix-titulo').text(r.titulo);
+            $('#pix-valor').text(r.valor);
+            $('#pix-copia').val(r.payload);
+            $('#pix-whats').attr('href', r.whats);
+            $('#pix-qrcode').empty();
+            if (window.QRCode) new QRCode(document.getElementById('pix-qrcode'), { text: r.payload, width: 220, height: 220, correctLevel: QRCode.CorrectLevel.M });
+            else $('#pix-qrcode').html('<small class="text-muted">QR Code indisponível sem internet — use o copia e cola.</small>');
+            $('#modalPix').modal('show');
+        }
+    });
+}
+
+function copiarPix() {
+    var campo = document.getElementById('pix-copia');
+    campo.select();
+    if (navigator.clipboard) navigator.clipboard.writeText(campo.value); else document.execCommand('copy');
+    finAviso('Código PIX copiado.', 'success');
 }
 
 function mostrar(descricao, valor, cliente, vencimento, data_pgto, nome_pgto, frequencia, obs, arquivo, multa, juros, desconto, taxa, total, usu_lanc, usu_pgto, pago, arq) {
@@ -173,8 +219,10 @@ function limparCampos() {
     $('#cliente').val('0').change();
     $('#forma_pgto').prop('selectedIndex', 0).change();
     $('#frequencia').prop('selectedIndex', 0).change();
-    $('#banco').val('').change();
-    $('#descricao_banco').val('').change();
+    $('#banco').val('');
+    $('#categoria_receber').val('');
+    $('#centro_custo').val('');
+    $('#data_pgto').prop('disabled', false);
     $('#ids').val('');
     $('#btn-deletar').hide();
     $('#btn-baixar-modal').hide();
@@ -291,7 +339,8 @@ $(document).on('click', '#relatorio', function (e) {
         '&dataFinal=' + $('#dataFinal').val() +
         '&tipo_data=' + $('#tipo_data').val() +
         '&atacadista=' + $('#atacadista').val() +
-        '&formaPGTO=' + $('#formaPGTO').val();
+        '&formaPGTO=' + $('#formaPGTO').val() +
+        '&tipo_data=' + ($('#filtrar_por').val() || 'vencimento');
     window.open(url, '_blank');
 });
 
@@ -716,14 +765,7 @@ function handlePagamentoInput(input) {
     const linha = input.closest(".linha-pagamento");
     const container = document.getElementById("linha-container-pagamento");
 
-    const valor = linha.querySelector(".valor_pagamento").value.trim();
-    const data = linha.querySelector(".data_pagamento").value.trim();
-    const forma = linha.querySelector(".forma_pagamento").value.trim();
-    const banco = linha.querySelector(".banco_pagamento").value.trim();
-
-    const isEssentialFilled = (valor !== "" && data !== "" && forma !== "" && banco !== "");
-
-    if (isEssentialFilled && linha === container.lastElementChild) {
+    if (finLinhaCompleta(linha) && linha === container.lastElementChild) {
         addNewPagamentoLine();
     }
 }
@@ -777,6 +819,8 @@ function baixar(id, descricao, valor, vencimento, cliente, romaneio, forma_padra
             success: function (dados) {
                 $('#mensagem-baixar').text('');
 
+                finInjetarAdiantamentos(dados.adiantamentos);
+                finBotaoEstorno(id, dados);
                 $('#linha-container-pagamento').empty();
 
                 if (dados.pagamentos && dados.pagamentos.length > 0) {
@@ -791,6 +835,7 @@ function baixar(id, descricao, valor, vencimento, cliente, romaneio, forma_padra
                         ultimaLinha.querySelector(".forma_pagamento").value = pgto.forma || '';
                         ultimaLinha.querySelector(".banco_pagamento").value = pgto.banco || '';
                         ultimaLinha.querySelector(".operacao_pagamento").value = pgto.operacao || '';
+                        if (String(pgto.forma || '').indexOf('adi:') === 0) $(ultimaLinha).find(".banco_pagamento").css({ 'pointer-events': 'none', 'opacity': .5 });
                     });
 
                     // Adiciona sempre uma linha extra em branco para o usuário continuar baixando
@@ -823,8 +868,10 @@ function baixar(id, descricao, valor, vencimento, cliente, romaneio, forma_padra
             let selectForma = primeiraLinha.querySelector(".forma_pagamento");
             if (selectForma) {
                 selectForma.value = (forma_padrao != "" && forma_padrao != "0" && forma_padrao != null) ? forma_padrao : '1';
+                $(selectForma).trigger('change');
             }
         }
+        finCarregarExtrasBaixa(id);
 
         $('#form-baixar button[type="submit"]').text('Confirmar Baixa').removeClass('btn-warning').addClass('btn-success');
         $('#modalBaixar').modal('show');

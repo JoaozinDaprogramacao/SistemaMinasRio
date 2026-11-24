@@ -1,31 +1,23 @@
-<?php 
-$tabela = 'receber';
+<?php
 require_once("../../../conexao.php");
 require_once(__DIR__ . "/../../seguranca.php");
 seguranca_exigir_acesso(['receber', 'clientes']);
+require_once(__DIR__ . "/../vendas/funcoes_venda.php");
+require_once(__DIR__ . "/../../funcoes/financeiro.php");
 
-$id = $_POST['id'];
+fin_responder(function () use ($pdo) {
+	$id = (int) ($_POST['id'] ?? 0);
+	$t = fin_titulo($pdo, 'receber', $id);
+	if ((int) $t['id_romaneio'] > 0) return 'Este lançamento veio de um romaneio. Exclua ou edite pelo romaneio.';
+	if ((int) ($t['id_venda_real'] ?? 0) > 0) return 'Este lançamento veio de uma venda. Cancele pela Lista de Vendas.';
+	if (!empty($t['id_baldeio'])) return 'Este lançamento veio de um baldeio. Exclua pelo baldeio.';
+	if (fin_pagamentos($pdo, 'receber', $id) && !fin_pode_estornar()) return 'Esta conta tem baixa registrada. Só administrador, gerente ou quem tem a permissão "Estornar Baixas" pode excluí-la.';
 
-$query = $pdo->query("SELECT * FROM $tabela where id = '$id'");
-$res = $query->fetchAll(PDO::FETCH_ASSOC);
-$foto = @$res[0]['arquivo'];
-$hash = @$res[0]['hash'];
-
-// Lançamento gerado por romaneio só pode ser alterado/excluído pelo próprio romaneio
-if(@$res[0]['id_romaneio'] > 0){
-	echo 'Este lançamento veio de um romaneio. Exclua ou edite pelo romaneio.';
-	exit();
-}
-
-if($foto != "sem-foto.png"){
-	@unlink('../../images/contas/'.$foto);
-}
-
-if($hash != ""){
-	require("../../apis/cancelar_agendamento.php");
-}
-
-
-$pdo->query("DELETE FROM $tabela WHERE id = '$id' ");
-echo 'Excluído com Sucesso';
-?>
+	fin_excluir_titulo($pdo, 'receber', $id, trim($_POST['motivo'] ?? ''));
+	if ($t['arquivo'] && $t['arquivo'] != 'sem-foto.png') @unlink(__DIR__ . '/../../images/contas/' . basename($t['arquivo']));
+	if (!empty($t['hash'])) {
+		$hash = $t['hash'];
+		require(__DIR__ . "/../../apis/cancelar_agendamento.php");
+	}
+	return 'Excluído com Sucesso';
+});

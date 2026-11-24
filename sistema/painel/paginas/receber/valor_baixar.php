@@ -1,25 +1,17 @@
-<?php 
-$tabela = 'receber';
+<?php
 require_once("../../../conexao.php");
 require_once(__DIR__ . "/../../seguranca.php");
 seguranca_exigir_acesso(['receber', 'clientes']);
+require_once(__DIR__ . "/../../funcoes/financeiro.php");
 
-$ids = $_POST['ids'];
-$total_contas = 0;
-
-$ids = substr($ids, 0, -1);
-$separar = explode("-", $ids);
-$total_ids = @count($separar);
-
-for($i=0; $i<$total_ids; $i++){
-		$id = $separar[$i];
-		$query = $pdo->query("SELECT * FROM $tabela where id = '$id' and pago = 'Não'");
-		$res = $query->fetchAll(PDO::FETCH_ASSOC);
-		$valor = @$res[0]['valor'];
-		$total_contas += $valor;
-        
-    }
-
-$total_contas = @number_format($total_contas, 2, ',', '.');
-echo $total_contas;
-?>
+// Soma do que falta quitar nos títulos selecionados
+$ids = array_unique(array_filter(array_map('intval', explode('-', (string) ($_POST['ids'] ?? '')))));
+$total = 0;
+$qtd = 0;
+foreach ($ids as $id) {
+	$t = fin_q($pdo, "SELECT * FROM receber WHERE id = ?", [$id])->fetch(PDO::FETCH_ASSOC);
+	if (!$t || $t['pago'] === 'Sim') continue;
+	$total += $t['pago'] === 'Parcial' ? (float) $t['valor_restante'] : (float) $t['valor'];
+	$qtd++;
+}
+fin_json(['total' => number_format($total, 2, ',', '.'), 'qtd' => $qtd]);

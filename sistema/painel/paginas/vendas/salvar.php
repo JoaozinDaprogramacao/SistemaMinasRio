@@ -3,6 +3,7 @@ require_once("../../../conexao.php");
 require_once(__DIR__ . "/../../seguranca.php");
 seguranca_exigir_acesso(['vendas']);
 require_once("funcoes_venda.php");
+require_once(__DIR__ . "/../../funcoes/financeiro.php");
 require_once(__DIR__ . "/../pdv_diversos/pagamento_comum.php");
 @session_start();
 $id_usuario = $_SESSION['id'];
@@ -114,8 +115,13 @@ try {
         // Desfaz tudo o que a versão anterior da venda gerou
         venda_devolver_estoque($pdo, $id_venda_edicao);
         $pdo->prepare("DELETE FROM detalhes_materiais WHERE id_venda_real = :id")->execute([':id' => $id_venda_edicao]);
-        $pdo->prepare("DELETE FROM receber WHERE id_venda_real = :id")->execute([':id' => $id_venda_edicao]);
-        $pdo->prepare("DELETE FROM pagar WHERE id_venda_real = :id AND referencia = 'Comissão' AND pago <> 'Sim'")->execute([':id' => $id_venda_edicao]);
+        // Estorna do extrato o que já tinha sido recebido antes de refazer as contas da venda
+        $stmt = $pdo->prepare("SELECT id FROM receber WHERE id_venda_real = :id");
+        $stmt->execute([':id' => $id_venda_edicao]);
+        foreach ($stmt->fetchAll(PDO::FETCH_COLUMN) as $id_conta_antiga) {
+            fin_excluir_titulo($pdo, 'receber', $id_conta_antiga, 'venda #' . $id_venda_edicao . ' editada');
+        }
+        $pdo->prepare("DELETE FROM pagar WHERE id_venda_real = :id AND referencia = 'Comissão' AND COALESCE(NULLIF(pago, ''), 'Não') = 'Não'")->execute([':id' => $id_venda_edicao]);
         $pdo->prepare("DELETE FROM itens_venda WHERE id_venda_real = :id")->execute([':id' => $id_venda_edicao]);
     }
 
@@ -196,13 +202,22 @@ try {
             ':valor' => $valor_pago,
             ':subtotal' => $valor_pago,
             ':vencimento' => $data,
-            ':data_pgto' => $entrada_recebida ? $data : null,
-            ':usuario_pgto' => $entrada_recebida ? $id_usuario : 0,
-            ':pago' => $entrada_recebida ? 'Sim' : 'Não',
+            ':data_pgto' => null,
+            ':usuario_pgto' => 0,
+            ':pago' => 'Não',
             ':forma_pgto' => $saida,
             ':id_ref' => null,
         ]);
         $id_receber_principal = $pdo->lastInsertId();
+        // Entrada recebida no ato: registra o recebimento na conta padrão da forma de pagamento.
+        // Sem conta padrão a entrada fica em aberto em Contas a Receber para ser baixada lá.
+        if ($entrada_recebida) {
+            if ((int) (fin_forma($pdo, $saida)['banco_padrao'] ?? 0) > 0) {
+                fin_titulo_pago_na_criacao($pdo, 'receber', $id_receber_principal, $data, $saida);
+            } else {
+                fin_log($pdo, 'entrada_em_aberto', 'receber', $id_receber_principal, 'Entrada da venda #' . $id_venda_real . ' ficou em aberto: forma de pagamento sem conta padrão');
+            }
+        }
     }
 
     foreach ($parcelas as $i => $parcela) {

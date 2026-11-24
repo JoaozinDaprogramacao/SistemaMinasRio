@@ -1,6 +1,7 @@
 <?php
 require_once("../../../conexao.php");
 require_once(__DIR__ . "/../../seguranca.php");
+require_once(__DIR__ . "/../../funcoes/financeiro.php");
 seguranca_exigir_acesso(['bancos']);
 
 @session_start();
@@ -66,31 +67,19 @@ try {
     
     $id_baldeio = ($id == "") ? $pdo->lastInsertId() : $id;
     
-    // Inserção na tabela pagar
-    $query = $pdo->prepare("INSERT INTO pagar SET 
-        descricao = 'Baldeio',
-        fornecedor = ?,
-        funcionario = ?,
-        valor = ?,
-        vencimento = CURDATE(),
-        data_lanc = CURDATE(),
-        forma_pgto = 0,
-        frequencia = 0,
-        arquivo = 'sem-foto.png',
-        referencia = 'Baldeio',
-        subtotal = ?,
-        usuario_lanc = ?,
-        pago = 'Não',
-        hora = CURTIME(),
-        id_baldeio = ?");
-
-    $query->execute([
-        $id_produtor,
-        $id_usuario,
-        $total,
-        $total,
-        $id_usuario,
-        $id_baldeio
+    // Conta a pagar do baldeio: uma só por baldeio (editar atualiza em vez de duplicar)
+    fin_sincronizar_titulo($pdo, 'pagar', 'id_baldeio = ?', [$id_baldeio], [
+        'descricao' => 'Baldeio',
+        'fornecedor' => $id_produtor,
+        'funcionario' => 0,
+        'valor' => (float) $total,
+        'vencimento' => date('Y-m-d'),
+        'data_lanc' => date('Y-m-d'),
+        'forma_pgto' => 0,
+        'arquivo' => 'sem-foto.png',
+        'referencia' => 'Baldeio',
+        'usuario_lanc' => $id_usuario,
+        'id_baldeio' => $id_baldeio,
     ]);
     
     $pdo->commit();

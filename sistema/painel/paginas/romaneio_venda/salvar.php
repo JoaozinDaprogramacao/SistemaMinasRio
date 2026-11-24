@@ -2,6 +2,7 @@
 $tabela = 'romaneio_venda';
 require_once("../../../conexao.php");
 require_once(__DIR__ . "/../../seguranca.php");
+require_once(__DIR__ . "/../../funcoes/financeiro.php");
 seguranca_exigir_acesso(['produtos', 'bancos']);
 
 @session_start();
@@ -178,29 +179,19 @@ try {
     $forma_pgto_cliente = $res_f['forma_pagamento'] ?? 0;
     // -------------------------------------------------------
 
-    $check_receber = $pdo->prepare("SELECT id FROM receber WHERE id_ref = ? AND referencia = 'Romaneio Venda'");
-    $check_receber->execute([$romaneio_venda_id]);
-
-    if ($check_receber->rowCount() > 0) {
-        // UPDATE: Incluímos forma_pgto
-        $query_receber = $pdo->prepare("UPDATE receber SET cliente=:cliente, valor=:valor, vencimento=:vencimento, id_romaneio=:id_romaneio, data_lanc=:data_lanc, forma_pgto=:forma_pgto, usuario_pgto = 0 WHERE id_ref=:id_ref AND referencia='Romaneio Venda'");
-    } else {
-        // INSERT: Incluímos forma_pgto
-        $query_receber = $pdo->prepare("INSERT INTO receber (descricao, cliente, valor, vencimento, data_lanc, usuario_lanc, pago, referencia, id_ref, id_romaneio, usuario_pgto, forma_pgto) VALUES (:descricao, :cliente, :valor, :vencimento, :data_lanc, :usuario_lanc, 'Não', 'Romaneio Venda', :id_ref, :id_romaneio, 0, :forma_pgto)");
-
-        $query_receber->bindValue(":descricao", "Venda Romaneio Nº " . $romaneio_venda_id);
-        $query_receber->bindValue(":usuario_lanc", $id_usuario);
-    }
-
-    // Bindings comuns a ambos
-    $query_receber->bindValue(":cliente", $atacadista);
-    $query_receber->bindValue(":valor", $total_liquido);
-    $query_receber->bindValue(":vencimento", $vencimento);
-    $query_receber->bindValue(":id_ref", $romaneio_venda_id);
-    $query_receber->bindValue(":id_romaneio", $romaneio_venda_id);
-    $query_receber->bindValue(":data_lanc", $data);
-    $query_receber->bindValue(":forma_pgto", $forma_pgto_cliente); // <--- VALOR VINDO DO CLIENTE
-    $query_receber->execute();
+    // Mantém o título alinhado ao romaneio sem desfazer recebimentos já feitos
+    fin_sincronizar_titulo($pdo, 'receber', "id_romaneio = ? AND referencia = 'Romaneio Venda' AND COALESCE(residuo, '') <> 'Sim'", [$romaneio_venda_id], [
+        'descricao' => "Venda Romaneio Nº " . $romaneio_venda_id,
+        'cliente' => $atacadista,
+        'valor' => (float) $total_liquido,
+        'vencimento' => $vencimento,
+        'data_lanc' => $data,
+        'forma_pgto' => (int) $forma_pgto_cliente,
+        'usuario_lanc' => $id_usuario,
+        'referencia' => 'Romaneio Venda',
+        'id_ref' => $romaneio_venda_id,
+        'id_romaneio' => $romaneio_venda_id,
+    ]);
 
     if (!empty($romaneios_selecionados)) {
         $ids_array = explode(',', $romaneios_selecionados);

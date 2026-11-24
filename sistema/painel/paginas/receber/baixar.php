@@ -1,159 +1,34 @@
 <?php
-$tabela = 'receber';
 require_once("../../../conexao.php");
 require_once(__DIR__ . "/../../seguranca.php");
 seguranca_exigir_acesso(['receber', 'clientes']);
+require_once(__DIR__ . "/../vendas/funcoes_venda.php");
+require_once(__DIR__ . "/../../funcoes/financeiro.php");
 
-// Converte "1.234,56" (formato BR) ou "2.60" (vindo do banco) em número
-function valor_br($v) {
-    $v = trim((string) $v);
-    if ($v === '') return '';
-    if (preg_match('/^-?\d+\.\d{1,2}$/', $v)) return $v;
-    return str_replace(',', '.', str_replace('.', '', $v));
-}
-@session_start();
-$id_usuario = $_SESSION['id'];
+fin_responder(function () use ($pdo) {
+	$id = (int) ($_POST['id-baixar'] ?? 0);
+	$obs = trim($_POST['obs-baixar'] ?? '') ?: 'Baixa de Título';
+	$ajustes = [
+		'multa' => $_POST['valor-multa'] ?? 0,
+		'juros' => $_POST['valor-juros'] ?? 0,
+		'acrescimo' => $_POST['valor-acrescimo'] ?? 0,
+		'desconto' => $_POST['valor-desconto'] ?? 0,
+	];
+	$pagamentos = fin_pagamentos_do_post();
+	$tem_valor = array_filter($pagamentos, fn($p) => fin_num($p['valor']) > 0);
+	if (!$tem_valor) {
+		$t = fin_titulo($pdo, 'receber', $id);
+		if ($t['pago'] === 'Não') return 'Informe ao menos um recebimento!';
+		if (!fin_pode_estornar()) return 'Você não tem permissão para estornar baixas.';
+	}
 
-$id = $_POST['id-baixar'];
-$obs_baixar = $_POST['obs-baixar'] ?? "";
-if (trim($obs_baixar) == "") {
-    $obs_baixar = "Baixa de Título";
-}
-
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
-
-$acrescimo = $_POST['valor-acrescimo'] ?? 0;
-$acrescimo = valor_br($acrescimo);
-
-$multa = $_POST['valor-multa'] ?? 0;
-$multa = valor_br($multa);
-
-$desconto = $_POST['valor-desconto'] ?? 0;
-$desconto = valor_br($desconto);
-
-$juros = $_POST['valor-juros'] ?? 0;
-$juros = valor_br($juros);
-
-$subtotal = $_POST['subtotal'] ?? 0;
-$subtotal = valor_br($subtotal);
-
-$acrescimo = ($acrescimo == "") ? 0 : $acrescimo;
-$multa = ($multa == "") ? 0 : $multa;
-$juros = ($juros == "") ? 0 : $juros;
-$desconto = ($desconto == "") ? 0 : $desconto;
-
-// Espelha no servidor o bloqueio do modal: valor impossível não vira baixa.
-// A trava do JavaScript é conforto de digitação; quem posta direto no endpoint,
-// ou com o script quebrado, esbarra aqui — antes do DELETE dos pagamentos antigos.
-$ajustes_negativos = [];
-if ((float)$multa     < 0) $ajustes_negativos[] = 'multa';
-if ((float)$juros     < 0) $ajustes_negativos[] = 'juros';
-if ((float)$acrescimo < 0) $ajustes_negativos[] = 'acréscimo';
-if ((float)$desconto  < 0) $ajustes_negativos[] = 'desconto';
-if (count($ajustes_negativos) > 0) {
-    echo 'Valor impossível: ' . implode(', ', $ajustes_negativos) . ' não pode ser negativo.';
-    exit();
-}
-
-$titulo_atual  = $pdo->query("SELECT valor FROM $tabela WHERE id = '$id'")->fetch(PDO::FETCH_ASSOC);
-$valor_titulo  = $titulo_atual ? (float)$titulo_atual['valor'] : 0;
-$bruto_titulo  = round($valor_titulo + (float)$multa + (float)$juros + (float)$acrescimo, 2);
-if (round((float)$desconto, 2) > $bruto_titulo) {
-    echo 'Valor impossível: o desconto (R$ ' . number_format((float)$desconto, 2, ',', '.')
-       . ') supera o total do título (R$ ' . number_format($bruto_titulo, 2, ',', '.') . ').';
-    exit();
-}
-
-// Captura as múltiplas linhas
-$valores_pgto = $_POST['valor_baixar'] ?? [];
-$datas_pgto = $_POST['data_baixar'] ?? [];
-$formas_pgto = $_POST['saida_baixar'] ?? [];
-$bancos_pgto = $_POST['banco_baixar'] ?? [];
-$operacoes = $_POST['numero_operacao'] ?? [];
-
-$total_recebido = 0;
-$pagamentos_validos = [];
-
-// Calcula o total recebido nesta requisição
-for ($i = 0; $i < count($valores_pgto); $i++) {
-    $v = valor_br($valores_pgto[$i]);
-    if ($v > 0) {
-        $total_recebido += $v;
-        $pagamentos_validos[] = [
-            'valor' => $v,
-            'data' => $datas_pgto[$i],
-            'forma' => $formas_pgto[$i],
-            'banco' => empty($bancos_pgto[$i]) ? null : $bancos_pgto[$i],
-            'operacao' => $operacoes[$i]
-        ];
-    }
-}
-
-// Verifica e define se foi Pago Totalmente ou Parcialmente
-$status_pago = 'Não';
-if ($total_recebido > 0) {
-    // Usamos - 0.05 para evitar erro de centavos de dízima no PHP
-    if ($total_recebido >= ($subtotal - 0.05)) {
-        $status_pago = 'Sim'; // Totalmente Pago
-    } else {
-        $status_pago = 'Parcial'; // Pagamento Parcial
-    }
-}
-
-$valor_restante = $subtotal - $total_recebido;
-if ($valor_restante < 0) $valor_restante = 0;
-
-$query1 = $pdo->query("SELECT * from caixas where operador = '$id_usuario' and data_fechamento is null order by id desc limit 1");
-$res1 = $query1->fetchAll(PDO::FETCH_ASSOC);
-$id_caixa = (@count($res1) > 0) ? $res1[0]['id'] : 0;
-
-// Extrai dados da primeira linha para ser a referência principal na tabela "receber"
-$data_baixar = count($pagamentos_validos) > 0 ? $pagamentos_validos[0]['data'] : null;
-$saida = count($pagamentos_validos) > 0 ? $pagamentos_validos[0]['forma'] : null;
-$banco_principal = count($pagamentos_validos) > 0 ? $pagamentos_validos[0]['banco'] : null;
-
-// Remove pagamentos antigos desta conta (para não duplicar em caso de edição)
-$pdo->query("DELETE FROM receber_pagamentos WHERE id_receber = '$id'");
-
-// Atualiza a conta mãe (Mantém o ID e o Valor Original intactos!)
-$sql_update = "UPDATE $tabela SET 
-    usuario_pgto = '$id_usuario', 
-    pago = '$status_pago', 
-    subtotal = '$subtotal', 
-    taxa = '$acrescimo', 
-    juros = '$juros', 
-    multa = '$multa', 
-    desconto = '$desconto', 
-    valor_restante = '$valor_restante',
-    obs = '$obs_baixar',
-    caixa = '$id_caixa',
-    hora = curTime()";
-
-if ($data_baixar) { $sql_update .= ", data_pgto = '$data_baixar'"; }
-if ($saida) { $sql_update .= ", forma_pgto = '$saida'"; }
-if ($banco_principal) { $sql_update .= ", banco = '$banco_principal'"; } else { $sql_update .= ", banco = NULL"; }
-
-$sql_update .= " WHERE id = '$id'";
-$pdo->query($sql_update);
-
-// Insere cada linha de pagamento na tabela auxiliar
-foreach ($pagamentos_validos as $pg) {
-    $v_pag = $pg['valor'];
-    $d_pag = $pg['data'];
-    $f_pag = $pg['forma'];
-    $b_pag = $pg['banco'];
-    $op_pag = $pg['operacao'];
-
-    $pdo->query("INSERT INTO receber_pagamentos SET 
-        id_receber = '$id', 
-        valor = '$v_pag', 
-        data_pgto = '$d_pag', 
-        forma_pgto = '$f_pag', 
-        banco = " . (empty($b_pag) ? "NULL" : "'$b_pag'") . ", 
-        numero_operacao = '$op_pag'");
-}
-
-echo 'Baixado com Sucesso';
-?>
+	fin_transacao($pdo, function () use ($pdo, $id, $pagamentos, $ajustes, $obs) {
+		fin_baixar($pdo, 'receber', $id, $pagamentos, $ajustes, $obs);
+		// Comprovante anexado na baixa vira o arquivo do título
+		if (!empty($_FILES['comprovante']['name'])) {
+			$t = fin_titulo($pdo, 'receber', $id);
+			fin_q($pdo, "UPDATE receber SET arquivo = ? WHERE id = ?", [fin_upload_anexo('comprovante', $t['arquivo']), $id]);
+		}
+	});
+	return 'Baixado com Sucesso';
+});

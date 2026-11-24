@@ -1,189 +1,68 @@
-<?php 
-$tabela = 'receber';
+<?php
 require_once("../../../conexao.php");
 require_once(__DIR__ . "/../../seguranca.php");
 seguranca_exigir_acesso(['receber', 'clientes']);
+require_once(__DIR__ . "/../../funcoes/financeiro.php");
 
-@session_start();
-$id_usuario = @$_SESSION['id'];
+fin_responder(function () use ($pdo) {
+	$id = (int) ($_POST['id'] ?? 0);
+	$descricao = trim($_POST['descricao'] ?? '');
+	$valor = fin_num($_POST['valor'] ?? 0);
+	$cliente = (int) ($_POST['cliente'] ?? 0);
+	$vencimento = $_POST['vencimento'] ?? '';
+	$data_pgto = $_POST['data_pgto'] ?? '';
+	$forma_pgto = (int) ($_POST['forma_pgto'] ?? 0);
+	$frequencia = (int) ($_POST['frequencia'] ?? 0);
+	$obs = trim($_POST['obs'] ?? '');
+	$banco = (int) ($_POST['banco'] ?? 0);
+	$categoria = (int) ($_POST['categoria_receber'] ?? 0) ?: null;
+	$centro = (int) ($_POST['centro_custo'] ?? 0) ?: null;
 
-$descricao = $_POST['descricao'];
-$valor = $_POST['valor'];
-$cliente = $_POST['cliente'];
-$vencimento = $_POST['vencimento'];
-$data_pgto = $_POST['data_pgto'];
-$forma_pgto = $_POST['forma_pgto'];
-$frequencia = $_POST['frequencia'];
-$obs = $_POST['obs'];
-$id = $_POST['id'];
-$banco = $_POST['banco'] ?? 0;
+	if ($descricao == '' && !$cliente) return 'Selecione um Cliente ou uma Descrição!';
+	if ($valor <= 0) return 'Informe o valor da conta!';
+	if (!fin_data_valida($vencimento)) return 'Informe o vencimento!';
+	if ($data_pgto !== '' && !fin_data_valida($data_pgto)) return 'Data de recebimento inválida!';
 
-// Lançamento gerado por romaneio só pode ser alterado pelo próprio romaneio
-if($id != ""){
-	$query = $pdo->prepare("SELECT id_romaneio FROM $tabela WHERE id = :id");
-	$query->execute([':id' => $id]);
-	if((int) $query->fetchColumn() > 0){
-		echo 'Este lançamento veio de um romaneio. Edite pelo romaneio.';
-		exit();
+	if ($descricao == '') {
+		$descricao = fin_q($pdo, "SELECT nome FROM clientes WHERE id = ?", [$cliente])->fetchColumn() ?: 'Conta a receber';
 	}
-}
-$descricao_banco = $_POST['descricao_banco'] ?? 0;
 
-$valor = str_replace(',', '.', $valor);
-
-$valorF = @number_format($valor, 2, ',', '.');
-
-if($cliente == ""){
-	$cliente = 0;
-}
-
-if($forma_pgto == ""){
-	$forma_pgto = 0;
-}
-
-if($frequencia == ""){
-	$frequencia = 0;
-}
-
-if($data_pgto == ""){
-	$pgto = '';
-	$usu_pgto = ' ,usuario_pgto = 0';
-	$pago = 'Não';
-}else{
-	$pgto = " ,data_pgto = '$data_pgto'";
-	$usu_pgto = " ,usuario_pgto = '$id_usuario'";
-	$pago = 'Sim';
-}
-
-//validacao
-if($descricao == "" and $cliente == "0"){
-	echo 'Selecione um Cliente ou uma Descrição!';
-	exit();
-}
-
-$query2 = $pdo->query("SELECT * FROM clientes where id = '$cliente'");
-$res2 = $query2->fetchAll(PDO::FETCH_ASSOC);
-if(@count($res2) > 0){
-	$nome_cliente = $res2[0]['nome'];
-	$telefone_cliente = $res2[0]['contato'];
-}else{
-	$nome_cliente = 'Sem Registro';
-	$telefone_cliente = "";
-}
-
-if($descricao == ""){
-	$descricao = $nome_cliente;
-}
-
-//validar troca da foto
-$query = $pdo->query("SELECT * FROM $tabela where id = '$id'");
-$res = $query->fetchAll(PDO::FETCH_ASSOC);
-$total_reg = @count($res);
-if($total_reg > 0){
-	$foto = $res[0]['arquivo'];
-}else{
-	$foto = 'sem-foto.png';
-}
-
-
-
-//SCRIPT PARA SUBIR FOTO NO SERVIDOR
-$nome_img = date('d-m-Y H:i:s') .'-'.@$_FILES['foto']['name'];
-$nome_img = preg_replace('/[ :]+/' , '-' , $nome_img);
-
-$caminho = '../../images/contas/' .$nome_img;
-
-$imagem_temp = @$_FILES['foto']['tmp_name']; 
-
-if(@$_FILES['foto']['name'] != ""){
-	$ext = pathinfo($nome_img, PATHINFO_EXTENSION);   
-	if($ext == 'png' or $ext == 'jpg' or $ext == 'jpeg' or $ext == 'gif' or $ext == 'pdf' or $ext == 'rar' or $ext == 'zip' or $ext == 'doc' or $ext == 'docx' or $ext == 'webp' or $ext == 'PNG' or $ext == 'JPG' or $ext == 'JPEG' or $ext == 'GIF' or $ext == 'PDF' or $ext == 'RAR' or $ext == 'ZIP' or $ext == 'DOC' or $ext == 'DOCX' or $ext == 'WEBP' or $ext == 'xlsx' or $ext == 'xlsm' or $ext == 'xls' or $ext == 'xml'){ 
-	
-			//EXCLUO A FOTO ANTERIOR
-			if($foto != "sem-foto.png"){
-				@unlink('../../images/contas/'.$foto);
+	return fin_transacao($pdo, function () use ($pdo, $id, $descricao, $valor, $cliente, $vencimento, $data_pgto, $forma_pgto, $frequencia, $obs, $banco, $categoria, $centro) {
+		if ($id) {
+			$t = fin_titulo($pdo, 'receber', $id);
+			if ((int) $t['id_romaneio'] > 0) return 'Este lançamento veio de um romaneio. Edite pelo romaneio.';
+			if ((int) $t['id_venda_real'] > 0) return 'Este lançamento veio de uma venda. Edite pela venda.';
+			$tem_pgto = (bool) fin_pagamentos($pdo, 'receber', $id);
+			if ($tem_pgto && round($t['valor'], 2) != $valor) {
+				return 'Esta conta já tem recebimentos. Para mudar o valor, estorne a baixa primeiro.';
 			}
+			fin_validar_periodo($pdo, $t['data_lanc'], 'alterar');
+			$arquivo = fin_upload_anexo('foto', $t['arquivo']);
+			fin_q($pdo, "UPDATE receber SET descricao = ?, cliente = ?, valor = ?, vencimento = ?, forma_pgto = ?, frequencia = ?, obs = ?,
+				arquivo = ?, categoria_receber = ?, centro_custo = ?" . ($tem_pgto ? '' : ', subtotal = ?') . " WHERE id = ?",
+				array_merge([$descricao, $cliente, $valor, $vencimento, $forma_pgto, $frequencia, $obs, $arquivo, $categoria, $centro], $tem_pgto ? [] : [$valor], [$id]));
+			if ($tem_pgto) fin_recalcular_titulo($pdo, 'receber', $id);
+			fin_log($pdo, 'editar', 'receber', $id, 'Editou "' . $descricao . '" (' . fin_moeda($valor) . ')', ['antes' => $t]);
+			// Conta em aberto em que agora se informou a data de recebimento: dá baixa
+			if (!$tem_pgto && $data_pgto !== '') {
+				fin_titulo_pago_na_criacao($pdo, 'receber', $id, $data_pgto, $forma_pgto, $banco);
+			}
+			return 'Salvo com Sucesso';
+		}
 
-			$foto = $nome_img;
-		
-		//pegar o tamanho da imagem
-			list($largura, $altura) = getimagesize($imagem_temp);
-		 	if($largura > 1400){
-		 		if($ext == 'png' or $ext == 'jpg' or $ext == 'jpeg' or $ext == 'gif' or $ext == 'webp' or $ext == 'PNG' or $ext == 'JPG' or $ext == 'JPEG' or $ext == 'GIF' or $ext == 'PDF' or $ext == 'RAR' or $ext == 'WEBP'){
-		 			$image = imagecreatefromjpeg($imagem_temp);
-			        // Reduza a qualidade para 20% ajuste conforme necessário
-			        imagejpeg($image, $caminho, 20);
-			        imagedestroy($image);
-		 		}else{
-		 			move_uploaded_file($imagem_temp, $caminho);
-		 		}
-			 		
-		 	}else{
-		 		move_uploaded_file($imagem_temp, $caminho);
-		 	}
-		 		
-
-
-	}else{
-		echo 'Extensão de Imagem não permitida!';
-		exit();
-	}
-}
-
-
-//verificar caixa aberto
-$query1 = $pdo->query("SELECT * from caixas where operador = '$id_usuario' and data_fechamento is null order by id desc limit 1");
-$res1 = $query1->fetchAll(PDO::FETCH_ASSOC);
-if(@count($res1) > 0){
-	$id_caixa = @$res1[0]['id'];
-}else{
-	$id_caixa = 0;
-}
-//  , caixa = '$id_caixa'
-
-
-if($id == ""){
-$query = $pdo->prepare("INSERT INTO $tabela SET descricao = :descricao, cliente = :cliente, valor = :valor, vencimento = '$vencimento' $pgto, data_lanc = curDate(), forma_pgto = '$forma_pgto', frequencia = '$frequencia', obs = :obs, arquivo = '$foto', subtotal = :valor, usuario_lanc = '$id_usuario' $usu_pgto, pago = '$pago', referencia = 'Conta', caixa = '$id_caixa', hora = curTime() ");
-	
-}else{
-$query = $pdo->prepare("UPDATE $tabela SET descricao = :descricao, cliente = :cliente, valor = :valor, vencimento = '$vencimento' $pgto, forma_pgto = '$forma_pgto', frequencia = '$frequencia', obs = :obs, arquivo = '$foto', subtotal = :valor where id = '$id'");
-}
-
-
-$query->bindValue(":descricao", "$descricao");
-$query->bindValue(":cliente", "$cliente");
-$query->bindValue(":valor", "$valor");
-$query->bindValue(":obs", "$obs");
-$query->execute();
-$ultimo_id = $pdo->lastInsertId();
-
-if($vencimento == $data_pgto) {
-
-
-	$valor_para_db = preg_replace('/\.(?=.*\.)/', '', $valor);
-
-// Inserir na tabela linha_bancos
-		$pdo->query("INSERT INTO linha_bancos SET 
-		descricao = '$descricao_banco',
-        id_banco = '$banco',
-        data = '$data_pgto',
-        remetente = '$id_usuario',
-        n_fiscal = '',
-        classificacao = 1,
-        mes_ref = MONTH('$data_pgto'),
-        credito = '$valor_para_db',
-        debito = '0',
-        saldo = (SELECT saldo FROM bancos WHERE id = '$banco') + '$valor_para_db',
-        status = 'Confirmado'
-    ");
-
-    $pdo->query("UPDATE bancos SET 
-        saldo = saldo + $valor_para_db 
-        WHERE id = '$banco'
-    ");
-}
-
-
-
-echo 'Salvo com Sucesso';
- ?>
+		fin_validar_periodo($pdo, date('Y-m-d'), 'lançar');
+		$arquivo = fin_upload_anexo('foto');
+		$caixa = (int) fin_q($pdo, "SELECT id FROM caixas WHERE operador = ? AND data_fechamento IS NULL ORDER BY id DESC LIMIT 1", [fin_usuario()])->fetchColumn();
+		fin_q($pdo, "INSERT INTO receber SET descricao = ?, cliente = ?, valor = ?, subtotal = ?, vencimento = ?, data_lanc = curDate(), forma_pgto = ?,
+			frequencia = ?, obs = ?, arquivo = ?, usuario_lanc = ?, usuario_pgto = 0, pago = 'Não', referencia = 'Conta', caixa = ?, hora = curTime(),
+			categoria_receber = ?, centro_custo = ?", [
+			$descricao, $cliente, $valor, $valor, $vencimento, $forma_pgto, $frequencia, $obs, $arquivo, fin_usuario(), $caixa, $categoria, $centro,
+		]);
+		$novo = (int) $pdo->lastInsertId();
+		fin_log($pdo, 'criar', 'receber', $novo, 'Lançou "' . $descricao . '" de ' . fin_moeda($valor) . ' para ' . fin_data_br($vencimento));
+		if ($data_pgto !== '') {
+			fin_titulo_pago_na_criacao($pdo, 'receber', $novo, $data_pgto, $forma_pgto, $banco);
+		}
+		return 'Salvo com Sucesso';
+	});
+});
