@@ -154,13 +154,23 @@ function fin_esquema($pdo)
     $versao = (int) fin_q($pdo, "SELECT valor FROM fin_meta WHERE chave = 'versao_esquema'")->fetchColumn();
     if ($versao >= FIN_VERSAO_ESQUEMA) return;
 
-    if ($versao < 1) fin_migracao_1($pdo);
-    if ($versao < 2) fin_migracao_2($pdo);
-    if ($versao < 3) fin_migracao_3($pdo);
-    if ($versao < 4) fin_migracao_4($pdo);
-    if ($versao < 5) fin_migracao_5($pdo);
-
-    fin_q($pdo, "REPLACE INTO fin_meta (chave, valor) VALUES ('versao_esquema', ?)", [FIN_VERSAO_ESQUEMA]);
+    // Duas requisições ao mesmo tempo não podem migrar juntas: a segunda espera e relê a versão
+    if (!fin_q($pdo, "SELECT GET_LOCK('fin_esquema', 120)")->fetchColumn()) {
+        throw new FinErro('O sistema está sendo atualizado. Tente de novo em instantes.');
+    }
+    try {
+        $versao = (int) fin_q($pdo, "SELECT valor FROM fin_meta WHERE chave = 'versao_esquema'")->fetchColumn();
+        if ($versao < 1) fin_migracao_1($pdo);
+        if ($versao < 2) fin_migracao_2($pdo);
+        if ($versao < 3) fin_migracao_3($pdo);
+        if ($versao < 4) fin_migracao_4($pdo);
+        if ($versao < 5) fin_migracao_5($pdo);
+        if ($versao < FIN_VERSAO_ESQUEMA) {
+            fin_q($pdo, "REPLACE INTO fin_meta (chave, valor) VALUES ('versao_esquema', ?)", [FIN_VERSAO_ESQUEMA]);
+        }
+    } finally {
+        fin_q($pdo, "SELECT RELEASE_LOCK('fin_esquema')");
+    }
 }
 
 function fin_migracao_1($pdo)
