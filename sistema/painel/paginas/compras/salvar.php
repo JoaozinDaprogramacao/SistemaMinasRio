@@ -4,6 +4,7 @@ require_once(__DIR__ . "/../../seguranca.php");
 seguranca_exigir_acesso(['compras']);
 require_once(__DIR__ . "/../vendas/funcoes_venda.php");
 require_once(__DIR__ . "/../pdv_diversos/pagamento_comum.php");
+require_once(__DIR__ . "/../../funcoes/financeiro.php");
 
 $id_usuario = $_SESSION['id'];
 $data_atual = date('Y-m-d');
@@ -113,12 +114,12 @@ try {
 			':valor' => $valor_pago,
 			':subtotal' => $valor_pago,
 			':vencimento' => $data,
-			':data_pgto' => $entrada_paga ? $data : null,
-			':usuario_pgto' => $entrada_paga ? $id_usuario : 0,
-			':pago' => $entrada_paga ? 'Sim' : 'Não',
+			':data_pgto' => null,
+			':usuario_pgto' => 0,
+			':pago' => 'Não',
 			':forma_pgto' => $saida,
 			':id_ref' => null,
-			':valor_restante' => $entrada_paga ? 0 : $valor_pago,
+			':valor_restante' => null,
 		]);
 		$ids_entrada = (int) $pdo->lastInsertId();
 	}
@@ -148,6 +149,16 @@ try {
 	foreach ($ids_parcelas as $i => $id_pagar) {
 		$pdo->prepare("UPDATE pagar SET descricao = :d WHERE id = :id")
 			->execute([':d' => pdv_descricao_parcela('Compra #' . $id_compra, $i, count($ids_parcelas), $ids_entrada > 0), ':id' => $id_pagar]);
+	}
+
+	// Entrada paga no ato: registra o pagamento na conta padrão da forma de pagamento.
+	// Sem conta padrão a entrada fica em aberto em Contas a Pagar para ser baixada lá.
+	if ($ids_entrada && $entrada_paga) {
+		if ((int) (fin_forma($pdo, $saida)['banco_padrao'] ?? 0) > 0) {
+			fin_titulo_pago_na_criacao($pdo, 'pagar', $ids_entrada, $data, $saida);
+		} else {
+			fin_log($pdo, 'entrada_em_aberto', 'pagar', $ids_entrada, 'Entrada da compra #' . $id_compra . ' ficou em aberto: forma de pagamento sem conta padrão');
+		}
 	}
 
 	$pdo->prepare("UPDATE itens_compra SET id_compra = :c WHERE funcionario = :f AND id_compra = 0")

@@ -1,126 +1,63 @@
 <?php
-@session_start();
-$mostrar_registros = @$_SESSION['registros'];
-$id_usuario = @$_SESSION['id'];
-$tabela = 'bancos';
 require_once("../../../conexao.php");
 require_once(__DIR__ . "/../../seguranca.php");
-seguranca_exigir_acesso(['bancos', 'acessos']);
-require_once("../../verificar.php");
+seguranca_exigir_acesso(['contas_bancarias']);
+require_once(__DIR__ . "/../../funcoes/financeiro.php");
 
-// --- LÓGICA PARA BUSCAR DADOS (SEM PRECISAR DE OUTRO ARQUIVO) ---
-if (@$_POST['action'] == 'buscar') {
-	$id = @$_POST['id'];
-	$query = $pdo->query("SELECT * from $tabela where id = '$id'");
-	$res = $query->fetchAll(PDO::FETCH_ASSOC);
-
-	if (@count($res) > 0) {
-		$dados = $res[0];
-		// Formata o saldo para o modal
-		$dados['saldo'] = number_format($dados['saldo'], 2, ',', '.');
-		echo json_encode($dados);
-	}
-	exit(); // Para a execução aqui para não carregar o resto da tabela
-}
-// ---------------------------------------------------------------
-
-if ($mostrar_registros == 'Não') {
-	$sql_usuario_lanc = " WHERE usuario_lanc = '$id_usuario '";
-} else {
-	$sql_usuario_lanc = " ";
-}
-
-$query = $pdo->query("SELECT * from $tabela $sql_usuario_lanc order by id desc");
-$res = $query->fetchAll(PDO::FETCH_ASSOC);
-$linhas = @count($res);
-
-if ($linhas > 0) {
-	echo <<<HTML
-<small>
-<table class="table table-bordered text-nowrap border-bottom dt-responsive" id="tabela">
-    <thead> 
-        <tr> 
-            <th align="center" width="5%" class="text-center">Selecionar</th>
-            <th>Correntista</th>
-            <th>Banco</th>
-            <th>Agência</th>
-            <th>Conta</th>
-            <th>Saldo R$</th>
-            <th>Ações</th>
-        </tr> 
-    </thead>
-    <tbody>
-HTML;
-
-	for ($i = 0; $i < $linhas; $i++) {
-		$id = $res[$i]['id'];
-		$correntista = $res[$i]['correntista'];
-		$banco = $res[$i]['banco'];
-		$agencia = $res[$i]['agencia'];
-		$conta = $res[$i]['conta'];
-		$saldo = number_format($res[$i]['saldo'], 2, ',', '.');
-
-		echo <<<HTML
-		<tr>
-			<td align="center">
-				<div class="custom-checkbox custom-control">
-					<input type="checkbox" class="custom-control-input" id="seletor-{$id}" onchange="selecionar('{$id}')">
-					<label for="seletor-{$id}" class="custom-control-label mt-1 text-dark"></label>
-				</div>
-			</td>
-			<td>{$correntista}</td>
-			<td>{$banco}</td>
-			<td>{$agencia}</td>
-			<td>{$conta}</td>
-			<td>R$ {$saldo}</td>
-			<td>
-				<big>
-					<a class="btn btn-info btn-sm" href="#" onclick="editar('{$id}')" title="Editar Dados">
-						<i class="fa fa-edit"></i>
-					</a>
-
-					<div class="dropdown" style="display: inline-block;">
-						<a class="btn btn-danger btn-sm" href="#" aria-expanded="false" aria-haspopup="true" data-bs-toggle="dropdown" class="dropdown">
-							<i class="fa fa-trash"></i>
-						</a>
-						<div class="dropdown-menu tx-13">
-							<div class="dropdown-item-text botao_excluir">
-								<p>Confirmar Exclusão? <a href="#" onclick="excluir('{$id}')"><span class="text-danger">Sim</span></a></p>
-							</div>
-						</div>
-					</div>
-				</big>
-			</td>
-		</tr>
-HTML;
-	}
-
-	echo <<<HTML
-	</tbody>
-    <small><div align="center" id="mensagem-excluir"></div></small>
-</table>
-</small>
-HTML;
-} else {
-	echo 'Nenhum registro cadastrado!';
+$contas = fin_q($pdo, "SELECT b.*,
+    COALESCE(SUM(COALESCE(l.credito,0) - COALESCE(l.debito,0)), 0) saldo_calc,
+    COALESCE(SUM(CASE WHEN l.conciliado = 1 THEN COALESCE(l.credito,0) - COALESCE(l.debito,0) ELSE 0 END), 0) saldo_conciliado,
+    SUM(CASE WHEN l.id IS NOT NULL AND l.conciliado = 0 THEN 1 ELSE 0 END) nao_conciliados,
+    MAX(l.data) ultimo_mov,
+    MAX(CASE WHEN l.conciliado = 1 THEN l.data END) ultima_conc
+    FROM bancos b LEFT JOIN linha_bancos l ON l.id_banco = b.id
+    GROUP BY b.id ORDER BY b.banco")->fetchAll(PDO::FETCH_ASSOC);
+$total = array_sum(array_column($contas, 'saldo_calc'));
+if (!$contas) {
+    echo '<div class="alert alert-info">Nenhuma conta cadastrada. Clique em "Nova conta".</div>';
+    exit();
 }
 ?>
-
-<script type="text/javascript">
-	$(document).ready(function() {
-		if ($.fn.DataTable.isDataTable('#tabela')) {
-			$('#tabela').DataTable().destroy();
-		}
-
-		$('#tabela').DataTable({
-			ordering: false,
-			stateSave: true,
-			language: {
-				url: "//cdn.datatables.net/plug-ins/1.13.2/i18n/pt-BR.json"
-			}
-		});
-	});
-
-
-
-</script>
+<div class="card custom-card mb-3">
+    <div class="card-body d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <div><small class="text-muted text-uppercase fw-bold">Saldo consolidado</small><br>
+            <span class="fs-3 fw-bold <?= $total < 0 ? 'text-danger' : 'text-success' ?>"><?= fin_moeda($total) ?></span></div>
+        <small class="text-muted text-end">Soma de todas as contas pelo extrato do sistema.<br>Confira com os extratos dos bancos na Conciliação.</small>
+    </div>
+</div>
+<div class="row">
+<?php foreach ($contas as $c) { ?>
+    <div class="col-md-6 col-xl-4">
+        <div class="card custom-card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="mb-0"><?= fin_e($c['banco']) ?></h5>
+                        <small class="text-muted"><?= fin_e($c['correntista']) ?><br>Ag. <?= fin_e($c['agencia']) ?> · CC <?= fin_e($c['conta']) ?></small>
+                    </div>
+                    <div class="text-nowrap">
+                        <a href="#" onclick="editarConta(<?= (int) $c['id'] ?>)" title="Editar"><i class="fa fa-edit text-primary"></i></a>
+                        <a href="#" onclick="excluirConta(<?= (int) $c['id'] ?>)" title="Excluir" class="ms-2"><i class="fa fa-trash text-danger"></i></a>
+                    </div>
+                </div>
+                <div class="mt-3">
+                    <small class="text-muted text-uppercase fw-bold">Saldo no sistema</small><br>
+                    <span class="fs-4 fw-bold <?= $c['saldo_calc'] < 0 ? 'text-danger' : 'text-success' ?>"><?= fin_moeda($c['saldo_calc']) ?></span>
+                </div>
+                <div class="d-flex justify-content-between mt-2 small">
+                    <span>Saldo conciliado: <b><?= fin_moeda($c['saldo_conciliado']) ?></b></span>
+                    <span class="<?= $c['nao_conciliados'] ? 'text-warning' : 'text-success' ?>"><?= (int) $c['nao_conciliados'] ?> a conciliar</span>
+                </div>
+                <div class="small text-muted mt-1">
+                    Último movimento: <?= $c['ultimo_mov'] ? fin_data_br($c['ultimo_mov']) : '—' ?> ·
+                    Conciliado até: <?= $c['ultima_conc'] ? fin_data_br($c['ultima_conc']) : '—' ?>
+                </div>
+                <div class="d-flex gap-2 mt-3">
+                    <a class="btn btn-sm btn-outline-primary" href="detalhes_bancos?banco=<?= (int) $c['id'] ?>">Extrato</a>
+                    <a class="btn btn-sm btn-outline-success" href="conciliacao?banco=<?= (int) $c['id'] ?>">Conciliar</a>
+                </div>
+            </div>
+        </div>
+    </div>
+<?php } ?>
+</div>

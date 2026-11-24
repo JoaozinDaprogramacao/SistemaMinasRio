@@ -322,13 +322,10 @@ document.addEventListener('DOMContentLoaded', function() {
                             </div>
                             <div class="col-md-2">
                                 <label class="small fw-bold text-secondary text-uppercase">Forma</label>
-                                <select class="form-select form-select-sm forma_pagamento" name="saida_baixar[]" onchange="handlePagamentoInput(this)">
+                                <select class="form-select form-select-sm forma_pagamento" name="saida_baixar[]">
                                     <option value="">Selecione...</option>
-                                    <?php
-                                    $query = $pdo->query("SELECT * FROM formas_pgto order by id asc");
-                                    $res = $query->fetchAll(PDO::FETCH_ASSOC);
-                                    for ($i = 0; $i < @count($res); $i++) { ?>
-                                        <option value="<?php echo $res[$i]['id'] ?>"><?php echo $res[$i]['nome'] ?></option>
+                                    <?php foreach ($pdo->query("SELECT id, nome, banco_padrao FROM formas_pgto ORDER BY id")->fetchAll(PDO::FETCH_ASSOC) as $f) { ?>
+                                        <option value="<?= $f['id'] ?>" data-banco="<?= (int) $f['banco_padrao'] ?: '' ?>"><?= fin_e($f['nome']) ?></option>
                                     <?php } ?>
                                 </select>
                             </div>
@@ -337,11 +334,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                 <select class="form-select form-select-sm banco_pagamento" name="banco_baixar[]" onchange="handlePagamentoInput(this)">
                                     <option value="">Selecione...</option>
                                     <?php
-                                    $query = $pdo->query("SELECT * FROM bancos order by id asc");
-                                    $res = $query->fetchAll(PDO::FETCH_ASSOC);
-                                    for ($i = 0; $i < @count($res); $i++) { ?>
-                                        <option value="<?php echo $res[$i]['id'] ?>"><?php echo $res[$i]['banco'] ?></option>
-                                    <?php } ?>
+                                    echo fin_options($pdo, "SELECT id, banco FROM bancos ORDER BY banco"); ?>
                                 </select>
                             </div>
                             <div class="col-md-3">
@@ -372,6 +365,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
 
                 <div class="modal-footer bg-light border-0">
+                    <small><div id="mensagem-baixar" class="text-danger me-2"></div></small>
                     <button type="submit" id="btn-confirmar-baixar" class="btn btn-success px-5 fw-bold shadow-sm">Confirmar Baixa</button>
                 </div>
             </form>
@@ -443,12 +437,9 @@ document.addEventListener('DOMContentLoaded', function() {
                         <div class="col-md-3 mb-2">
                             <label>Forma Pgto</label>
                             <select name="forma_pgto" id="forma_pgto" class="form-select">
-                                <?php
-                                $q = $pdo->query("SELECT id, nome FROM formas_pgto ORDER BY id ASC");
-                                foreach ($q->fetchAll(PDO::FETCH_ASSOC) as $row) {
-                                    echo '<option value="' . $row['id'] . '">' . $row['nome'] . '</option>';
-                                }
-                                ?>
+                                    <?php foreach ($pdo->query("SELECT id, nome, banco_padrao FROM formas_pgto ORDER BY id")->fetchAll(PDO::FETCH_ASSOC) as $f) { ?>
+                                        <option value="<?= $f['id'] ?>" data-banco="<?= (int) $f['banco_padrao'] ?: '' ?>"><?= fin_e($f['nome']) ?></option>
+                                    <?php } ?>
                             </select>
                         </div>
                         <div class="col-md-3 mb-2">
@@ -476,30 +467,29 @@ document.addEventListener('DOMContentLoaded', function() {
                             <img width="80px" id="target" src="images/contas/sem-foto.png">
                         </div>
                     </div>
-                    <div class="row d-none" id="div-banco">
+                    <div class="row">
                         <div class="col-md-6 mb-2">
-                            <label>Banco</label>
-                            <select class="form-select" name="banco" id="banco">
-                                <option value="">Selecione</option>
-                                <?php
-                                $q = $pdo->query("SELECT id, banco FROM bancos ORDER BY id ASC");
-                                foreach ($q->fetchAll(PDO::FETCH_ASSOC) as $row) {
-                                    echo '<option value="' . $row['id'] . '">' . $row['banco'] . '</option>';
-                                }
-                                ?>
+                            <label>Categoria</label>
+                            <select name="categoria_receber" id="categoria_receber" class="form-select">
+                                <?php echo fin_options($pdo, "SELECT id, nome FROM categorias_receber ORDER BY nome", null, 'Sem categoria'); ?>
                             </select>
                         </div>
                         <div class="col-md-6 mb-2">
-                            <label>Descrição (Banco)</label>
-                            <select class="form-select" name="descricao_banco" id="descricao_banco">
-                                <option value="">Selecione a Classificação</option>
-                                <?php
-                                $q = $pdo->query("SELECT id, descricao FROM descricao_banco ORDER BY descricao ASC");
-                                foreach ($q->fetchAll(PDO::FETCH_ASSOC) as $row) {
-                                    echo '<option value="' . $row['id'] . '">' . htmlspecialchars($row['descricao']) . '</option>';
-                                }
-                                ?>
+                            <label>Centro de Custo</label>
+                            <select name="centro_custo" id="centro_custo" class="form-select">
+                                <?php echo fin_options($pdo, "SELECT id, nome FROM centros_custo WHERE ativo = 1 ORDER BY nome", null, 'Nenhum'); ?>
                             </select>
+                        </div>
+                    </div>
+                    <div class="row d-none" id="div-banco">
+                        <div class="col-md-6 mb-2">
+                            <label>Conta bancária em que o valor entrou</label>
+                            <select class="form-select" name="banco" id="banco">
+                                <?php echo fin_options($pdo, "SELECT id, banco FROM bancos ORDER BY banco", null, 'Conta padrão da forma de pagamento'); ?>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-2 d-flex align-items-end">
+                            <small class="text-muted">Com a data de recebimento preenchida, a conta já nasce recebida e o valor entra no extrato desta conta bancária.</small>
                         </div>
                     </div>
                     <input type="hidden" id="id" name="id">
@@ -513,3 +503,81 @@ document.addEventListener('DOMContentLoaded', function() {
         </div>
     </div>
 </div>
+
+<!-- Modal Baixa em Lote -->
+<div class="modal fade" id="modalBaixarMassa" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title">Receber títulos selecionados</h5>
+                <button id="btn-fechar-baixar-massa" class="btn-close btn-close-white" data-bs-dismiss="modal" type="button"></button>
+            </div>
+            <form id="form-baixar-massa" method="post">
+                <div class="modal-body">
+                    <div class="alert alert-light border mb-3">
+                        <b id="qtd_contas_massa">0</b> título(s) em aberto — total: <b id="total_contas">R$ 0,00</b><br>
+                        <small class="text-muted">Cada título é quitado pelo saldo que falta, com os ajustes que já tiver.</small>
+                    </div>
+                    <div class="row g-2">
+                        <div class="col-md-6">
+                            <label class="small fw-bold">Data do recebimento</label>
+                            <input type="date" class="form-control form-control-sm" name="data_baixar" id="data-baixar-massa" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="small fw-bold">Forma</label>
+                            <select class="form-select form-select-sm" name="forma_baixar" id="forma-baixar-massa" required>
+                                <option value="">Selecione...</option>
+                                    <?php foreach ($pdo->query("SELECT id, nome, banco_padrao FROM formas_pgto ORDER BY id")->fetchAll(PDO::FETCH_ASSOC) as $f) { ?>
+                                        <option value="<?= $f['id'] ?>" data-banco="<?= (int) $f['banco_padrao'] ?: '' ?>"><?= fin_e($f['nome']) ?></option>
+                                    <?php } ?>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="small fw-bold">Conta bancária</label>
+                            <select class="form-select form-select-sm" name="banco_baixar" id="banco-baixar-massa" required>
+                                <?php echo fin_options($pdo, "SELECT id, banco FROM bancos ORDER BY banco", null, 'Selecione...'); ?>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="small fw-bold">N° Operação</label>
+                            <input type="text" class="form-control form-control-sm" name="numero_operacao_baixar" id="operacao-baixar-massa" placeholder="Cód/DOC">
+                        </div>
+                        <div class="col-12">
+                            <label class="small fw-bold">Observação</label>
+                            <textarea class="form-control form-control-sm" name="obs_baixar" id="obs-baixar-massa" rows="2" placeholder="Aplicada a todos os títulos selecionados..."></textarea>
+                        </div>
+                    </div>
+                    <input type="hidden" name="ids" id="ids-baixar-massa">
+                    <div id="mensagem-baixar-massa" class="mt-2 small text-center"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-success">Confirmar recebimento</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Cobrança PIX -->
+<div class="modal fade" id="modalPix" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-dark text-white">
+                <h5 class="modal-title"><i class="fa fa-qrcode me-1"></i> Cobrança PIX</h5>
+                <button class="btn-close btn-close-white" data-bs-dismiss="modal" type="button"></button>
+            </div>
+            <div class="modal-body text-center">
+                <div id="pix-titulo" class="fw-bold mb-1"></div>
+                <div id="pix-valor" class="fs-4 text-success fw-bold mb-2"></div>
+                <div id="pix-qrcode" class="d-inline-block p-2 bg-white border rounded"></div>
+                <textarea id="pix-copia" class="form-control form-control-sm mt-3" rows="3" readonly></textarea>
+                <div class="d-flex gap-2 justify-content-center mt-2">
+                    <button type="button" class="btn btn-sm btn-primary" onclick="copiarPix()"><i class="fa fa-copy me-1"></i>Copiar código</button>
+                    <a href="#" id="pix-whats" target="_blank" class="btn btn-sm btn-success"><i class="fa fa-whatsapp me-1"></i>Enviar pelo WhatsApp</a>
+                </div>
+                <small class="text-muted d-block mt-2">QR Code estático: confira o crédito no extrato e dê a baixa no título.</small>
+            </div>
+        </div>
+    </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>

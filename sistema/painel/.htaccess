@@ -42,6 +42,14 @@ RewriteRule ^planos_pgto(.*)$ index.php?pagina=planos_pgto [L]
 RewriteRule ^frequencias(.*)$ index.php?pagina=frequencias [L]
 RewriteRule ^descricao_banco(.*)$ index.php?pagina=descricao_banco [L]
 RewriteRule ^categorias_pagar(.*)$ index.php?pagina=categorias_pagar [L]
+RewriteRule ^categorias_receber(.*)$ index.php?pagina=categorias_receber [L]
+RewriteRule ^centros_custo(.*)$ index.php?pagina=centros_custo [L]
+RewriteRule ^conciliacao(.*)$ index.php?pagina=conciliacao [L]
+RewriteRule ^fluxo_caixa(.*)$ index.php?pagina=fluxo_caixa [L]
+RewriteRule ^adiantamentos(.*)$ index.php?pagina=adiantamentos [L]
+RewriteRule ^auditoria_fin(.*)$ index.php?pagina=auditoria_fin [L]
+RewriteRule ^parametros_fin(.*)$ index.php?pagina=parametros_fin [L]
+RewriteRule ^saneamento_fin(.*)$ index.php?pagina=saneamento_fin [L]
 
 # ==========================================================
 # MÓDULO DE MATERIAIS, PRODUTOS E ESTOQUE

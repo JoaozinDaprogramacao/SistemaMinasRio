@@ -1,6 +1,7 @@
 <?php
 require_once("../../../conexao.php");
 require_once(__DIR__ . "/../../seguranca.php");
+require_once(__DIR__ . "/../../funcoes/financeiro.php");
 seguranca_exigir_acesso(['produtos', 'bancos']);
 
 $id = $_POST['id'];
@@ -51,7 +52,12 @@ try {
     // 3. EXCLUSÃO DOS DADOS RELACIONADOS
     // =============================================================
 
-    // Excluir baldeios relacionados
+    // Excluir baldeios relacionados (e as contas a pagar que eles geraram)
+    $st_bal = $pdo->prepare("SELECT p.id FROM pagar p JOIN baldeio b ON b.id = p.id_baldeio WHERE b.id_romaneio = ?");
+    $st_bal->execute([$id]);
+    foreach ($st_bal->fetchAll(PDO::FETCH_COLUMN) as $id_pagar) {
+        fin_excluir_titulo($pdo, 'pagar', $id_pagar, 'romaneio de venda #' . $id . ' excluído');
+    }
     $pdo->prepare("DELETE FROM baldeio WHERE id_romaneio = ?")->execute([$id]);
 
     // Excluir linhas relacionadas (produtos, comissões, observações)
@@ -63,7 +69,12 @@ try {
     $pdo->prepare("DELETE FROM romaneio_venda_compra WHERE id_romaneio_venda = ?")->execute([$id]);
 
     // Excluir o lançamento no Contas a Receber vinculado a este romaneio
-    $pdo->prepare("DELETE FROM receber WHERE id_ref = ? AND referencia = 'Romaneio Venda'")->execute([$id]);
+    // (estorna do extrato o que já tinha sido recebido; recusa se estiver conciliado ou em período fechado)
+    $st_rec = $pdo->prepare("SELECT id FROM receber WHERE id_romaneio = ? AND referencia = 'Romaneio Venda' AND COALESCE(residuo, '') <> 'Sim'");
+    $st_rec->execute([$id]);
+    foreach ($st_rec->fetchAll(PDO::FETCH_COLUMN) as $id_receber) {
+        fin_excluir_titulo($pdo, 'receber', $id_receber, 'romaneio de venda #' . $id . ' excluído');
+    }
 
     // Excluir o cabeçalho do romaneio de venda
     $pdo->prepare("DELETE FROM romaneio_venda WHERE id = ?")->execute([$id]);

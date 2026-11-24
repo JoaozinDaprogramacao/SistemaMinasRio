@@ -49,6 +49,17 @@ $ordem_compra = 'ocultar';
 
 $dre = 'ocultar';
 
+//financeiro (novas telas)
+$categorias_pagar = 'ocultar';
+$contas_bancarias = 'ocultar';
+$conciliacao = 'ocultar';
+$fluxo_caixa = 'ocultar';
+$categorias_receber = 'ocultar';
+$centros_custo = 'ocultar';
+$adiantamentos = 'ocultar';
+$auditoria_fin = 'ocultar';
+$parametros_fin = 'ocultar';
+
 $query = $pdo->query("SELECT * FROM usuarios_permissoes where usuario = '$id_usuario'");
 $res = $query->fetchAll(PDO::FETCH_ASSOC);
 $total_reg = @count($res);
@@ -219,6 +230,33 @@ if($total_reg > 0){
 		if($chave == 'dre'){
 			$dre = '';
 		}
+		if($chave == 'contas_bancarias'){
+			$contas_bancarias = '';
+		}
+		if($chave == 'conciliacao'){
+			$conciliacao = '';
+		}
+		if($chave == 'fluxo_caixa'){
+			$fluxo_caixa = '';
+		}
+		if($chave == 'categorias_receber'){
+			$categorias_receber = '';
+		}
+		if($chave == 'centros_custo'){
+			$centros_custo = '';
+		}
+		if($chave == 'adiantamentos'){
+			$adiantamentos = '';
+		}
+		if($chave == 'auditoria_fin'){
+			$auditoria_fin = '';
+		}
+		if($chave == 'parametros_fin'){
+			$parametros_fin = '';
+		}
+		if($chave == 'pagar'){
+			$categorias_pagar = '';
+		}
 
 	}
 
@@ -273,7 +311,7 @@ if($grupo_acessos == 'ocultar' and $acessos == 'ocultar' and $cargos == 'ocultar
 }
 
 
-if($receber == 'ocultar' and $pagar == 'ocultar' and $rel_balanco == 'ocultar' and $rel_sintetico_despesas == 'ocultar' and $rel_sintetico_receber == 'ocultar' and $rel_financeiro == 'ocultar' and $rel_inadimplementes == 'ocultar' and $lista_vendas == 'ocultar' and $comissoes == 'ocultar' and $dre == 'ocultar'){
+if($receber == 'ocultar' and $pagar == 'ocultar' and $rel_balanco == 'ocultar' and $rel_sintetico_despesas == 'ocultar' and $rel_sintetico_receber == 'ocultar' and $rel_financeiro == 'ocultar' and $rel_inadimplementes == 'ocultar' and $lista_vendas == 'ocultar' and $comissoes == 'ocultar' and $dre == 'ocultar' and $contas_bancarias == 'ocultar' and $conciliacao == 'ocultar' and $fluxo_caixa == 'ocultar' and $adiantamentos == 'ocultar' and $auditoria_fin == 'ocultar' and $parametros_fin == 'ocultar'){
 	$menu_financeiro = 'ocultar';
 }else{
 	$menu_financeiro = '';

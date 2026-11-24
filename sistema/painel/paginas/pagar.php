@@ -1,6 +1,7 @@
 <?php
 require_once("verificar.php");
 require_once("../conexao.php"); // Garanta que a conexão esteja aqui
+require_once(__DIR__ . "/../funcoes/financeiro.php");
 
 $pag = 'pagar';
 $data_hoje = date('Y-m-d');
@@ -35,7 +36,7 @@ if (@$pagar == 'ocultar') {
 
 		<div id="btn-baixar" style="display:none">
 			<a href="#" class="btn btn-success btn-sm" onclick="abrirModalBaixaMassa()">
-				<i class="fa fa-check-square"></i> Baixar
+				<i class="fa fa-check-square"></i> Pagar selecionados
 			</a>
 		</div>
 
@@ -63,7 +64,7 @@ if (@$pagar == 'ocultar') {
 <input type="hidden" id="pago">
 <input type="hidden" id="tipo_data_filtro">
 
-<div id="mensagem-baixar"></div>
+<div id="mensagem-excluir" class="text-danger small"></div>
 
 <?php include_once("../painel/paginas/pagar/pagar/modais.php"); ?>
 
@@ -75,3 +76,8 @@ if (@$pagar == 'ocultar') {
 </script>
 
 <script src="js/ajax.js"></script>
+<script src="paginas/js/financeiro_comum.js?v=1"></script>
+<script>
+	// ajax.js redefine listar(); a tela de pagar tem filtros próprios
+	listar = function () { buscar(); };
+</script>

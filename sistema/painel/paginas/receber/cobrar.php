@@ -4,7 +4,7 @@ require_once("../../../conexao.php");
 require_once(__DIR__ . "/../../seguranca.php");
 seguranca_exigir_acesso(['receber', 'clientes']);
 
-$id = $_POST['id'];
+$id = (int) $_POST['id'];
 
 $query = $pdo->query("SELECT * FROM $tabela where id = '$id'");
 $res = $query->fetchAll(PDO::FETCH_ASSOC);
@@ -23,7 +23,7 @@ $query2 = $pdo->query("SELECT * FROM clientes where id = '$cliente'");
 $res2 = $query2->fetchAll(PDO::FETCH_ASSOC);
 if(@count($res2) > 0){
 	$nome_cliente = $res2[0]['nome'];
-	$telefone_cliente = $res2[0]['telefone'];
+	$telefone_cliente = $res2[0]['contato'];
 }else{
 	$nome_cliente = 'Sem Registro';
 	$telefone_cliente = "";
@@ -43,6 +43,15 @@ if($api_whatsapp != 'Não' and $telefone_cliente != ''){
 			$mensagem_whatsapp .= '*Descrição:* '.$descricao.' %0A';
 			$mensagem_whatsapp .= '*Valor:* '.$valorF.' %0A';	
 			$mensagem_whatsapp .= '*Vencimento:* '.$vencimentoF.' %0A%0A';	
+
+			// Saldo em aberto + PIX copia e cola, quando há chave cadastrada
+			require_once(__DIR__ . "/../../funcoes/financeiro.php");
+			$cfg_fin = fin_config($pdo);
+			if (!empty($cfg_fin['pix_chave'])) {
+				$valor_pix = (@$res[0]['pago'] == 'Parcial') ? (float) $res[0]['valor_restante'] : (float) $valor;
+				$pix = fin_pix_payload($cfg_fin['pix_chave'], $cfg_fin['pix_nome'] ?: $nome_sistema, $cfg_fin['pix_cidade'] ?: 'BRASIL', $valor_pix, 'TIT' . $id);
+				$mensagem_whatsapp .= '*PIX copia e cola:* %0A' . rawurlencode($pix) . '%0A%0A';
+			}
 
 			if($dados_pagamento != ""){
 				$mensagem_whatsapp .= '*Dados para o Pagamento:* %0A';

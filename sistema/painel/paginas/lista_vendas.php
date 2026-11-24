@@ -244,7 +244,21 @@ if(@$lista_vendas == 'ocultar'){
 								<div class="mb-3">
 									<label for="exampleFormControlInput1" class="form-label">SubTotal</label>
 									<input type="text" class="form-control" name="subtotal"  id="subtotal" readonly>
-								</div>	
+								</div>
+							</div>
+						</div>
+
+						<div class="row">
+							<div class="col-md-6">
+								<div class="mb-3">
+									<label class="form-label">Conta bancária (onde o dinheiro entrou)</label>
+									<select class="form-select" name="banco-baixar" id="banco-baixar">
+										<option value="">Conta padrão da forma de pagamento</option>
+										<?php foreach ($pdo->query("SELECT id, banco FROM bancos ORDER BY banco")->fetchAll(PDO::FETCH_ASSOC) as $b) { ?>
+											<option value="<?php echo $b['id'] ?>"><?php echo htmlspecialchars($b['banco']) ?></option>
+										<?php } ?>
+									</select>
+								</div>
 							</div>
 						</div>
 

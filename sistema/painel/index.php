@@ -491,29 +491,24 @@ if (@count($res1) > 0) {
 								<ul class="slide-menu">
 
 
-									<li class="<?php echo @$bancos ?> "><a class="slide-item" href="bancos"> Bancos</a></li>
-
-									<li class="<?php echo @$detalhes_bancos ?> "><a class="slide-item" href="detalhes_bancos"> Bancos Detalhes</a></li>
-
-									<li class="<?php echo @$receber ?> "><a class="slide-item" href="receber"> Receber</a></li>
-
-									<li class="<?php echo @$pagar ?> "><a class="slide-item" href="pagar"> Pagar</a></li>
-
-									<li class="<?php echo @$categorias_pagar ?> "><a class="slide-item" href="categorias_pagar"> Categorias Despesas</a></li>
-
+									<li class="<?php echo @$receber ?> "><a class="slide-item" href="receber"> Contas a Receber</a></li>
+									<li class="<?php echo @$pagar ?> "><a class="slide-item" href="pagar"> Contas a Pagar</a></li>
+									<li class="<?php echo @$contas_bancarias ?> "><a class="slide-item" href="bancos"> Contas Bancárias</a></li>
+									<li class="<?php echo @$contas_bancarias ?> "><a class="slide-item" href="detalhes_bancos"> Extrato Bancário</a></li>
+									<li class="<?php echo @$conciliacao ?> "><a class="slide-item" href="conciliacao"> Conciliação Bancária</a></li>
+									<li class="<?php echo @$fluxo_caixa ?> "><a class="slide-item" href="fluxo_caixa"> Fluxo de Caixa</a></li>
+									<li class="<?php echo @$dre ?> "><a class="slide-item" href="dre"> DRE Gerencial</a></li>
+									<li class="<?php echo @$adiantamentos ?> "><a class="slide-item" href="adiantamentos"> Adiantamentos</a></li>
+									<li class="<?php echo @$categorias_pagar ?> "><a class="slide-item" href="categorias_pagar"> Categorias de Despesa</a></li>
+									<li class="<?php echo @$categorias_receber ?> "><a class="slide-item" href="categorias_receber"> Categorias de Receita</a></li>
+									<li class="<?php echo @$centros_custo ?> "><a class="slide-item" href="centros_custo"> Centros de Custo</a></li>
 									<li class="<?php echo @$lista_vendas ?> "><a class="slide-item" href="lista_vendas"> Lista de Vendas</a></li>
-
-									<!--<li class="<?php echo @$comissoes ?> "><a class="slide-item" href="comissoes"> Lista de Comissões</a></li>-->
-
 									<li class="<?php echo @$rel_financeiro ?> ocultar_mobile_app"><a class="slide-item" href="" data-bs-toggle="modal" data-bs-target="#modalRelFin"> Relatório Financeiro</a></li>
-
 									<li class="<?php echo @$rel_balanco ?> ocultar_mobile_app"><a class="slide-item" href="rel/balanco_anual_class.php" target="_blank"> Rel Balanço Anual</a></li>
-
-
-									<li class="<?php echo @$rel_inadimplementes ?> ocultar_mobile_app"><a class="slide-item" href="rel/sintetico_inadimplentes_class.php" target="_blank"> Rel Inadimplementes</a></li>
-
-									<!--<li class="<?php echo @$dre ?> ocultar_mobile_app"><a class="slide-item" href="rel/dre.php?token=A5030" target="_blank"> DRE</a></li>
-									-->
+									<li class="<?php echo @$rel_inadimplementes ?> ocultar_mobile_app"><a class="slide-item" href="rel/sintetico_inadimplentes_class.php" target="_blank"> Rel Inadimplentes</a></li>
+									<li class="<?php echo @$auditoria_fin ?> "><a class="slide-item" href="auditoria_fin"> Auditoria Financeira</a></li>
+									<li class="<?php echo @$parametros_fin ?> "><a class="slide-item" href="parametros_fin"> Parâmetros Financeiros</a></li>
+									<?php if (@$_SESSION['nivel'] == 'Administrador') { ?><li><a class="slide-item" href="saneamento_fin"> Saneamento Financeiro</a></li><?php } ?>
 								</ul>
 							</li>
 

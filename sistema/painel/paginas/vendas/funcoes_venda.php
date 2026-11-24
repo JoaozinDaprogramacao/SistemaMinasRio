@@ -52,8 +52,10 @@ function venda_recalcular_status($pdo, $id_venda_real)
     $venda = $stmt->fetch(PDO::FETCH_ASSOC);
     if (!$venda || $venda['status_pagamento'] == 'Cancelada') return;
 
-    $stmt = $pdo->prepare("SELECT COALESCE(SUM(valor), 0) FROM receber
-        WHERE id_venda_real = :id AND pago = 'Sim' AND COALESCE(cancelada, '') <> 'Sim'");
+    // Parcial: o principal já quitado é o valor menos o que ainda falta
+    $stmt = $pdo->prepare("SELECT COALESCE(SUM(CASE pago WHEN 'Sim' THEN valor
+            WHEN 'Parcial' THEN GREATEST(0, valor - COALESCE(valor_restante, valor)) ELSE 0 END), 0) FROM receber
+        WHERE id_venda_real = :id AND COALESCE(cancelada, '') <> 'Sim'");
     $stmt->execute([':id' => $id_venda_real]);
     $pago = round((float) $stmt->fetchColumn(), 2);
 
@@ -94,24 +96,52 @@ function venda_cancelar($pdo, $id_venda_real, $id_usuario, $nivel)
         venda_devolver_estoque($pdo, $id_venda_real);
         $pdo->prepare("DELETE FROM detalhes_materiais WHERE id_venda_real = :id")->execute([':id' => $id_venda_real]);
 
+        require_once(__DIR__ . '/../../funcoes/financeiro.php');
         foreach ($contas as $conta) {
-            if ($conta['pago'] == 'Sim') {
+            $pgtos = fin_pagamentos($pdo, 'receber', $conta['id']);
+            if ($conta['pago'] == 'Sim' || $pgtos) {
+                // O que foi recebido volta ao cliente como uma conta a pagar de devolução,
+                // paga pela mesma conta bancária em que o dinheiro entrou.
+                $devolver = $pgtos ? round(array_sum(array_column($pgtos, 'valor')), 2) : (float) $conta['valor'];
                 $pdo->prepare("UPDATE receber SET cancelada = 'Sim' WHERE id = :id")->execute([':id' => $conta['id']]);
                 $pdo->prepare("INSERT INTO pagar SET descricao = :desc, fornecedor = 0, funcionario = 0, cliente = :cli,
-                        valor = :val, subtotal = :val2, vencimento = curDate(), data_pgto = curDate(), data_lanc = curDate(),
-                        frequencia = 0, forma_pgto = :forma, usuario_lanc = :u1, usuario_pgto = :u2, arquivo = 'sem-foto.png',
-                        pago = 'Sim', referencia = 'Cancelamento', id_ref = :ref, id_venda_real = :venda")
+                        valor = :val, subtotal = :val2, vencimento = curDate(), data_lanc = curDate(),
+                        frequencia = 0, forma_pgto = :forma, usuario_lanc = :u1, usuario_pgto = 0, arquivo = 'sem-foto.png',
+                        pago = 'Não', referencia = 'Cancelamento', id_ref = :ref, id_venda_real = :venda")
                     ->execute([
                         ':desc' => 'Devolução Venda #' . $id_venda_real, ':cli' => $conta['cliente'],
-                        ':val' => $conta['valor'], ':val2' => $conta['valor'], ':forma' => (int) $conta['forma_pgto'],
-                        ':u1' => $id_usuario, ':u2' => $id_usuario, ':ref' => $conta['id'], ':venda' => $id_venda_real
+                        ':val' => $devolver, ':val2' => $devolver, ':forma' => (int) $conta['forma_pgto'],
+                        ':u1' => $id_usuario, ':ref' => $conta['id'], ':venda' => $id_venda_real
                     ]);
+                $id_dev = (int) $pdo->lastInsertId();
+                $saidas = [];
+                foreach ($pgtos as $pg) {
+                    if (!empty($pg['banco'])) {
+                        $saidas[] = ['valor' => $pg['valor'], 'data' => date('Y-m-d'), 'forma' => $pg['forma_pgto'] ?: $conta['forma_pgto'], 'banco' => $pg['banco']];
+                    } elseif (!empty($pg['id_adiantamento'])) {
+                        // Pago com adiantamento: devolve o crédito ao cliente em vez de dinheiro
+                        $pdo->prepare("UPDATE fin_adiantamentos SET saldo = saldo + :v WHERE id = :id")->execute([':v' => $pg['valor'], ':id' => $pg['id_adiantamento']]);
+                        $pdo->prepare("UPDATE pagar SET valor = valor - :v, subtotal = subtotal - :v2 WHERE id = :id")->execute([':v' => $pg['valor'], ':v2' => $pg['valor'], ':id' => $id_dev]);
+                    }
+                }
+                if (!$pgtos) {
+                    $banco = (int) (fin_forma($pdo, $conta['forma_pgto'])['banco_padrao'] ?? 0);
+                    if ($banco) $saidas[] = ['valor' => $devolver, 'data' => date('Y-m-d'), 'forma' => $conta['forma_pgto'], 'banco' => $banco];
+                }
+                $restante = (float) $pdo->query("SELECT valor FROM pagar WHERE id = " . $id_dev)->fetchColumn();
+                if ($restante <= 0) {
+                    $pdo->prepare("DELETE FROM pagar WHERE id = :id")->execute([':id' => $id_dev]);
+                } elseif ($saidas) {
+                    // Sem conta conhecida a devolução fica em aberto em Contas a Pagar para ser paga manualmente
+                    fin_baixar($pdo, 'pagar', $id_dev, $saidas, [], 'Devolução automática do cancelamento');
+                }
+                fin_log($pdo, 'cancelar_venda', 'receber', $conta['id'], 'Venda #' . $id_venda_real . ' cancelada: devolução de ' . fin_moeda($devolver));
             } else {
-                $pdo->prepare("DELETE FROM receber WHERE id = :id")->execute([':id' => $conta['id']]);
+                fin_excluir_titulo($pdo, 'receber', $conta['id'], 'venda #' . $id_venda_real . ' cancelada');
             }
         }
 
-        $pdo->prepare("DELETE FROM pagar WHERE id_venda_real = :id AND referencia = 'Comissão' AND pago <> 'Sim'")
+        $pdo->prepare("DELETE FROM pagar WHERE id_venda_real = :id AND referencia = 'Comissão' AND COALESCE(NULLIF(pago, ''), 'Não') = 'Não'")
             ->execute([':id' => $id_venda_real]);
         $pdo->prepare("UPDATE vendas SET status_pagamento = 'Cancelada', valor_restante = 0 WHERE id = :id")
             ->execute([':id' => $id_venda_real]);

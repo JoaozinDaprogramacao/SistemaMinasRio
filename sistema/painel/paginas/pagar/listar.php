@@ -7,6 +7,7 @@ require_once("../../../conexao.php");
 require_once(__DIR__ . "/../../seguranca.php");
 seguranca_exigir_acesso(['pagar']);
 require_once("../../verificar.php");
+require_once(__DIR__ . "/../../funcoes/financeiro.php");
 
 $sql_usuario_lanc = ($mostrar_registros == 'Não') ? " AND t.usuario_lanc = '$id_usuario'" : " ";
 
@@ -24,17 +25,20 @@ if (in_array($mes_atual, ['04', '06', '09', '11'])) {
 }
 
 $filtro      = @$_POST['p1'];
-$dataInicial = @$_POST['p2'] ?: $data_inicio_mes;
-$dataFinal   = @$_POST['p3'] ?: $data_final_mes;
-$tipo_data   = @$_POST['p4'] ?: 'vencimento';
+$dataInicial = fin_data_valida(@$_POST['p2']) ? $_POST['p2'] : $data_inicio_mes;
+$dataFinal   = fin_data_valida(@$_POST['p3']) ? $_POST['p3'] : $data_final_mes;
+$tipo_data   = in_array(@$_POST['p4'], ['vencimento', 'data_lanc', 'data_pgto'], true) ? $_POST['p4'] : 'vencimento';
 $atacadista  = @$_POST['p5'];
 $forma_pgto  = @$_POST['p6'];
 $funcionario = @$_POST['p7'];
 $categoria   = @$_POST['p8'];
 
-$sql_fornecedor  = !empty($atacadista)  ? " AND t.fornecedor = '$atacadista'"   : "";
-$sql_pgto        = !empty($forma_pgto)  ? " AND t.forma_pgto = '$forma_pgto'"   : "";
-$sql_funcionario = !empty($funcionario) ? " AND t.funcionario = '$funcionario'" : "";
+$sql_fornecedor  = !empty($atacadista)  ? " AND t.fornecedor = '" . (int) $atacadista . "'"   : "";
+$sql_pgto        = !empty($forma_pgto)  ? " AND t.forma_pgto = '" . (int) $forma_pgto . "'"   : "";
+$sql_funcionario = !empty($funcionario) ? " AND t.funcionario = '" . (int) $funcionario . "'" : "";
+$centro_filtro   = (int) ($_POST['p9'] ?? 0);
+$status_filtro   = $_POST['p10'] ?? '';
+$sql_centro      = $centro_filtro ? " AND t.centro_custo = '$centro_filtro'" : "";
 
 // Garante estrutura de categorias (auto-migração)
 require_once("../categorias_pagar/funcoes.php");
@@ -57,18 +61,25 @@ $pdo->query("UPDATE pagar SET categoria_pagar = '$id_categoria_romaneio'
 if (!empty($categoria) && (int) $categoria === $id_categoria_romaneio) {
     $sql_categoria = " AND t.id_romaneio > 0";
 } else {
-    $sql_categoria = ($tem_categorias && !empty($categoria)) ? " AND t.categoria_pagar = '$categoria'" : "";
+    $sql_categoria = ($tem_categorias && !empty($categoria)) ? " AND t.categoria_pagar = '" . (int) $categoria . "'" : "";
 }
 
-$join_categoria = $tem_categorias ? " LEFT JOIN categorias_pagar cp ON t.categoria_pagar = cp.id " : "";
-$sel_categoria  = $tem_categorias ? ", cp.nome as nome_categoria" : ", '' as nome_categoria";
-
-$base_from  = " FROM $tabela t $join_categoria ";
-$base_where = " WHERE t.$tipo_data >= '$dataInicial' AND t.$tipo_data <= '$dataFinal'
-                $sql_usuario_lanc $sql_fornecedor $sql_pgto $sql_funcionario $sql_categoria ";
+$join_categoria = " LEFT JOIN categorias_pagar cp ON t.categoria_pagar = cp.id LEFT JOIN centros_custo ccu ON ccu.id = t.centro_custo ";
+$sel_categoria  = ", cp.nome as nome_categoria, ccu.nome as nome_centro";
+$pode_estornar  = fin_pode_estornar();
 
 // Normaliza pago vazio/NULL como 'Não' (registros antigos ficaram sem o valor padrão preenchido)
 $pago_norm = "COALESCE(NULLIF(t.pago, ''), 'Não')";
+$sql_status = '';
+if ($status_filtro === 'aberto')  $sql_status = " AND $pago_norm IN ('Não','Parcial')";
+if ($status_filtro === 'vencido') $sql_status = " AND $pago_norm IN ('Não','Parcial') AND t.vencimento < curDate()";
+if ($status_filtro === 'parcial') $sql_status = " AND $pago_norm = 'Parcial'";
+if ($status_filtro === 'pago')    $sql_status = " AND $pago_norm = 'Sim'";
+$base_from  = " FROM $tabela t $join_categoria ";
+$base_where = " WHERE t.$tipo_data >= '$dataInicial' AND t.$tipo_data <= '$dataFinal'
+                $sql_usuario_lanc $sql_fornecedor $sql_pgto $sql_funcionario $sql_categoria $sql_centro $sql_status ";
+
+
 
 // Totais para os cards (query única)
 $res_totais = $pdo->query("SELECT
@@ -167,6 +178,11 @@ HTML;
         $referencia      = $res[$i]['referencia'] ?? '';
         $nome_categoria  = $res[$i]['nome_categoria'] ?? '';
         $cat_id          = $res[$i]['categoria_pagar'] ?? '';
+        $centro_id       = $res[$i]['centro_custo'] ?? '';
+        $nome_centro     = fin_e($res[$i]['nome_centro'] ?? '');
+        $descricao_js    = fin_js($descricao);
+        $obs_js          = fin_js($obs);
+        $id_baldeio      = (int) ($res[$i]['id_baldeio'] ?? 0);
 
         $data_lancF  = date('d/m/Y', strtotime($data_lanc));
         $vencimentoF = date('d/m/Y', strtotime($vencimento));
@@ -202,6 +218,10 @@ HTML;
             $nome_pessoa = $sql_func['nome'] ?? 'Funcionário Excluído';
         }
 
+        $descricao_html   = fin_e($descricao);
+        $centro_html      = $nome_centro ? "<br><small class='text-muted'><i class='fa fa-sitemap'></i> {$nome_centro}</small>" : '';
+        $nome_pessoa_html = fin_e($nome_pessoa);
+        $nome_pessoa_js   = fin_js($nome_pessoa);
         $ext = pathinfo($arquivo, PATHINFO_EXTENSION);
         $tumb_arquivo = (in_array(strtolower($ext), ['jpg', 'jpeg', 'png', 'gif'])) ? $arquivo : ($ext ? strtolower($ext) . '.png' : 'sem-foto.png');
         $classe_venc = (strtotime($vencimento) < strtotime($data_hoje) && $pago != 'Sim') ? 'text-danger' : '';
@@ -213,10 +233,16 @@ HTML;
 
         // Lançamento de romaneio: editar/excluir só pelo próprio romaneio
         $acoes_edicao = '';
-        if ($id_romaneio <= 0) {
+        $acao_estorno = ($pago != 'Não' && $pode_estornar)
+            ? "<big><a href='#' onclick=\"estornarBaixa('{$id}', '{$descricao_js}')\" title='Estornar pagamento'><i class='fa fa-undo text-warning'></i></a></big>"
+            : '';
+        $acao_parcelar = ($pago == 'Não' && $id_romaneio <= 0 && $id_baldeio <= 0)
+            ? "<big><a href='#' onclick=\"parcelar('{$id}', '" . number_format($valor, 2, ',', '.') . "', '{$descricao_js}')\" title='Parcelar'><i class='fa fa-calendar-o text-secondary'></i></a></big>"
+            : '';
+        if ($id_romaneio <= 0 && $id_baldeio <= 0) {
             $acoes_edicao = <<<HTML
     <big>
-        <a href="#" onclick="editar('{$id}','{$descricao}','{$valor}','{$fornecedor_row}','{$funcionario_row}','{$vencimento}','{$data_pgto}','{$forma_pgto_row}','{$frequencia}','{$obs}','{$arquivo}','{$cat_id}')" title="Editar Conta">
+        <a href="#" onclick="editar('{$id}','{$descricao_js}','{$valor}','{$fornecedor_row}','{$funcionario_row}','{$vencimento}','{$data_pgto}','{$forma_pgto_row}','{$frequencia}','{$obs_js}','{$arquivo}','{$cat_id}','{$centro_id}','{$pago}')" title="Editar Conta">
             <i class="fa fa-edit text-primary"></i>
         </a>
     </big>
@@ -238,19 +264,21 @@ HTML;
         </div>
     </td>
     <td class="esc">{$data_lancF}</td>
-    <td><i class="fa fa-square {$classe_pago} mr-1"></i> {$descricao}</td>
+    <td><i class="fa fa-square {$classe_pago} mr-1"></i> {$descricao_html}{$centro_html}</td>
     <td class="esc"><small class="badge bg-secondary text-white">{$nome_categoria}</small></td>
     <td>R$ {$valor_finalF}</td>
-    <td class="esc">{$nome_pessoa}</td>
+    <td class="esc">{$nome_pessoa_html}</td>
     <td class="esc {$classe_venc}">{$vencimentoF}</td>
     <td class="esc">{$data_pgtoF}</td>
     <td class="esc"><a href="images/contas/{$arquivo}" target="_blank"><img src="images/contas/{$tumb_arquivo}" width="25px"></a></td>
     <td>
     <big>
-        <a href="#" onclick="baixar('{$id}', '{$descricao}', '{$valor}', '{$vencimento}', '{$nome_pessoa}', '{$pgto_padrao}', '{$pago}', '{$id_romaneio}', '{$referencia}', '{$data_lancF}')" title="Baixar / Pagar Conta">
+        <a href="#" onclick="baixar('{$id}', '{$descricao_js}', '{$valor}', '{$vencimento}', '{$nome_pessoa_js}', '{$pgto_padrao}', '{$pago}', '{$id_romaneio}', '{$referencia}', '{$data_lancF}')" title="Baixar / Pagar Conta">
             <i class="fa fa-check-square text-success"></i>
         </a>
     </big>
+{$acao_estorno}
+{$acao_parcelar}
 {$acao_pdf}
 {$acoes_edicao}
     </td>

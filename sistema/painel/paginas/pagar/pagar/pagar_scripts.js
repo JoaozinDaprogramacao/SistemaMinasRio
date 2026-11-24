@@ -15,19 +15,6 @@ $(document).ready(function () {
         limparModalBaixar();
     });
 
-    // Verificar datas para exibir campo banco no modal de inserção
-    function verificarDatasEExibirBanco() {
-        var vencimento = $('#vencimento').val();
-        var dataPgto = $('#data_pgto').val();
-        if (dataPgto && vencimento && dataPgto === vencimento) {
-            $('#div-banco').removeClass('d-none');
-        } else {
-            $('#div-banco').addClass('d-none');
-        }
-    }
-
-    $('#vencimento, #data_pgto').on('change', verificarDatasEExibirBanco);
-    $('#modalForm').on('shown.bs.modal', verificarDatasEExibirBanco);
     $('#modalForm').on('hidden.bs.modal', function () {
         $('#div-banco').addClass('d-none');
         limparCampos();
@@ -109,29 +96,32 @@ function definirPeriodo(valor) {
 }
 
 function buscar() {
-    var filtro      = "";
-    var dataInicial = $('#dataInicial').val();
-    var dataFinal   = $('#dataFinal').val();
-    var tipo_data   = $('#filtrar_por').val() || 'vencimento';
-    var atacadista  = $('#atacadista').val();
-    var formaPGTO   = $('#formaPGTO').val();
-    var funcionario = $('#funcionario_filtro').val();
-    var categoria   = $('#categoria_filtro').val();
-
-    listar(filtro, dataInicial, dataFinal, tipo_data, atacadista, formaPGTO, funcionario, categoria);
+    // Card clicado (Vencidas / A Vencer / Pagas / Todas) filtra a lista
+    var filtro = $('#tipo_data_filtro').val() || '';
+    if (filtro === 'Todas') filtro = '';
+    listarPagar({
+        p1: filtro,
+        p2: $('#dataInicial').val(),
+        p3: $('#dataFinal').val(),
+        p4: $('#filtrar_por').val() || 'vencimento',
+        p5: $('#atacadista').val(),
+        p6: $('#formaPGTO').val(),
+        p7: $('#funcionario_filtro').val(),
+        p8: $('#categoria_filtro').val(),
+        p9: $('#centro_filtro').val(),
+        p10: $('#status_filtro').val()
+    });
 }
 
-function listar(p1, p2, p3, p4, p5, p6, p7, p8) {
+function listarPagar(filtros) {
     $.ajax({
         url: 'paginas/' + pag + "/listar.php",
         method: 'POST',
-        data: { p1, p2, p3, p4, p5, p6, p7, p8 },
+        data: filtros,
         dataType: "html",
         success: function (result) {
             $("#listar").html(result);
-            // A tabela é redesenhada com todos os checkboxes desmarcados, então a
-            // seleção anterior precisa ser descartada junto — senão o modal de baixa
-            // em massa soma títulos que nem estão mais na tela.
+            // A tabela é redesenhada com todos os checkboxes desmarcados: descarta a seleção anterior
             gravarIds([]);
             $('#selecionar-todos').prop('checked', false);
         }
@@ -331,7 +321,7 @@ function arquivo(id, nome) {
     listarArquivos();
 }
 
-function editar(id, descricao, valor, fornecedor, funcionario, vencimento, data_pgto, forma_pgto, frequencia, obs, arquivo, categoria) {
+function editar(id, descricao, valor, fornecedor, funcionario, vencimento, data_pgto, forma_pgto, frequencia, obs, arquivo, categoria, centro, pago) {
     $('#mensagem').text('');
     $('#titulo_inserir').text('Editar Registro');
     $('#id').val(id);
@@ -346,6 +336,9 @@ function editar(id, descricao, valor, fornecedor, funcionario, vencimento, data_
     $('#obs').val(obs);
     $('#target').attr('src', 'images/contas/' + arquivo);
     if ($('#categoria_pagar').length) $('#categoria_pagar').val(categoria || '').change();
+    $('#centro_custo').val(centro || '');
+    // Conta já paga: a data de pagamento é gerida pela baixa
+    $('#data_pgto').val('').prop('disabled', pago && pago !== 'Não');
     $('#modalForm').modal('show');
 }
 
@@ -363,6 +356,9 @@ function limparCampos() {
     if ($('#forma_pgto').length) $('#forma_pgto').prop('selectedIndex', 0).change();
     if ($('#frequencia').length) $('#frequencia').prop('selectedIndex', 0).change();
     if ($('#categoria_pagar').length) $('#categoria_pagar').val('').change();
+    $('#centro_custo').val('');
+    $('#banco').val('');
+    $('#data_pgto').prop('disabled', false);
     $('#ids').val('');
     $('#btn-deletar, #btn-baixar').hide();
     $('#mensagem').text('');
@@ -739,12 +735,7 @@ function handlePagamentoInput(input) {
     const linha     = input.closest(".linha-pagamento");
     const container = document.getElementById("linha-container-pagamento");
 
-    const valor = linha.querySelector(".valor_pagamento").value.trim();
-    const data  = linha.querySelector(".data_pagamento").value.trim();
-    const forma = linha.querySelector(".forma_pagamento").value.trim();
-    const banco = linha.querySelector(".banco_pagamento").value.trim();
-
-    if (valor && data && forma && banco && linha === container.lastElementChild) {
+    if (finLinhaCompleta(linha) && linha === container.lastElementChild) {
         addNewPagamentoLine();
     }
 }
@@ -817,9 +808,10 @@ function baixar(id, descricao, valor, vencimento, pessoa, forma_padrao, status_p
             dataType: "json",
             success: function (dados) {
                 $('#mensagem-baixar').text('');
+                finInjetarAdiantamentos(dados.adiantamentos);
+                finBotaoEstorno(id, dados);
                 $('#linha-container-pagamento').empty();
-
-                if (dados.pagamentos && dados.pagamentos.length > 0) {
+if (dados.pagamentos && dados.pagamentos.length > 0) {
                     dados.pagamentos.forEach((pgto) => {
                         addNewPagamentoLine();
                         let linhas = document.querySelectorAll("#linha-container-pagamento .linha-pagamento");
@@ -831,6 +823,7 @@ function baixar(id, descricao, valor, vencimento, pessoa, forma_padrao, status_p
                         ultima.querySelector(".forma_pagamento").value = pgto.forma   || '';
                         ultima.querySelector(".banco_pagamento").value = pgto.banco   || '';
                         ultima.querySelector(".operacao_pagamento").value = pgto.operacao || '';
+                        if (String(pgto.forma || '').indexOf('adi:') === 0) $(ultima).find(".banco_pagamento").css({ 'pointer-events': 'none', 'opacity': .5 });
                     });
                     addNewPagamentoLine();
                 } else {
@@ -856,7 +849,9 @@ function baixar(id, descricao, valor, vencimento, pessoa, forma_padrao, status_p
         let primeiraLinha = document.querySelector("#linha-container-pagamento .linha-pagamento");
         if (primeiraLinha && forma_padrao && forma_padrao != "0") {
             primeiraLinha.querySelector(".forma_pagamento").value = forma_padrao;
+            $(primeiraLinha.querySelector(".forma_pagamento")).trigger('change');
         }
+        finCarregarExtrasBaixa(id);
         $('#form-baixar button[type="submit"]').text('Confirmar Pagamento').removeClass('btn-warning').addClass('btn-success');
         $('#modalBaixar').modal('show');
         setTimeout(() => totalizar(), 200);

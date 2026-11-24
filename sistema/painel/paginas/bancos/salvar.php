@@ -1,40 +1,27 @@
 <?php
-$tabela = 'bancos';
 require_once("../../../conexao.php");
 require_once(__DIR__ . "/../../seguranca.php");
-seguranca_exigir_acesso(['bancos', 'acessos']);
+seguranca_exigir_acesso(['contas_bancarias']);
+require_once(__DIR__ . "/../../funcoes/financeiro.php");
 
-@session_start();
-$id_usuario = @$_SESSION['id'];
+fin_responder(function () use ($pdo) {
+	$id = (int) ($_POST['id'] ?? 0);
+	$banco = trim($_POST['banco'] ?? '');
+	if ($banco === '') return 'Informe o nome da conta.';
+	$saldo = fin_num($_POST['saldo_inicial'] ?? 0);
+	$data = $_POST['data_saldo_inicial'] ?? '';
+	if (!fin_data_valida($data)) $data = date('Y-m-d');
+	$dados = [trim($_POST['correntista'] ?? ''), $banco, trim($_POST['agencia'] ?? ''), trim($_POST['conta'] ?? '')];
 
-$correntista = $_POST['correntista'];
-$banco = $_POST['banco'];
-$agencia = $_POST['agencia'];
-$conta = $_POST['conta'];
-$saldo = $_POST['saldo'];
-$id = $_POST['id'];
-
-// Trata o saldo: remove "R$ ", tira o ponto de milhar e troca a vírgula decimal por ponto
-$saldo = str_replace('R$', '', $saldo);
-$saldo = str_replace(' ', '', $saldo);
-$saldo = str_replace('.', '', $saldo);
-$saldo = str_replace(',', '.', $saldo);
-
-if ($id == "") {
-    $query = $pdo->prepare("INSERT INTO $tabela SET correntista = :correntista, banco = :banco, agencia = :agencia, conta = :conta, saldo = :saldo, id_usuario = :id_usuario");
-    $query->bindValue(":id_usuario", "$id_usuario");
-} else {
-    // CORREÇÃO: Removida a vírgula antes do WHERE e adicionado o :id
-    $query = $pdo->prepare("UPDATE $tabela SET correntista = :correntista, banco = :banco, agencia = :agencia, conta = :conta, saldo = :saldo WHERE id = :id");
-    $query->bindValue(":id", "$id");
-}
-
-$query->bindValue(":correntista", "$correntista");
-$query->bindValue(":banco", "$banco");
-$query->bindValue(":agencia", "$agencia");
-$query->bindValue(":conta", "$conta");
-$query->bindValue(":saldo", "$saldo");
-
-$query->execute();
-
-echo 'Salvo com Sucesso';
+	return fin_transacao($pdo, function () use ($pdo, $id, $dados, $saldo, $data) {
+		if ($id) {
+			fin_q($pdo, "UPDATE bancos SET correntista = ?, banco = ?, agencia = ?, conta = ? WHERE id = ?", array_merge($dados, [$id]));
+		} else {
+			fin_q($pdo, "INSERT INTO bancos SET correntista = ?, banco = ?, agencia = ?, conta = ?, saldo = 0, id_usuario = ?", array_merge($dados, [fin_usuario()]));
+			$id = (int) $pdo->lastInsertId();
+		}
+		fin_definir_saldo_inicial($pdo, $id, $saldo, $data);
+		fin_log($pdo, 'salvar_conta', 'bancos', $id, 'Salvou a conta ' . $dados[1]);
+		return 'Salvo com Sucesso';
+	});
+});
