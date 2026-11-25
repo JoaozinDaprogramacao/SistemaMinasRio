@@ -16,7 +16,7 @@
 // =====================================================================
 
 if (!defined('FIN_VERSAO_ESQUEMA')) {
-    define('FIN_VERSAO_ESQUEMA', 5);
+    define('FIN_VERSAO_ESQUEMA', 6);
 }
 
 class FinErro extends Exception
@@ -165,6 +165,7 @@ function fin_esquema($pdo)
         if ($versao < 3) fin_migracao_3($pdo);
         if ($versao < 4) fin_migracao_4($pdo);
         if ($versao < 5) fin_migracao_5($pdo);
+        if ($versao < 6) fin_migracao_6($pdo);
         if ($versao < FIN_VERSAO_ESQUEMA) {
             fin_q($pdo, "REPLACE INTO fin_meta (chave, valor) VALUES ('versao_esquema', ?)", [FIN_VERSAO_ESQUEMA]);
         }
@@ -394,6 +395,25 @@ function fin_migracao_5($pdo)
             fin_q($pdo, "UPDATE linha_bancos SET origem = 'legado_estorno', id_origem = ? WHERE id = ?", [$e['id'], $par]);
             fin_q($pdo, "UPDATE linha_bancos SET id_origem = ? WHERE id = ?", [$par, $e['id']]);
         }
+    }
+}
+
+// Materiais do romaneio de venda passam a ter histórico em detalhes_materiais.
+// Só registra o passado (não mexe no estoque): uma linha por material de cada romaneio existente.
+function fin_migracao_6($pdo)
+{
+    fin_add_col($pdo, 'detalhes_materiais', 'id_romaneio', "INT NULL");
+    fin_add_indice($pdo, 'detalhes_materiais', 'idx_dm_romaneio', 'id_romaneio');
+    fin_add_indice($pdo, 'detalhes_materiais', 'idx_dm_venda', 'id_venda_real');
+    if (fin_q($pdo, "SELECT COUNT(*) FROM detalhes_materiais WHERE id_romaneio IS NOT NULL")->fetchColumn() == 0) {
+        $pdo->exec("INSERT INTO detalhes_materiais (material_id, data, venda, valor_venda, preco_unidade, saida_estoque, descricao, id_romaneio)
+            SELECT m.id, rv.data, lo.quant, COALESCE(lo.valor, 0), COALESCE(lo.preco_unit, 0),
+                IF(UPPER(m.tem_estoque) = 'SIM', lo.quant, 0), rv.atacadista, rv.id
+            FROM linha_observacao lo
+            JOIN romaneio_venda rv ON rv.id = lo.id_romaneio
+            JOIN materiais m ON m.id = lo.descricao
+            WHERE CAST(lo.descricao AS CHAR) REGEXP '^[0-9]+$' AND lo.quant > 0
+            ORDER BY rv.id, lo.id");
     }
 }
 

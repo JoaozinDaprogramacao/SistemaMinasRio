@@ -36,7 +36,7 @@ for($i=0; $i<$linhas; $i++){
 	$id = $res[$i]['id'];
 	$material = $res[$i]['material'];	
 	$quantidade = $res[$i]['quantidade'];	
-	$motivo = $res[$i]['motivo'];
+	$motivo = htmlspecialchars((string) $res[$i]['motivo'], ENT_QUOTES, 'UTF-8');
 	$usuario = $res[$i]['usuario'];
 	$data = $res[$i]['data'];
 	

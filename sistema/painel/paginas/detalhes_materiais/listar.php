@@ -100,8 +100,13 @@ $(document).ready(function() {
                     <div class="col-md-2">
                         <select class="form-select form-select-sm" id="tipo_movimento">
                             <option value="">Todos Movimentos</option>
+                            <option value="saidas">Todas as Saídas</option>
+                            <option value="entradas">Todas as Entradas</option>
                             <option value="compra">Compra</option>
                             <option value="venda">Venda</option>
+                            <option value="romaneio">Romaneio de Venda</option>
+                            <option value="saida_manual">Saída Manual</option>
+                            <option value="entrada_manual">Entrada Manual</option>
                         </select>
                     </div>
 

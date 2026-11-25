@@ -2,6 +2,7 @@
 require_once("../../../conexao.php");
 require_once(__DIR__ . "/../../seguranca.php");
 require_once(__DIR__ . "/../../funcoes/financeiro.php");
+require_once(__DIR__ . "/../../funcoes/materiais_romaneio.php");
 seguranca_exigir_acesso(['produtos', 'bancos']);
 
 $id = $_POST['id'];
@@ -63,6 +64,7 @@ try {
     // Excluir linhas relacionadas (produtos, comissões, observações)
     $pdo->prepare("DELETE FROM linha_produto WHERE id_romaneio = ?")->execute([$id]);
     $pdo->prepare("DELETE FROM linha_comissao WHERE id_romaneio = ?")->execute([$id]);
+    romaneio_materiais_devolver($pdo, $id); // estoque dos materiais volta e o histórico sai
     $pdo->prepare("DELETE FROM linha_observacao WHERE id_romaneio = ?")->execute([$id]);
 
     // Excluir relacionamentos com romaneios de compra

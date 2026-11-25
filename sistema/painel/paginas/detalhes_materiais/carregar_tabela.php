@@ -1,7 +1,7 @@
 <?php
-$tabela = 'detalhes_materiais';
 require_once("../../../conexao.php");
 require_once(__DIR__ . "/../../seguranca.php");
+require_once(__DIR__ . "/../../funcoes/financeiro.php"); // garante a coluna id_romaneio
 seguranca_exigir_acesso(['produtos']);
 require_once("../../verificar.php");
 
@@ -18,11 +18,32 @@ $filtros = [
     'ordenacao' => $_POST['ordenacao'] ?? ''
 ];
 
-// Construção segura da query com prepared statements
-$query = "SELECT d.*, m.nome AS nome_material, c.nome AS nome_cliente
-          FROM $tabela d
+// Todas as movimentações de material numa lista só:
+// compras, vendas e romaneios (detalhes_materiais) + entradas e saídas manuais do estoque.
+$movimentos = "
+    SELECT dm.id, dm.data, dm.material_id,
+        CASE WHEN COALESCE(dm.compra, 0) > 0 THEN 'compra'
+             WHEN dm.id_romaneio IS NOT NULL THEN 'romaneio'
+             ELSE 'venda' END AS tipo,
+        IF(COALESCE(dm.compra, 0) > 0, dm.compra, COALESCE(dm.venda, 0)) AS quantidade,
+        IF(COALESCE(dm.compra, 0) > 0, COALESCE(dm.valor_compra, 0), COALESCE(dm.valor_venda, 0)) AS valor,
+        dm.preco_unidade, COALESCE(dm.entrada_estoque, 0) AS entrada_estoque, COALESCE(dm.saida_estoque, 0) AS saida_estoque,
+        dm.descricao AS cliente_id, dm.id_venda_real, dm.id_romaneio, NULL AS motivo, NULL AS usuario_id
+    FROM detalhes_materiais dm
+    UNION ALL
+    SELECT e.id, e.data, e.material, 'entrada_manual', e.quantidade, 0, NULL, e.quantidade, 0,
+        NULL, NULL, NULL, e.motivo, e.usuario
+    FROM entradas e
+    UNION ALL
+    SELECT s.id, s.data, s.material, 'saida_manual', s.quantidade, 0, NULL, 0, s.quantidade,
+        NULL, NULL, NULL, s.motivo, s.usuario
+    FROM saidas s";
+
+$query = "SELECT d.*, m.nome AS nome_material, c.nome AS nome_cliente, u.nome AS nome_usuario
+          FROM ($movimentos) d
           LEFT JOIN materiais m ON m.id = d.material_id
-          LEFT JOIN clientes c ON c.id = d.descricao";
+          LEFT JOIN clientes c ON c.id = d.cliente_id
+          LEFT JOIN usuarios u ON u.id = d.usuario_id";
 $where = [];
 $params = [];
 
@@ -37,28 +58,35 @@ if (!empty($filtros['data_fim'])) {
 }
 
 // Tipo de Movimento
-if ($filtros['tipo_movimento'] == 'compra') {
-    $where[] = "d.compra > 0";
-} elseif ($filtros['tipo_movimento'] == 'venda') {
-    $where[] = "d.venda > 0";
+$tipos = [
+    'compra' => ['compra'],
+    'venda' => ['venda'],
+    'romaneio' => ['romaneio'],
+    'entrada_manual' => ['entrada_manual'],
+    'saida_manual' => ['saida_manual'],
+    'entradas' => ['compra', 'entrada_manual'],
+    'saidas' => ['venda', 'romaneio', 'saida_manual'],
+];
+if (isset($tipos[$filtros['tipo_movimento']])) {
+    $where[] = "d.tipo IN ('" . implode("','", $tipos[$filtros['tipo_movimento']]) . "')";
 }
 
-// Valor e quantidade movimentados (compra ou venda)
+// Valor e quantidade movimentados
 if ($filtros['valor_min'] !== '') {
-    $where[] = "(d.valor_compra >= :valor_min OR d.valor_venda >= :valor_min2)";
-    $params[':valor_min'] = $params[':valor_min2'] = (float) $filtros['valor_min'];
+    $where[] = "d.valor >= :valor_min";
+    $params[':valor_min'] = (float) $filtros['valor_min'];
 }
 if ($filtros['valor_max'] !== '') {
-    $where[] = "GREATEST(d.valor_compra, d.valor_venda) <= :valor_max";
+    $where[] = "d.valor <= :valor_max";
     $params[':valor_max'] = (float) $filtros['valor_max'];
 }
 if ($filtros['quantidade_min'] !== '') {
-    $where[] = "(d.compra + d.venda) >= :quantidade_min";
-    $params[':quantidade_min'] = (int) $filtros['quantidade_min'];
+    $where[] = "d.quantidade >= :quantidade_min";
+    $params[':quantidade_min'] = (float) $filtros['quantidade_min'];
 }
 if ($filtros['quantidade_max'] !== '') {
-    $where[] = "(d.compra + d.venda) <= :quantidade_max";
-    $params[':quantidade_max'] = (int) $filtros['quantidade_max'];
+    $where[] = "d.quantidade <= :quantidade_max";
+    $params[':quantidade_max'] = (float) $filtros['quantidade_max'];
 }
 
 // Material (filtro e abas da tela)
@@ -77,10 +105,10 @@ switch ($filtros['ordenacao']) {
         $query .= " ORDER BY d.data ASC, d.id ASC";
         break;
     case 'valor_asc':
-        $query .= " ORDER BY GREATEST(d.valor_compra, d.valor_venda) ASC";
+        $query .= " ORDER BY d.valor ASC";
         break;
     case 'valor_desc':
-        $query .= " ORDER BY GREATEST(d.valor_compra, d.valor_venda) DESC";
+        $query .= " ORDER BY d.valor DESC";
         break;
     default:
         $query .= " ORDER BY d.data DESC, d.id DESC";
@@ -92,8 +120,21 @@ $res = $stmt->fetchAll(PDO::FETCH_ASSOC);
 $linhas = count($res);
 
 $moeda = fn($v) => 'R$ ' . number_format((float) $v, 2, ',', '.');
+$num = fn($v) => rtrim(rtrim(number_format((float) $v, 2, ',', '.'), '0'), ',');
+$e = fn($v) => htmlspecialchars((string) $v, ENT_QUOTES, 'UTF-8');
+
+$rotulos = [
+    'compra' => ['Compra', 'success'],
+    'venda' => ['Venda', 'primary'],
+    'romaneio' => ['Romaneio', 'info'],
+    'entrada_manual' => ['Entrada manual', 'secondary'],
+    'saida_manual' => ['Saída manual', 'warning'],
+];
 
 if ($linhas > 0) {
+    $total_entrada = 0;
+    $total_saida = 0;
+
     echo <<<HTML
     <table class="table table-bordered text-nowrap border-bottom dt-responsive" id="tabela">
     <thead>
@@ -101,8 +142,8 @@ if ($linhas > 0) {
             <th>Data</th>
             <th>Material</th>
             <th>Movimento</th>
-            <th>Cliente</th>
-            <th>Venda</th>
+            <th>Cliente / Responsável</th>
+            <th>Origem / Motivo</th>
             <th class="text-end">Quantidade</th>
             <th class="text-end">Preço Und.</th>
             <th class="text-end">Valor</th>
@@ -114,36 +155,63 @@ if ($linhas > 0) {
 HTML;
 
     foreach ($res as $item) {
-        $data_formatada = $item['data'] ? date('d/m/Y \à\s H:i', strtotime($item['data'])) : '-';
-        $material = htmlspecialchars($item['nome_material'] ?? 'Material #' . $item['material_id']);
-        $cliente = htmlspecialchars($item['nome_cliente'] ?? '-');
-        $eh_compra = $item['compra'] > 0;
-        $movimento = $eh_compra ? 'Compra' : 'Venda';
-        $quantidade = $eh_compra ? $item['compra'] : $item['venda'];
-        $valor = $moeda($eh_compra ? $item['valor_compra'] : $item['valor_venda']);
-        $preco = $moeda($item['preco_unidade']);
-        $venda = $item['id_venda_real'] ? '#' . (int) $item['id_venda_real'] : '-';
+        $ts = $item['data'] ? strtotime($item['data']) : false;
+        $data_formatada = $ts ? (date('H:i:s', $ts) === '00:00:00' ? date('d/m/Y', $ts) : date('d/m/Y \à\s H:i', $ts)) : '-';
+        $material = $e($item['nome_material'] ?? 'Material #' . $item['material_id']);
+        [$rotulo, $cor] = $rotulos[$item['tipo']] ?? [$item['tipo'], 'secondary'];
+        $movimento = "<span class=\"badge bg-{$cor}\">{$rotulo}</span>";
+        $manual = in_array($item['tipo'], ['entrada_manual', 'saida_manual'], true);
+
+        if ($manual) {
+            $pessoa = $e($item['nome_usuario'] ?? '-');
+            $origem = $item['motivo'] !== null && $item['motivo'] !== '' ? $e($item['motivo']) : '<span class="text-muted">sem motivo</span>';
+            $preco = '-';
+            $valor = '-';
+        } else {
+            $pessoa = $e($item['nome_cliente'] ?? '-');
+            if (!empty($item['id_romaneio'])) {
+                $origem = 'Romaneio #' . (int) $item['id_romaneio'];
+            } elseif (!empty($item['id_venda_real'])) {
+                $origem = 'Venda #' . (int) $item['id_venda_real'];
+            } else {
+                $origem = '-';
+            }
+            $preco = $moeda($item['preco_unidade']);
+            $valor = $moeda($item['valor']);
+        }
+
+        $total_entrada += (float) $item['entrada_estoque'];
+        $total_saida += (float) $item['saida_estoque'];
+        $quantidade = $num($item['quantidade']);
+        $saida = $num($item['saida_estoque']);
+        $entrada = $num($item['entrada_estoque']);
 
         echo <<<HTML
         <tr>
             <td>{$data_formatada}</td>
             <td>{$material}</td>
             <td>{$movimento}</td>
-            <td>{$cliente}</td>
-            <td>{$venda}</td>
+            <td>{$pessoa}</td>
+            <td>{$origem}</td>
             <td class="text-end">{$quantidade}</td>
             <td class="text-end">{$preco}</td>
             <td class="text-end">{$valor}</td>
-            <td class="text-end">{$item['saida_estoque']}</td>
-            <td class="text-end">{$item['entrada_estoque']}</td>
+            <td class="text-end">{$saida}</td>
+            <td class="text-end">{$entrada}</td>
         </tr>
 HTML;
     }
 
+    $total_entrada = $num($total_entrada);
+    $total_saida = $num($total_saida);
     echo <<<HTML
     </tbody>
     </table>
-    <p class="text-end mt-3">Total de Itens: {$linhas}</p>
+    <p class="text-end mt-3">
+        Total de Itens: {$linhas}
+        &nbsp;|&nbsp; Saída de estoque: <b>{$total_saida}</b>
+        &nbsp;|&nbsp; Entrada de estoque: <b>{$total_entrada}</b>
+    </p>
 HTML;
 } else {
     echo '<div class="alert alert-warning">Nenhum registro encontrado!</div>';
