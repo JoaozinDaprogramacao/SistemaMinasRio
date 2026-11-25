@@ -10,7 +10,7 @@ if (@$produtos == 'ocultar') {
 
 <div class="justify-content-between">
 	<div class="left-content mt-2 mb-3">
-		<small class="text-muted">Histórico das movimentações de materiais geradas pelas vendas.</small>
+		<small class="text-muted">Histórico das movimentações de materiais geradas pelas vendas, romaneios de venda e compras.</small>
 	</div>
 
 	<form action="rel/materiais_class.php" target="_blank" method="POST">

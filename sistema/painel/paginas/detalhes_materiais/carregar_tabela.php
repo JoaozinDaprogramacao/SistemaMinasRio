@@ -2,6 +2,7 @@
 $tabela = 'detalhes_materiais';
 require_once("../../../conexao.php");
 require_once(__DIR__ . "/../../seguranca.php");
+require_once(__DIR__ . "/../../funcoes/financeiro.php"); // garante a coluna id_romaneio
 seguranca_exigir_acesso(['produtos']);
 require_once("../../verificar.php");
 
@@ -40,7 +41,9 @@ if (!empty($filtros['data_fim'])) {
 if ($filtros['tipo_movimento'] == 'compra') {
     $where[] = "d.compra > 0";
 } elseif ($filtros['tipo_movimento'] == 'venda') {
-    $where[] = "d.venda > 0";
+    $where[] = "d.venda > 0 AND d.id_romaneio IS NULL";
+} elseif ($filtros['tipo_movimento'] == 'romaneio') {
+    $where[] = "d.id_romaneio IS NOT NULL";
 }
 
 // Valor e quantidade movimentados (compra ou venda)
@@ -102,7 +105,7 @@ if ($linhas > 0) {
             <th>Material</th>
             <th>Movimento</th>
             <th>Cliente</th>
-            <th>Venda</th>
+            <th>Origem</th>
             <th class="text-end">Quantidade</th>
             <th class="text-end">Preço Und.</th>
             <th class="text-end">Valor</th>
@@ -118,11 +121,17 @@ HTML;
         $material = htmlspecialchars($item['nome_material'] ?? 'Material #' . $item['material_id']);
         $cliente = htmlspecialchars($item['nome_cliente'] ?? '-');
         $eh_compra = $item['compra'] > 0;
-        $movimento = $eh_compra ? 'Compra' : 'Venda';
+        $movimento = $eh_compra ? 'Compra' : (!empty($item['id_romaneio']) ? 'Romaneio' : 'Venda');
         $quantidade = $eh_compra ? $item['compra'] : $item['venda'];
         $valor = $moeda($eh_compra ? $item['valor_compra'] : $item['valor_venda']);
         $preco = $moeda($item['preco_unidade']);
-        $venda = $item['id_venda_real'] ? '#' . (int) $item['id_venda_real'] : '-';
+        if (!empty($item['id_romaneio'])) {
+            $venda = 'Romaneio #' . (int) $item['id_romaneio'];
+        } elseif (!empty($item['id_venda_real'])) {
+            $venda = 'Venda #' . (int) $item['id_venda_real'];
+        } else {
+            $venda = '-';
+        }
 
         echo <<<HTML
         <tr>

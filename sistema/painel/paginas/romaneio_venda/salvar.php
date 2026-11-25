@@ -3,6 +3,7 @@ $tabela = 'romaneio_venda';
 require_once("../../../conexao.php");
 require_once(__DIR__ . "/../../seguranca.php");
 require_once(__DIR__ . "/../../funcoes/financeiro.php");
+require_once(__DIR__ . "/../../funcoes/materiais_romaneio.php");
 seguranca_exigir_acesso(['produtos', 'bancos']);
 
 @session_start();
@@ -122,6 +123,8 @@ try {
     if ($id != "") {
         $pdo->prepare("DELETE FROM linha_produto WHERE id_romaneio = ?")->execute([$romaneio_venda_id]);
         $pdo->prepare("DELETE FROM linha_comissao WHERE id_romaneio = ?")->execute([$romaneio_venda_id]);
+        // Devolve o estoque baixado pela versão anterior antes de regravar os materiais
+        romaneio_materiais_devolver($pdo, $romaneio_venda_id);
         $pdo->prepare("DELETE FROM linha_observacao WHERE id_romaneio = ?")->execute([$romaneio_venda_id]);
     }
 
@@ -146,19 +149,8 @@ try {
             $pdo->prepare("INSERT INTO linha_observacao (id_romaneio, observacoes, descricao, quant, preco_unit, valor) VALUES (?, ?, ?, ?, ?, ?)")
                 ->execute([$romaneio_venda_id, $observacao, $material[$key] ?? null, $quant_3[$key] ?? 0, str_replace(',', '.', $preco_unit_3[$key] ?? 0), str_replace(',', '.', $valor_3[$key] ?? 0)]);
 
-            $matId = (int)($material[$key] ?? 0);
-            $qtdUsada = (int)($quant_3[$key] ?? 0);
-            if ($matId > 0 && $qtdUsada > 0) {
-                $check = $pdo->prepare("SELECT tem_estoque FROM materiais WHERE id = ?");
-                $check->execute([$matId]);
-                $row = $check->fetch(PDO::FETCH_ASSOC);
-                if ($row) {
-                    $pdo->prepare("UPDATE materiais SET vendas = vendas + ? WHERE id = ?")->execute([$qtdUsada, $matId]);
-                    if (strtoupper($row['tem_estoque']) === 'SIM') {
-                        $pdo->prepare("UPDATE materiais SET estoque = estoque - ? WHERE id = ?")->execute([$qtdUsada, $matId]);
-                    }
-                }
-            }
+            romaneio_materiais_lancar($pdo, $romaneio_venda_id, $material[$key] ?? 0, $quant_3[$key] ?? 0,
+                $preco_unit_3[$key] ?? 0, $valor_3[$key] ?? 0, $atacadista, $data, false);
         }
     }
 
