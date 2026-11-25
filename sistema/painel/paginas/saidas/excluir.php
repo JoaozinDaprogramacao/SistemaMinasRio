@@ -1,23 +1,30 @@
-<?php 
+<?php
 $tabela = 'saidas';
 require_once("../../../conexao.php");
 require_once(__DIR__ . "/../../seguranca.php");
 seguranca_exigir_acesso(['saidas']);
 
-$id = $_POST['id'];
+$id = (int) ($_POST['id'] ?? 0);
 
-$query = $pdo->query("SELECT * FROM $tabela where id = '$id'");
-$res = $query->fetchAll(PDO::FETCH_ASSOC);
-$id_produto = $res[0]['produto'];
-$quantidade = $res[0]['quantidade'];
+try {
+	$pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+	$pdo->beginTransaction();
 
-$query = $pdo->query("SELECT * FROM produtos where id = '$id_produto'");
-$res = $query->fetchAll(PDO::FETCH_ASSOC);
-$estoque = @$res[0]['estoque'];
+	$stmt = $pdo->prepare("SELECT material, quantidade FROM $tabela WHERE id = ? FOR UPDATE");
+	$stmt->execute([$id]);
+	$saida = $stmt->fetch(PDO::FETCH_ASSOC);
+	if (!$saida) {
+		throw new Exception('Saída não encontrada!');
+	}
 
-$total = $estoque + $quantidade;
+	// A saída manual tinha abatido do estoque do material: devolve
+	$pdo->prepare("UPDATE materiais SET estoque = estoque + ? WHERE id = ?")
+		->execute([(float) $saida['quantidade'], (int) $saida['material']]);
+	$pdo->prepare("DELETE FROM $tabela WHERE id = ?")->execute([$id]);
 
-$pdo->query("UPDATE produtos SET estoque = '$total' WHERE id = '$id_produto' ");
-$pdo->query("DELETE FROM $tabela WHERE id = '$id' ");
-echo 'Excluído com Sucesso';
-?>
+	$pdo->commit();
+	echo 'Excluído com Sucesso';
+} catch (Exception $e) {
+	if ($pdo->inTransaction()) $pdo->rollBack();
+	echo 'Erro ao excluir: ' . $e->getMessage();
+}
