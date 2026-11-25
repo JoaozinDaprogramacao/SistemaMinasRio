@@ -102,6 +102,7 @@ $(document).ready(function() {
                             <option value="">Todos Movimentos</option>
                             <option value="compra">Compra</option>
                             <option value="venda">Venda</option>
+                            <option value="romaneio">Romaneio de Venda</option>
                         </select>
                     </div>
 

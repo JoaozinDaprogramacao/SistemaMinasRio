@@ -4,6 +4,7 @@ $tabela = 'romaneio_venda';
 require_once("../../../conexao.php");
 require_once(__DIR__ . "/../../seguranca.php");
 require_once(__DIR__ . "/../../funcoes/financeiro.php");
+require_once(__DIR__ . "/../../funcoes/materiais_romaneio.php");
 seguranca_exigir_acesso(['produtos']);
 
 @session_start();
@@ -361,6 +362,8 @@ try {
     $valor_3 = $_POST['valor_3'] ?? [];
 
     if ($id != "") {
+        // Devolve o estoque baixado pela versão anterior antes de regravar os materiais
+        romaneio_materiais_devolver($pdo, $romaneio_venda_id);
         $pdo->prepare("DELETE FROM linha_observacao WHERE id_romaneio = ?")->execute([$romaneio_venda_id]);
     }
 
@@ -384,38 +387,9 @@ try {
                 str_replace(',', '.', $valor_3[$key] ?? 0)
             ]);
 
-            // 2) Atualizar estoque do material
-            $matId = (int)($material[$key] ?? 0);
-            $qtdUsada = (int)($quant_3[$key] ?? 0);
-
-            if ($matId <= 0 || $qtdUsada <= 0) {
-                continue;
-            }
-
-            gravarLog("Verificando estoque - Material ID: $matId, Qtd: $qtdUsada");
-
-            $check = $pdo->prepare("SELECT nome, tem_estoque, estoque FROM materiais WHERE id = ?");
-            $check->execute([$matId]);
-            $row = $check->fetch(PDO::FETCH_ASSOC);
-
-            if (!$row) continue;
-
-            // Incrementar vendas
-            $upd2 = $pdo->prepare("UPDATE materiais SET vendas = vendas + ? WHERE id = ?");
-            $upd2->execute([$qtdUsada, $matId]);
-
-            // Checagem de estoque
-            if (strtoupper($row['tem_estoque']) === 'SIM') {
-                if ($row['estoque'] < $qtdUsada) {
-                    $nomeMaterial = $row['nome'] ?? "ID {$matId}";
-                    gravarLog("ERRO ESTOQUE: $nomeMaterial. Disp: {$row['estoque']}, Req: $qtdUsada");
-                    throw new Exception("Estoque insuficiente para o material: '{$nomeMaterial}'");
-                }
-
-                $upd = $pdo->prepare("UPDATE materiais SET estoque = estoque - ? WHERE id = ?");
-                $upd->execute([$qtdUsada, $matId]);
-                gravarLog("Estoque debitado com sucesso.");
-            }
+            // 2) Baixa o estoque do material e registra em Detalhes Materiais
+            romaneio_materiais_lancar($pdo, $romaneio_venda_id, $material[$key] ?? 0, $quant_3[$key] ?? 0,
+                $preco_unit_3[$key] ?? 0, $valor_3[$key] ?? 0, $atacadista, $data, true);
         }
     }
 
