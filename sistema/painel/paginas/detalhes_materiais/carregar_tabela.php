@@ -1,7 +1,7 @@
 <?php
 require_once("../../../conexao.php");
 require_once(__DIR__ . "/../../seguranca.php");
-require_once(__DIR__ . "/../../funcoes/financeiro.php"); // garante a coluna id_romaneio
+require_once(__DIR__ . "/../../funcoes/financeiro.php"); // garante as colunas id_romaneio e id_compra
 seguranca_exigir_acesso(['produtos']);
 require_once("../../verificar.php");
 
@@ -28,22 +28,25 @@ $movimentos = "
         IF(COALESCE(dm.compra, 0) > 0, dm.compra, COALESCE(dm.venda, 0)) AS quantidade,
         IF(COALESCE(dm.compra, 0) > 0, COALESCE(dm.valor_compra, 0), COALESCE(dm.valor_venda, 0)) AS valor,
         dm.preco_unidade, COALESCE(dm.entrada_estoque, 0) AS entrada_estoque, COALESCE(dm.saida_estoque, 0) AS saida_estoque,
-        dm.descricao AS cliente_id, dm.id_venda_real, dm.id_romaneio, NULL AS motivo, NULL AS usuario_id
+        dm.descricao AS cliente_id, dm.id_venda_real, dm.id_romaneio, dm.id_compra, NULL AS motivo, NULL AS usuario_id
     FROM detalhes_materiais dm
     UNION ALL
     SELECT e.id, e.data, e.material, 'entrada_manual', e.quantidade, 0, NULL, e.quantidade, 0,
-        NULL, NULL, NULL, e.motivo, e.usuario
+        NULL, NULL, NULL, NULL, e.motivo, e.usuario
     FROM entradas e
     UNION ALL
     SELECT s.id, s.data, s.material, 'saida_manual', s.quantidade, 0, NULL, 0, s.quantidade,
-        NULL, NULL, NULL, s.motivo, s.usuario
+        NULL, NULL, NULL, NULL, s.motivo, s.usuario
     FROM saidas s";
 
-$query = "SELECT d.*, m.nome AS nome_material, c.nome AS nome_cliente, u.nome AS nome_usuario
+$query = "SELECT d.*, m.nome AS nome_material, c.nome AS nome_cliente, u.nome AS nome_usuario,
+                 COALESCE(NULLIF(f.nome_atacadista, ''), f.razao_social) AS nome_fornecedor
           FROM ($movimentos) d
           LEFT JOIN materiais m ON m.id = d.material_id
-          LEFT JOIN clientes c ON c.id = d.cliente_id
-          LEFT JOIN usuarios u ON u.id = d.usuario_id";
+          LEFT JOIN clientes c ON c.id = d.cliente_id AND d.tipo <> 'compra'
+          LEFT JOIN usuarios u ON u.id = d.usuario_id
+          LEFT JOIN pagar p ON p.id = d.id_compra
+          LEFT JOIN fornecedores f ON f.id = p.fornecedor";
 $where = [];
 $params = [];
 
@@ -142,7 +145,7 @@ if ($linhas > 0) {
             <th>Data</th>
             <th>Material</th>
             <th>Movimento</th>
-            <th>Cliente / Responsável</th>
+            <th>Cliente / Fornecedor / Responsável</th>
             <th>Origem / Motivo</th>
             <th class="text-end">Quantidade</th>
             <th class="text-end">Preço Und.</th>
@@ -168,8 +171,10 @@ HTML;
             $preco = '-';
             $valor = '-';
         } else {
-            $pessoa = $e($item['nome_cliente'] ?? '-');
-            if (!empty($item['id_romaneio'])) {
+            $pessoa = $e(($item['tipo'] === 'compra' ? $item['nome_fornecedor'] : $item['nome_cliente']) ?? '-');
+            if ($item['tipo'] === 'compra') {
+                $origem = !empty($item['id_compra']) ? 'Compra #' . (int) $item['id_compra'] : '-';
+            } elseif (!empty($item['id_romaneio'])) {
                 $origem = 'Romaneio #' . (int) $item['id_romaneio'];
             } elseif (!empty($item['id_venda_real'])) {
                 $origem = 'Venda #' . (int) $item['id_venda_real'];

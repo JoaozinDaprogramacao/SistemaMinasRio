@@ -16,7 +16,7 @@
 // =====================================================================
 
 if (!defined('FIN_VERSAO_ESQUEMA')) {
-    define('FIN_VERSAO_ESQUEMA', 6);
+    define('FIN_VERSAO_ESQUEMA', 7);
 }
 
 class FinErro extends Exception
@@ -166,6 +166,7 @@ function fin_esquema($pdo)
         if ($versao < 4) fin_migracao_4($pdo);
         if ($versao < 5) fin_migracao_5($pdo);
         if ($versao < 6) fin_migracao_6($pdo);
+        if ($versao < 7) fin_migracao_7($pdo);
         if ($versao < FIN_VERSAO_ESQUEMA) {
             fin_q($pdo, "REPLACE INTO fin_meta (chave, valor) VALUES ('versao_esquema', ?)", [FIN_VERSAO_ESQUEMA]);
         }
@@ -414,6 +415,30 @@ function fin_migracao_6($pdo)
             JOIN materiais m ON m.id = lo.descricao
             WHERE CAST(lo.descricao AS CHAR) REGEXP '^[0-9]+$' AND lo.quant > 0
             ORDER BY rv.id, lo.id");
+    }
+}
+
+// Compras de material passam a guardar o número da compra (= id do título em pagar),
+// para Detalhes Materiais mostrar o fornecedor. Liga as compras antigas: cada movimentação
+// sem compra é casada com o item de compra de mesmo material, quantidade e total, na ordem
+// em que foram gravados (um item só é usado uma vez).
+function fin_migracao_7($pdo)
+{
+    fin_add_col($pdo, 'detalhes_materiais', 'id_compra', "INT NULL");
+    fin_add_indice($pdo, 'detalhes_materiais', 'idx_dm_compra', 'id_compra');
+
+    $usados = array_flip(fin_q($pdo, "SELECT DISTINCT id_compra FROM detalhes_materiais WHERE id_compra IS NOT NULL")->fetchAll(PDO::FETCH_COLUMN));
+    $itens = [];
+    foreach (fin_q($pdo, "SELECT id, id_compra, material, quantidade, total FROM itens_compra WHERE id_compra > 0 ORDER BY id")->fetchAll(PDO::FETCH_ASSOC) as $i) {
+        if (isset($usados[$i['id_compra']])) continue;
+        $itens[$i['material'] . '|' . round((float) $i['quantidade'], 2) . '|' . round((float) $i['total'], 2)][] = (int) $i['id_compra'];
+    }
+    $liga = $pdo->prepare("UPDATE detalhes_materiais SET id_compra = ? WHERE id = ?");
+    foreach (fin_q($pdo, "SELECT id, material_id, compra, valor_compra FROM detalhes_materiais WHERE compra > 0 AND id_compra IS NULL ORDER BY id")->fetchAll(PDO::FETCH_ASSOC) as $d) {
+        $chave = $d['material_id'] . '|' . round((float) $d['compra'], 2) . '|' . round((float) $d['valor_compra'], 2);
+        if (!empty($itens[$chave])) {
+            $liga->execute([array_shift($itens[$chave]), $d['id']]);
+        }
     }
 }
 
