@@ -170,8 +170,8 @@ try {
 			compras = COALESCE(compras, 0) + :q2
 		WHERE id = :id");
 	// Movimentação que aparece em Detalhes Materiais
-	$stmt_detalhes = $pdo->prepare("INSERT INTO detalhes_materiais (material_id, data, compra, valor_compra, preco_unidade, entrada_estoque, descricao)
-		VALUES (:material_id, :data, :compra, :valor_compra, :preco_unidade, :entrada_estoque, 0)");
+	$stmt_detalhes = $pdo->prepare("INSERT INTO detalhes_materiais (material_id, data, compra, valor_compra, preco_unidade, entrada_estoque, descricao, id_compra)
+		VALUES (:material_id, :data, :compra, :valor_compra, :preco_unidade, :entrada_estoque, 0, :id_compra)");
 	foreach ($itens as $item) {
 		$stmt_estoque->execute([':q1' => $item['quantidade'], ':q2' => $item['quantidade'], ':id' => $item['material']]);
 		$stmt_detalhes->execute([
@@ -181,6 +181,7 @@ try {
 			':valor_compra' => $item['total'],
 			':preco_unidade' => $item['valor'],
 			':entrada_estoque' => $item['quantidade'],
+			':id_compra' => $id_compra,
 		]);
 	}
 
